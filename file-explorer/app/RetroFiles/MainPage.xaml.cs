@@ -388,7 +388,7 @@ namespace RetroFiles
                 {
                     const string chars = "abcdefghjkmnpqrstuvwxyz23456789";   // no look-alikes
                     var bytes = new byte[8];
-                    using (var rng = new System.Security.Cryptography.RNGCryptoServiceProvider()) rng.GetBytes(bytes);
+                    new System.Security.Cryptography.RNGCryptoServiceProvider().GetBytes(bytes);
                     p = new string(bytes.Select(x => chars[x % chars.Length]).ToArray());
                     s["webpass"] = p;
                     s.Save();

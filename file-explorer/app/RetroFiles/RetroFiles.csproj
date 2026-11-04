@@ -63,7 +63,7 @@
     <Page Include="ViewerPage.xaml"><SubType>Designer</SubType><Generator>MSBuild:Compile</Generator></Page>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Package.appxmanifest"><SubType>Designer</SubType></None>
+    <AppxManifest Include="Package.appxmanifest"><SubType>Designer</SubType></AppxManifest>
     <None Include="Properties\AppManifest.xml" />
     <None Include="Properties\WMAppManifest.xml"><SubType>Designer</SubType></None>
     <Content Include="Assets\**\*.png" />

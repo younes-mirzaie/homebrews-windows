@@ -24,7 +24,7 @@ namespace RetroFiles.Core
                 if (!settings.TryGetValue("token", out t) || string.IsNullOrEmpty(t))
                 {
                     var bytes = new byte[16];
-                    using (var rng = new RNGCryptoServiceProvider()) rng.GetBytes(bytes);
+                    new RNGCryptoServiceProvider().GetBytes(bytes);   // not IDisposable on WP Silverlight
                     var sb = new StringBuilder();
                     foreach (var b in bytes) sb.Append(b.ToString("x2"));
                     t = sb.ToString();
