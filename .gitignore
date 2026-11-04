@@ -1,0 +1,19 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+[Bb]in/
+[Oo]bj/
+AppPackages/
+BundleArtifacts/
+*.appx
+*.xap
+*.appxupload
+packages/
+
+# native builds
+**/daemon/build/
+**/Helper/rfxfsd.exe
+
+# python
+__pycache__/
