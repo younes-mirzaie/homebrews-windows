@@ -85,13 +85,13 @@ namespace RetroFiles.Core
             status("starting the helper...");
             string src = Package.Current.InstalledLocation.Path + @"\Helper\rfxfsd.exe";
             string dst = HelperDir + @"\rfxfsd.exe";
-            var cmds = new StringBuilder();
-            if (restart) cmds.Append("kill -f rfxfsd.exe\r\n");
-            cmds.Append("mkdir \"" + HelperDir + "\" 2>nul\r\n");
-            cmds.Append("copy /y \"" + src + "\" \"" + dst + "\"\r\n");
+            var cmds = new System.Collections.Generic.List<string>();
+            if (restart) cmds.Add("kill -f rfxfsd.exe");
+            cmds.Add("mkdir \"" + HelperDir + "\" 2>nul");
+            cmds.Add("copy /y \"" + src + "\" \"" + dst + "\"");
             // if the copy failed, run it straight from the app package
-            cmds.Append("if exist \"" + dst + "\" (start \"\" \"" + dst + "\" --token " + Token + ") else (start \"\" \"" + src + "\" --token " + Token + ")\r\n");
-            cmds.Append("exit\r\n");
+            cmds.Add("if exist \"" + dst + "\" (start \"\" \"" + dst + "\" --token " + Token + ") else (start \"\" \"" + src + "\" --token " + Token + ")");
+            cmds.Add("exit");
 
             string shellOut = null;
             int shellPort = 0;
@@ -101,9 +101,15 @@ namespace RetroFiles.Core
                 if (sh == null) continue;
                 using (sh)
                 {
-                    await sh.ReadAvailableAsync(800);            // banner and telnet negotiation
-                    await sh.SendAsync(cmds.ToString());
-                    shellOut = await sh.ReadAvailableAsync(1500);
+                    var log = new StringBuilder();
+                    log.Append(await sh.ReadAvailableAsync(800));   // banner and telnet negotiation
+                    // one command at a time: input typed while a command runs can be dropped by the shell
+                    foreach (var cmd in cmds)
+                    {
+                        await sh.SendAsync(cmd + "\r\n");
+                        log.Append(await sh.ReadAvailableAsync(1200));
+                    }
+                    shellOut = log.ToString();
                 }
                 shellPort = port;
                 break;
