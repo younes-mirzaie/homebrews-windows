@@ -359,7 +359,7 @@ static void api_upload(Req *r, const WCHAR *dir, const WCHAR *name)
     BYTE *buf;
     DWORD err = 0, put;
     WIN32_FILE_ATTRIBUTE_DATA a;
-    if (wcschr(name, L'\\') || wcschr(name, L'/') || !wcscmp(name, L"..")) { free(dst); web_json_error(r->s, 400, "bad file name"); return; }
+    if (!*name || wcschr(name, L'\\') || wcschr(name, L'/') || wcschr(name, L':') || !wcscmp(name, L".") || !wcscmp(name, L"..")) { free(dst); web_json_error(r->s, 400, "bad file name"); return; }
     tmp = (WCHAR *)malloc((wcslen(dst) + 16) * sizeof(WCHAR));
     wcscpy(tmp, dst);
     wcscat(tmp, L".rfxtmp");
@@ -432,6 +432,8 @@ static void web_handle(Req *r)
         else web_ok(r->s);
     }
     else if (!b) web_json_error(r->s, 400, "missing to");
+    else if ((!strcmp(p, "/api/rename") || !strcmp(p, "/api/move")) && is_protected(a))
+        web_json_error(r->s, 403, "refusing to move or rename a drive or top system folder");
     else if (!strcmp(p, "/api/rename")) {
         if (MoveFileExW(a, b, 0)) web_ok(r->s); else web_win_error(r->s, GetLastError(), a);
     }

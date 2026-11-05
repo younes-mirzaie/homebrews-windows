@@ -431,6 +431,22 @@ static void cmd_drives(Conn *c)
     send_str(c, "\n");
 }
 
+/* Drive roots and the top system folders are never deleted, moved or renamed, by the app or the web page. */
+static int is_protected(const WCHAR *path)
+{
+    static const WCHAR *top[] = {L"C:\\Windows", L"C:\\Windows\\System32", L"C:\\Data", L"C:\\EFIESP",
+                                 L"C:\\Data\\Users", L"C:\\Data\\Programs", L"C:\\Programs", NULL};
+    WCHAR tmp[MAX_PATH];
+    size_t n = wcslen(path);
+    int i;
+    while (n > 0 && path[n - 1] == L'\\') n--;
+    if (n <= 2 || n >= MAX_PATH) return 1;
+    memcpy(tmp, path, n * sizeof(WCHAR));
+    tmp[n] = 0;
+    for (i = 0; top[i]; i++) if (!_wcsicmp(tmp, top[i])) return 1;
+    return 0;
+}
+
 static void cmd_copy(Conn *c, const WCHAR *src, const WCHAR *dst, int overwrite)
 {
     DWORD err = 0;
@@ -450,6 +466,10 @@ static void cmd_move(Conn *c, const WCHAR *src, const WCHAR *dst, int overwrite,
     DWORD err;
     WCHAR *errPath = NULL;
     WIN32_FILE_ATTRIBUTE_DATA a;
+    if (is_protected(src)) {
+        send_msg(c, ERROR_ACCESS_DENIED, "refusing to move or rename a drive or top system folder");
+        return;
+    }
     if (is_inside(src, dst) && _wcsicmp(src, dst) != 0) {
         send_msg(c, ERROR_INVALID_PARAMETER, "can't move a folder into itself");
         return;
@@ -464,22 +484,6 @@ static void cmd_move(Conn *c, const WCHAR *src, const WCHAR *dst, int overwrite,
     c->bytes = 0; c->files = 0;
     if (!delete_tree(c, src, &err, &errPath)) { send_err(c, err, errPath); free(errPath); return; }
     send_str(c, "OK\n");
-}
-
-/* Drive roots and the top system folders are never deleted, by the app or the web page. */
-static int is_protected(const WCHAR *path)
-{
-    static const WCHAR *top[] = {L"C:\\Windows", L"C:\\Windows\\System32", L"C:\\Data", L"C:\\EFIESP",
-                                 L"C:\\Data\\Users", L"C:\\Data\\Programs", L"C:\\Programs", NULL};
-    WCHAR tmp[MAX_PATH];
-    size_t n = wcslen(path);
-    int i;
-    while (n > 0 && path[n - 1] == L'\\') n--;
-    if (n <= 2 || n >= MAX_PATH) return 1;
-    memcpy(tmp, path, n * sizeof(WCHAR));
-    tmp[n] = 0;
-    for (i = 0; top[i]; i++) if (!_wcsicmp(tmp, top[i])) return 1;
-    return 0;
 }
 
 static void cmd_delete(Conn *c, const WCHAR *path)

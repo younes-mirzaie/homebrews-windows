@@ -8,13 +8,15 @@ A root file manager for Windows Phone 8.1 (made for an interop-unlocked Lumia 82
 - Copy / cut / paste (also across drives), delete, rename, new folder, new text file.
 - Properties: size (folder sizes too), dates, read-only / hidden / system / archive toggles.
 - Viewer: text (edit line by line and save, keeps encoding and line endings), hex, images.
-- "Open with...": hands any file to the app that opens its type (music, video, PDF...).
+- Tapping a file opens text and images in the built-in viewer and hands everything else (music,
+  video, PDF, Office...) to the phone's app for that type, falling back to the viewer. "Open with..."
+  and "view as text/hex" in the select menu force either one.
 - **Web access** (globe button): manage files from a PC browser on the same Wi-Fi: browse, upload
   (button or drag and drop), download, new folder, rename, copy/move, delete. Password protected;
   the app shows the address and password. Stays on until you turn it off or the phone restarts.
 - Bookmarks, type-a-path, sort by name/size/date, show or hide hidden/system items.
-- Warnings before changing system areas; the helper refuses to delete drive roots and the top
-  system folders.
+- Warnings before changing system areas; the helper refuses to delete, move or rename drive
+  roots and the top system folders.
 
 ## How it works
 

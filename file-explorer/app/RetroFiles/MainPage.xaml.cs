@@ -222,10 +222,25 @@ namespace RetroFiles
             await OpenAsync(item);
         }
 
+        /// <summary>Types the built-in viewer handles well; everything else goes to the phone's own app for it.</summary>
+        static readonly string[] ViewerTypes =
+        {
+            ".txt", ".log", ".ini", ".inf", ".cfg", ".conf", ".xml", ".json", ".csv", ".md", ".bat", ".cmd", ".reg",
+            ".ps1", ".js", ".css", ".c", ".h", ".cpp", ".cs", ".py", ".sh", ".xaml", ".manifest", ".policy",
+            ".jpg", ".jpeg", ".png", ".gif", ".bmp"
+        };
+
         async Task OpenAsync(FsItem item)
         {
             if (item.IsFolder || item.IsPlace) { await LoadAsync(item.FullPath); return; }
-            AppState.ViewerPath = item.FullPath;
+            string ext = System.IO.Path.GetExtension(item.Name).ToLowerInvariant();
+            if (ext.Length > 0 && !ViewerTypes.Contains(ext)) { await OpenWithAppAsync(item, fallbackToViewer: true); return; }
+            ShowViewer(item.FullPath);
+        }
+
+        void ShowViewer(string path)
+        {
+            AppState.ViewerPath = path;
             NavigationService.Navigate(new Uri("/ViewerPage.xaml", UriKind.Relative));
         }
 
@@ -331,7 +346,7 @@ namespace RetroFiles
                 ((ApplicationBarIconButton)bar.Buttons[3]).IsEnabled = n == 1;
                 bar.MenuItems.Add(Menu("properties", Properties_Click));
                 bar.MenuItems.Add(Menu("open with...", OpenWith_Click));
-                bar.MenuItems.Add(Menu("view as text/hex", (s, e) => { var one = Selected.FirstOrDefault(); if (one != null && !one.IsFolder) { ExitSelectMode(); AppState.ViewerPath = one.FullPath; NavigationService.Navigate(new Uri("/ViewerPage.xaml", UriKind.Relative)); } }));
+                bar.MenuItems.Add(Menu("view as text/hex", (s, e) => { var one = Selected.FirstOrDefault(); if (one != null && !one.IsFolder) { ExitSelectMode(); ShowViewer(one.FullPath); } }));
                 bar.MenuItems.Add(Menu("select all", (s, e) => { Items.SelectAll(); BuildAppBar(); }));
                 bar.MenuItems.Add(Menu("folder size", FolderSize_Click));
             }
@@ -511,8 +526,11 @@ namespace RetroFiles
                                    "System area", MessageBoxButton.OKCancel) == MessageBoxResult.OK;
         }
 
-        async Task RunLongAsync(string title, Func<IProgress<OpProgress>, CancellationToken, Task> work)
+        /// <summary>Runs a cancellable operation with a progress line. Returns false if it failed or was cancelled
+        /// (the error is already on screen).</summary>
+        async Task<bool> RunLongAsync(string title, Func<IProgress<OpProgress>, CancellationToken, Task> work)
         {
+            bool ok = false;
             _longOp = new CancellationTokenSource();
             BuildAppBar();
             ShowStatus(title, busy: true);
@@ -523,6 +541,7 @@ namespace RetroFiles
             {
                 await work(progress, _longOp.Token);
                 HideStatus();
+                ok = true;
             }
             catch (Exception e) { ShowError(e); }
             finally
@@ -531,6 +550,7 @@ namespace RetroFiles
                 _longOp = null;
             }
             await LoadAsync(_path, keepScroll: true);
+            return ok;
         }
 
         void CancelButton_Click(object sender, RoutedEventArgs e)
@@ -614,7 +634,7 @@ namespace RetroFiles
             var sel = Selected;
             if (sel.Count == 0) return;
             ulong bytes = 0, files = 0, dirs = 0;
-            await RunLongAsync("measuring...", async (progress, cancel) =>
+            bool ok = await RunLongAsync("measuring...", async (progress, cancel) =>
             {
                 foreach (var i in sel)
                 {
@@ -623,6 +643,7 @@ namespace RetroFiles
                     bytes += ulong.Parse(r[1]); files += ulong.Parse(r[2]); dirs += ulong.Parse(r[3]) + 1;
                 }
             });
+            if (!ok) return;
             MessageBox.Show(FsItem.FormatSize(bytes) + " (" + bytes.ToString("N0") + " bytes)\n" + files + " files, " + dirs + " folders", "Size", MessageBoxButton.OK);
         }
 
@@ -679,20 +700,32 @@ namespace RetroFiles
             var item = Selected.FirstOrDefault();
             if (item == null || item.IsFolder) return;
             ExitSelectMode();
+            await OpenWithAppAsync(item, fallbackToViewer: false);
+        }
+
+        async Task OpenWithAppAsync(FsItem item, bool fallbackToViewer)
+        {
             string dir = FsItem.Combine(ApplicationData.Current.LocalFolder.Path, "open");
             string dst = FsItem.Combine(dir, item.Name);
-            await RunLongAsync("preparing " + item.Name + "...", async (progress, cancel) =>
+            bool ok = await RunLongAsync("preparing " + item.Name + "...", async (progress, cancel) =>
             {
+                // only the file being opened is kept, so copies don't pile up
+                try { await Client.LongAsync(null, cancel, "DELETE", dir); } catch (RfxException) { }
                 try { await Client.MkdirAsync(dir); } catch (RfxException) { }
                 await Client.LongAsync(progress, cancel, "COPY", item.FullPath, dst, "1");
             });
+            if (!ok) return;
             try
             {
                 var file = await StorageFile.GetFileFromPathAsync(dst);
-                if (!await Windows.System.Launcher.LaunchFileAsync(file))
-                    ShowStatus("No app on the phone opens ." + System.IO.Path.GetExtension(item.Name).TrimStart('.') + " files.", false);
+                if (await Windows.System.Launcher.LaunchFileAsync(file)) return;
+                if (fallbackToViewer) { ShowViewer(item.FullPath); return; }
+                ShowStatus("No app on the phone opens ." + System.IO.Path.GetExtension(item.Name).TrimStart('.') + " files.", false);
             }
-            catch (Exception ex) { ShowError(ex); }
+            catch (Exception ex)
+            {
+                if (fallbackToViewer) ShowViewer(item.FullPath); else ShowError(ex);
+            }
         }
     }
 }

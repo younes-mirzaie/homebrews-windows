@@ -216,6 +216,7 @@ namespace RetroFiles.Core
         /// Cancelling sends one byte, which rfxfsd treats as "stop".</summary>
         public async Task<string[]> LongAsync(IProgress<OpProgress> progress, CancellationToken cancel, params string[] fields)
         {
+            cancel.ThrowIfCancellationRequested();   // a cancel byte sent before the request would garble it
             var s = await OpenAsync();
             if (s == null) throw new RfxException(0, "the helper isn't running");
             using (s)
