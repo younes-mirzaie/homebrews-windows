@@ -35,6 +35,31 @@ namespace RetroFiles.Core
             }
         }
 
+        public static string LastShellOutput;
+
+        /// <summary>Drops telnet negotiation bytes and terminal escapes so the shell's reply is readable.</summary>
+        static string Clean(string s)
+        {
+            if (s == null) return "";
+            var sb = new StringBuilder();
+            for (int i = 0; i < s.Length; i++)
+            {
+                char c = s[i];
+                if (c == '\xFF' || c == '\uFFFD') { i += 2; continue; }
+                if (c == '\x1B')
+                {
+                    i++;
+                    while (i < s.Length && !char.IsLetter(s[i])) i++;
+                    continue;
+                }
+                if (c == '\r') continue;
+                sb.Append(c);
+            }
+            return sb.ToString();
+        }
+
+        static string Tail(string s, int n) { return s.Length <= n ? s : "..." + s.Substring(s.Length - n); }
+
         /// <summary>Makes sure a current rfxfsd with our token is listening. Returns null when it is,
         /// otherwise a message for the user.</summary>
         public static async Task<string> EnsureRunningAsync(RfxClient client, Action<string> status)
@@ -63,11 +88,13 @@ namespace RetroFiles.Core
             var cmds = new StringBuilder();
             if (restart) cmds.Append("kill -f rfxfsd.exe\r\n");
             cmds.Append("mkdir \"" + HelperDir + "\" 2>nul\r\n");
-            cmds.Append("copy /y \"" + src + "\" \"" + dst + "\" >nul\r\n");
-            cmds.Append("start \"\" \"" + dst + "\" --token " + Token + "\r\n");
+            cmds.Append("copy /y \"" + src + "\" \"" + dst + "\"\r\n");
+            // if the copy failed, run it straight from the app package
+            cmds.Append("if exist \"" + dst + "\" (start \"\" \"" + dst + "\" --token " + Token + ") else (start \"\" \"" + src + "\" --token " + Token + ")\r\n");
             cmds.Append("exit\r\n");
 
             string shellOut = null;
+            int shellPort = 0;
             foreach (int port in ShellPorts)
             {
                 var sh = await LineSocket.ConnectAsync("127.0.0.1", port, 1500);
@@ -78,6 +105,7 @@ namespace RetroFiles.Core
                     await sh.SendAsync(cmds.ToString());
                     shellOut = await sh.ReadAvailableAsync(1500);
                 }
+                shellPort = port;
                 break;
             }
             if (shellOut == null)
@@ -89,7 +117,9 @@ namespace RetroFiles.Core
                 try { if (await client.ConnectAsync()) return null; }
                 catch (RfxException e) { return "The helper is running with a different key (" + e.Message + "). Reboot the phone and try again."; }
             }
-            return "Started the helper through CMD Injector, but it didn't answer on 127.0.0.1:" + RfxClient.Port + ".";
+            LastShellOutput = shellOut;
+            return "Asked CMD Injector's shell (port " + shellPort + ") to start the helper, but it didn't answer on 127.0.0.1:" + RfxClient.Port +
+                   ". Shell said:\n" + Tail(Clean(shellOut), 600);
         }
     }
 }

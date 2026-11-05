@@ -24,7 +24,12 @@ namespace RetroFiles
 
             RootFrame = new PhoneApplicationFrame();
             RootFrame.Navigated += CompleteInit;
-            RootFrame.NavigationFailed += (s, e) => { e.Handled = true; };
+            RootFrame.NavigationFailed += (s, e) =>
+            {
+                e.Handled = true;
+                var msg = e.Exception != null ? e.Exception.Message : "unknown error";
+                Deployment.Current.Dispatcher.BeginInvoke(() => MessageBox.Show("Couldn't open " + e.Uri + ":\n" + msg, "File Explorer error", MessageBoxButton.OK));
+            };
         }
 
         void CompleteInit(object sender, NavigationEventArgs e)
