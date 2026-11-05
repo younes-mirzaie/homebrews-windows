@@ -46,6 +46,7 @@ check('ping', c.reply('PING')[0] == 'OK')
 drives = c.rows('DRIVES')
 check('drives lists C:', any(d[0].upper() == 'C:\\' for d in drives), drives)
 
+c.reply('MKDIR', work)   # WORKDIR may not exist yet (MKDIR doesn't create parents)
 d = work + '\\t'
 c.reply('DELETE', d)
 check('mkdir', c.reply('MKDIR', d)[0] == 'OK')
