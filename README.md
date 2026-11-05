@@ -7,6 +7,7 @@ CMD Injector. Everything runs on the phone itself. The Gecko browser port lives 
 | folder | what |
 |---|---|
 | [file-explorer](file-explorer) | **File Explorer**: root file manager (whole filesystem as SYSTEM, copy/move/delete, attributes, text/hex/image viewer, web access over Wi-Fi) |
+| [retrobird](retrobird) | **Retrobird**: IMAP/SMTP mail client with modern TLS (NSS), multiple accounts, offline cache, HTML mail |
 
 ## Building
 

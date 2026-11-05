@@ -1,0 +1,80 @@
+<phone:PhoneApplicationPage
+    x:Class="Retrobird.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    FontFamily="{StaticResource PhoneFontFamilyNormal}"
+    FontSize="{StaticResource PhoneFontSizeNormal}"
+    Foreground="{StaticResource PhoneForegroundBrush}"
+    SupportedOrientations="PortraitOrLandscape" Orientation="Portrait"
+    shell:SystemTray.IsVisible="True">
+
+    <Grid x:Name="LayoutRoot" Background="Transparent">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- account and folder; tap the folder name to switch folders -->
+        <StackPanel Grid.Row="0" Margin="12,8,12,8">
+            <TextBlock x:Name="AccountText" Text="RETROBIRD" Style="{StaticResource PhoneTextNormalStyle}" Margin="12,0"
+                       Tap="AccountText_Tap"/>
+            <TextBlock x:Name="FolderText" Text="inbox" Tap="FolderText_Tap" TextTrimming="WordEllipsis"
+                       FontSize="{StaticResource PhoneFontSizeExtraExtraLarge}" FontFamily="{StaticResource PhoneFontFamilySemiLight}"
+                       Margin="9,-7,12,0"/>
+        </StackPanel>
+
+        <TextBlock x:Name="StatusText" Grid.Row="1" Margin="24,0,24,8" TextWrapping="Wrap" Visibility="Collapsed"
+                   Foreground="{StaticResource PhoneSubtleBrush}" FontSize="{StaticResource PhoneFontSizeSmall}" Tap="StatusText_Tap"/>
+
+        <!-- first run -->
+        <StackPanel x:Name="EmptyPanel" Grid.Row="2" Margin="24,24,24,0" Visibility="Collapsed">
+            <TextBlock x:Name="EmptyText" TextWrapping="Wrap" FontSize="{StaticResource PhoneFontSizeMediumLarge}"
+                       Text="Add a mail account to get started. Retrobird works with any IMAP mail service."/>
+            <Button x:Name="AddButton" Content="add account" HorizontalAlignment="Left" Margin="-12,12,0,0" Click="AddButton_Click"/>
+            <Button x:Name="RetryButton" Content="try again" HorizontalAlignment="Left" Margin="-12,12,0,0" Click="RetryButton_Click"
+                    Visibility="Collapsed"/>
+        </StackPanel>
+
+        <phone:LongListSelector x:Name="Items" Grid.Row="2" Margin="12,0,0,0" SelectionChanged="Items_SelectionChanged">
+            <phone:LongListSelector.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="0,2,12,16" Background="Transparent">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="6"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Rectangle Fill="{StaticResource PhoneAccentBrush}" Visibility="{Binding UnreadVisibility}" Margin="0,4,0,4"/>
+                        <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Sender}" FontWeight="{Binding SenderWeight}" TextTrimming="WordEllipsis"
+                                           FontSize="{StaticResource PhoneFontSizeMediumLarge}"/>
+                                <TextBlock Grid.Column="1" Text="{Binding DateText}" Margin="12,0,0,0" VerticalAlignment="Bottom"
+                                           Foreground="{StaticResource PhoneSubtleBrush}" FontSize="{StaticResource PhoneFontSizeSmall}"/>
+                            </Grid>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding SubjectText}" TextTrimming="WordEllipsis" Foreground="{StaticResource PhoneSubtleBrush}"/>
+                                <TextBlock Grid.Column="1" Text="{Binding Glyphs}" FontFamily="Segoe UI Symbol" Margin="12,0,0,0"
+                                           Foreground="{StaticResource PhoneSubtleBrush}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </phone:LongListSelector.ItemTemplate>
+            <phone:LongListSelector.ListFooter>
+                <Button x:Name="MoreButton" Content="load older messages" HorizontalAlignment="Left" Margin="-12,0,0,24"
+                        Click="MoreButton_Click" Visibility="Collapsed"/>
+            </phone:LongListSelector.ListFooter>
+        </phone:LongListSelector>
+    </Grid>
+</phone:PhoneApplicationPage>

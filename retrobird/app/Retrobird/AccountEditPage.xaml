@@ -1,0 +1,85 @@
+<phone:PhoneApplicationPage
+    x:Class="Retrobird.AccountEditPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    FontFamily="{StaticResource PhoneFontFamilyNormal}"
+    FontSize="{StaticResource PhoneFontSizeNormal}"
+    Foreground="{StaticResource PhoneForegroundBrush}"
+    SupportedOrientations="Portrait" Orientation="Portrait"
+    shell:SystemTray.IsVisible="True">
+
+    <Grid x:Name="LayoutRoot" Background="Transparent">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0" Margin="12,8,12,8">
+            <TextBlock Text="RETROBIRD" Style="{StaticResource PhoneTextNormalStyle}" Margin="12,0"/>
+            <TextBlock x:Name="TitleText" Text="add account" Margin="9,-7,12,0"
+                       FontSize="{StaticResource PhoneFontSizeExtraExtraLarge}" FontFamily="{StaticResource PhoneFontFamilySemiLight}"/>
+        </StackPanel>
+        <ScrollViewer Grid.Row="1" Margin="12,0,12,0">
+            <StackPanel>
+                <TextBlock Text="e-mail address" Style="{StaticResource PhoneTextSubtleStyle}"/>
+                <TextBox x:Name="EmailBox" InputScope="EmailSmtpAddress" TextChanged="EmailBox_TextChanged"/>
+                <TextBlock Text="password" Style="{StaticResource PhoneTextSubtleStyle}"/>
+                <PasswordBox x:Name="PassBox"/>
+                <TextBlock x:Name="PassHint" Text="leave empty to keep the saved password" Visibility="Collapsed"
+                           Style="{StaticResource PhoneTextSubtleStyle}" FontSize="{StaticResource PhoneFontSizeSmall}"/>
+                <TextBlock Text="your name (shown to people you write to)" Style="{StaticResource PhoneTextSubtleStyle}"/>
+                <TextBox x:Name="NameBox" InputScope="PersonalFullName"/>
+                <TextBlock x:Name="ProviderText" TextWrapping="Wrap" Margin="12,4,12,8" Visibility="Collapsed"
+                           Foreground="{StaticResource PhoneAccentBrush}"/>
+                <CheckBox x:Name="SaveSentBox" Content="keep a copy of sent mail in Sent" IsChecked="True"/>
+                <Button x:Name="AdvancedButton" Content="server settings" HorizontalAlignment="Left" Click="AdvancedButton_Click"/>
+
+                <StackPanel x:Name="AdvancedPanel" Visibility="Collapsed">
+                    <TextBlock Text="incoming mail (IMAP)" Margin="12,16,12,0" FontSize="{StaticResource PhoneFontSizeMediumLarge}"/>
+                    <TextBlock Text="server" Style="{StaticResource PhoneTextSubtleStyle}"/>
+                    <TextBox x:Name="ImapHostBox" InputScope="Url" TextChanged="Server_Changed"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="140"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="port" Style="{StaticResource PhoneTextSubtleStyle}"/>
+                            <TextBox x:Name="ImapPortBox" InputScope="Number" TextChanged="Server_Changed"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="security" Style="{StaticResource PhoneTextSubtleStyle}"/>
+                            <Button x:Name="ImapSecButton" HorizontalAlignment="Left" Click="ImapSecButton_Click"/>
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock Text="user name" Style="{StaticResource PhoneTextSubtleStyle}"/>
+                    <TextBox x:Name="UserBox" InputScope="EmailSmtpAddress" TextChanged="Server_Changed"/>
+
+                    <TextBlock Text="outgoing mail (SMTP)" Margin="12,16,12,0" FontSize="{StaticResource PhoneFontSizeMediumLarge}"/>
+                    <TextBlock Text="server" Style="{StaticResource PhoneTextSubtleStyle}"/>
+                    <TextBox x:Name="SmtpHostBox" InputScope="Url" TextChanged="Server_Changed"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="140"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="port" Style="{StaticResource PhoneTextSubtleStyle}"/>
+                            <TextBox x:Name="SmtpPortBox" InputScope="Number" TextChanged="Server_Changed"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="security" Style="{StaticResource PhoneTextSubtleStyle}"/>
+                            <Button x:Name="SmtpSecButton" HorizontalAlignment="Left" Click="SmtpSecButton_Click"/>
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock x:Name="PinsText" TextWrapping="Wrap" Margin="12,8,12,0" Visibility="Collapsed"
+                               Style="{StaticResource PhoneTextSubtleStyle}" FontSize="{StaticResource PhoneFontSizeSmall}"/>
+                    <Button x:Name="ForgetPinsButton" Content="forget trusted certificates" HorizontalAlignment="Left"
+                            Visibility="Collapsed" Click="ForgetPinsButton_Click"/>
+                </StackPanel>
+                <TextBlock Height="48"/>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</phone:PhoneApplicationPage>
