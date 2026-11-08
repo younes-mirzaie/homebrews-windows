@@ -27,12 +27,16 @@ $cflags = @("--target=thumbv7-pc-windows-msvc", "/MT", "/O2", "/W3", "-X",
     "/imsvc", "$Sdk\vc143\include", "/imsvc", "$Sdk\ucrt\Include\$UcrtVer\ucrt",
     "/imsvc", "$Sdk\win81\Include\um", "/imsvc", "$Sdk\win81\Include\shared")
 Write-Host "Compiling rfxfsd (ARM)..." -ForegroundColor Cyan
-& "$Llvm\clang-cl.exe" @cflags /c "$here\daemon\rfxfsd.c" "/Fo$obj\rfxfsd.obj" 2>&1 | ForEach-Object { "$_" }
+# Compiler warnings go to stderr: under "Stop", PowerShell 5.1 would turn them into errors.
+# Only the exit code decides.
+& { $ErrorActionPreference = "Continue"
+    & "$Llvm\clang-cl.exe" @cflags /c "$here\daemon\rfxfsd.c" "/Fo$obj\rfxfsd.obj" 2>&1 | ForEach-Object { "$_" } }
 if ($LASTEXITCODE -ne 0) { throw "rfxfsd compile failed" }
 $lflags = @("/machine:arm", "/subsystem:console",
     "/libpath:$Sdk\vc143\lib\arm", "/libpath:$Sdk\ucrt\Lib\$UcrtVer\ucrt\arm", "/libpath:$Sdk\phonekit\lib\ARM", "/libpath:$PhoneLib",
     "libcmt.lib", "libvcruntime.lib", "libucrt.lib", "WindowsPhoneCore.lib", "kernel32.lib", "retrofox-compat.lib", "ws2_32.lib")
-& "$Llvm\lld-link.exe" @lflags "$obj\rfxfsd.obj" "/out:$obj\rfxfsd.exe" 2>&1 | ForEach-Object { "$_" }
+& { $ErrorActionPreference = "Continue"
+    & "$Llvm\lld-link.exe" @lflags "$obj\rfxfsd.obj" "/out:$obj\rfxfsd.exe" 2>&1 | ForEach-Object { "$_" } }
 if ($LASTEXITCODE -ne 0) { throw "rfxfsd link failed" }
 New-Item -ItemType Directory -Force "$here\app\RetroFiles\Helper" | Out-Null
 Copy-Item -Force "$obj\rfxfsd.exe" "$here\app\RetroFiles\Helper\rfxfsd.exe"
