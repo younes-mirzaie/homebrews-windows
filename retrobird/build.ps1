@@ -43,11 +43,16 @@ $cflags = @("--target=thumbv7-pc-windows-msvc", "/MT", "/O2", "/W3", "-X", "/c",
     "/imsvc", "$Sdk\win81\Include\um", "/imsvc", "$Sdk\win81\Include\shared",
     "-I", $NsprInc) + $sslDefines
 foreach ($d in Get-ChildItem "$nss\lib" -Directory) { $cflags += @("-I", $d.FullName) }
+# blapit.h (freebl) includes ecl-exp.h, one level further down
+$cflags += @("-I", "$nss\lib\freebl\ecl")
 
 $sources = "buf", "codec", "mime", "net", "store", "imap", "smtp", "server"
 Write-Host "Compiling rbmaild (ARM)..." -ForegroundColor Cyan
 foreach ($s in $sources) {
-    & "$Llvm\clang-cl.exe" @cflags "$here\helper\$s.c" "/Fo$obj\$s.obj" 2>&1 | ForEach-Object { "$_" }
+    # Compiler warnings go to stderr: under "Stop", PowerShell 5.1 would turn them into errors.
+    # Only the exit code decides.
+    & { $ErrorActionPreference = "Continue"
+        & "$Llvm\clang-cl.exe" @cflags "$here\helper\$s.c" "/Fo$obj\$s.obj" 2>&1 | ForEach-Object { "$_" } }
     if ($LASTEXITCODE -ne 0) { throw "$s.c compile failed" }
 }
 $static = "nssutil", "nssb", "nssdev", "nsspki", "certdb", "certhi", "cryptohi", "pk11wrap_static",
@@ -59,7 +64,8 @@ $lflags = @("/nologo", "/machine:arm", "/subsystem:console",
     @("nspr4.lib", "plc4.lib", "plds4.lib", "ws2_32.lib", "libcmt.lib", "libvcruntime.lib", "libucrt.lib",
       "WindowsPhoneCore.lib", "kernel32.lib", "retrofox-compat.lib")
 $objs = $sources | ForEach-Object { "$obj\$_.obj" }
-& "$Llvm\lld-link.exe" @lflags @objs "/out:$obj\rbmaild.exe" 2>&1 | ForEach-Object { "$_" }
+& { $ErrorActionPreference = "Continue"
+    & "$Llvm\lld-link.exe" @lflags @objs "/out:$obj\rbmaild.exe" 2>&1 | ForEach-Object { "$_" } }
 if ($LASTEXITCODE -ne 0) { throw "rbmaild link failed" }
 
 $helperDir = "$here\app\Retrobird\Helper"
