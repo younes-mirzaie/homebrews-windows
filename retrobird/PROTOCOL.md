@@ -1,6 +1,7 @@
 # rbmaild protocol
 
-The app talks to `rbmaild` over TCP on `127.0.0.1:8096` (loopback only). One request per line,
+The app talks to the helper over TCP on loopback: `127.0.0.1:8097` for rbmail.dll inside the app,
+`127.0.0.1:8096` for the separate rbmaild.exe. One request per line,
 fields separated by TAB, lines end with `\n`. Inside a field, `\\`, `\t`, `\n` and `\r` are escaped.
 
 Replies start with `OK` or `ERR<TAB>code<TAB>message`. Replies that carry rows (lists, messages)
@@ -41,7 +42,7 @@ Dates are Unix seconds (UTC). Folder names are the server's raw (mUTF-7) names; 
 
 ## Files
 
-Under the data folder (`C:\Data\SharedData\Retrobird\data` on the phone):
+Under the data folder (the app's `LocalState\data`; `C:\Data\SharedData\Retrobird\data` for the separate helper):
 
 - `accounts.conf`: settings, passwords sealed with AES-256-GCM under a key derived from the app token
 - `mail/<account>/folders`: folder cache

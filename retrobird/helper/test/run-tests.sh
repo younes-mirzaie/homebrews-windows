@@ -12,7 +12,7 @@ user=vmail
 id "$user" >/dev/null 2>&1 || useradd -r -M -s /usr/sbin/nologin "$user"
 cleanup() {
     [ -f "$dir/smtp.pid" ] && kill "$(cat "$dir/smtp.pid")" 2>/dev/null || true
-    doveadm -c "$dir/dovecot.conf" stop 2>/dev/null || true
+    timeout 10 doveadm -c "$dir/dovecot.conf" stop 2>/dev/null || pkill -f "dovecot -c $dir/dovecot.conf" || true
     [ -n "$KEEP" ] || rm -rf "$dir"
 }
 trap cleanup EXIT
@@ -43,7 +43,13 @@ if command -v mcs >/dev/null && command -v mono >/dev/null; then
     status=0
     mono "$dir/ClientTest.exe" 18097 mono-token-12345 "s3cret päss" || status=$?
     kill $helper 2>/dev/null || true
-    exit $status
+    [ $status -eq 0 ] || exit $status
+    # the same checks with the helper loaded as a library inside the Mono process (as in the app)
+    mcs -nologo -main:InProcessTest -out:"$dir/InProcessTest.exe" "$here/../../app/tests/InProcessTest.cs" \
+        "$here/../../app/tests/ClientTest.cs" "$core/LineSocket.cs" "$core/MailClient.cs" "$core/Models.cs" "$core/Providers.cs"
+    echo "in-process:"
+    LD_LIBRARY_PATH="$here/../build" timeout -k 5 180 mono "$dir/InProcessTest.exe" 18098 mono-token-12345 "s3cret päss" "$dir/inprocdata"
+    exit $?
 else
     echo "(mcs/mono not installed: skipping the C# client test)"
 fi

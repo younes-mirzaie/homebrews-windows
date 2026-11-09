@@ -67,7 +67,7 @@ namespace Retrobird.Core
 
         /// <summary>What's listening: null (nothing), "" (our helper, current), "old" (ours, other
         /// version), "foreign" (something with another key).</summary>
-        static async Task<string> Probe(int port)
+        internal static async Task<string> Probe(int port)
         {
             var s = await LineSocket.ConnectAsync(MailClient.Host, port, 1500);
             if (s == null) return null;
@@ -101,7 +101,7 @@ namespace Retrobird.Core
             // The shell echoes typed input slowly and closing the session too early kills what it
             // started, so the commands go into a batch file in our own folder (readable by the
             // SYSTEM shell) and only its path is typed. Its output lands in rbstart.log.
-            string pkg = Package.Current.InstalledLocation.Path + @"\Helper";
+            string pkg = Package.Current.InstalledLocation.Path;   // the helper files sit at the package root
             string local = Windows.Storage.ApplicationData.Current.LocalFolder.Path;
             string args = " --token " + Token + " --port " + port + " --data \"" + HelperDir + "\\data\"";
             var bat = new StringBuilder();

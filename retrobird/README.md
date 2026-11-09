@@ -19,18 +19,20 @@ password), sending attachments, push (IDLE), search, signatures.
 
 ## How it works
 
-The app runs in the normal sandbox, where WP 8.1 has no modern TLS. It starts **rbmaild**, a
-native ARM helper (C on NSPR/NSS), through CMD Injector's SYSTEM shell, the same way File
-Explorer starts its helper:
+The mail engine is C code on NSPR/NSS (WP 8.1's own networking has no modern TLS). It is built
+twice from the same sources:
 
-1. The app connects to 127.0.0.1:8096 with its key (random, made on first run).
-2. If nothing answers, it copies `Helper\*` from its package to `C:\Data\SharedData\Retrobird\`
-   and starts `rbmaild.exe` there. A helper left from an older version is told to quit first.
-3. The helper only listens on loopback and only serves clients that send the key. It does all
-   IMAP/SMTP/MIME work, keeps the mail cache and checks INBOXes in the background.
+- **rbmail.dll**, packaged with the app. The app loads it and runs `RetrobirdMain` on a thread of
+  its own, the way Retrofox runs Gecko inside its app. The app talks to it over loopback
+  (127.0.0.1:8097) inside its own process, with a random key. Mail cache, settings and the log
+  live in the app's own folder (`LocalState\data`). No CMD Injector, no SYSTEM process, nothing
+  that outlives the app. The only network traffic is to your mail servers.
+- **rbmaild.exe**, a fallback used only if the DLL can't load: started as SYSTEM through CMD
+  Injector's shell (via a small start script in the app's folder), listening on 127.0.0.1:8096,
+  with its data in `C:\Data\SharedData\Retrobird`.
 
-Passwords are stored encrypted (AES-256-GCM) with a key derived from the app's key, so the
-helper's data folder alone does not reveal them. No PC or server is involved.
+Passwords are stored encrypted (AES-256-GCM) with a key derived from the app's key, which is kept
+in the app's settings. New mail is checked every N minutes while the app is open.
 
 See [PROTOCOL.md](PROTOCOL.md).
 
@@ -41,12 +43,12 @@ See [PROTOCOL.md](PROTOCOL.md).
 | `helper/` | rbmaild: `imap.c`, `smtp.c`, `mime.c`, `codec.c` (charsets, HTML sanitizer), `net.c` (NSS TLS, pinning, secrets), `store.c` (cache), `server.c` |
 | `helper/test/` | `mimetest.c` (62 unit checks), `test_rbmaild.py` (82 checks against Dovecot and a fake SMTP server), `run-tests.sh` |
 | `app/Retrobird/` | Silverlight 8.1 app; `Core/` holds the protocol client and models, testable on Mono |
-| `app/tests/ClientTest.cs` | 20 checks of the C# client against a live helper |
+| `app/tests/ClientTest.cs` | 20 checks of the C# client against a live helper; `InProcessTest.cs` runs them with the helper loaded as a library in the same process |
 | `app/tools/make-icons.py` | generates app bar icons, tiles and the splash screen |
 
 ## Building (Windows)
 
-`.\build.ps1` builds rbmaild with the retrofox ARM toolchain and NSS build (`C:\rfx\obj-nss`,
+`.\build.ps1` builds rbmail.dll and rbmaild.exe with the retrofox ARM toolchain and NSS build (`C:\rfx\obj-nss`,
 see retrofox notes/step2-nss.md), copies it with `nssckbi.dll` and the NSPR DLLs into
 `app\Retrobird\Helper`, builds the app with VS 2015 (MSBuild 14) and installs it on the
 USB-connected phone. `-NoDeploy` builds only; the .xap can also go through the rfxdev portal.

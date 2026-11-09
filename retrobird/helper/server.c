@@ -1130,13 +1130,14 @@ static int detach_self(void)
 }
 #endif
 
-int main(int argc, char **argv)
+/* The exe's main, or (built with -DRB_DLL as rbmail.dll) RetrobirdMain, which the app calls on a
+   thread of its own: the helper then runs inside the app's process, with no shell and no detach. */
+static int rb_main(int argc, char **argv, int fg)
 {
     int port = RB_DEFAULT_PORT;
     char dir[512], data[600], roots[600];
     PRNetAddr addr;
     PRSocketOptionData opt;
-    int fg = 0;
     (void)fg;
     exe_dir(dir, sizeof(dir));
 #ifdef _WIN32
@@ -1208,3 +1209,12 @@ int main(int argc, char **argv)
     PR_Close(g_listener);
     return 0;
 }
+
+#ifdef RB_DLL
+#ifdef _WIN32
+__declspec(dllexport)
+#endif
+int RetrobirdMain(int argc, char **argv) { return rb_main(argc, argv, 1); }
+#else
+int main(int argc, char **argv) { return rb_main(argc, argv, 0); }
+#endif

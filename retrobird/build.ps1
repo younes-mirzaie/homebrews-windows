@@ -1,4 +1,5 @@
-# Builds Retrobird: the native mail helper (helper\*.c on NSPR/NSS, ARM) and the WP 8.1
+# Builds Retrobird: the native mail helper (helper\*.c on NSPR/NSS, ARM; rbmail.dll runs inside
+# the app, rbmaild.exe is the fallback started through CMD Injector) and the WP 8.1
 # Silverlight app, then installs the app on the USB-connected Lumia.
 #   .\build.ps1               helper + app + install on the phone (phone must be unlocked)
 #   .\build.ps1 -NoDeploy     build only (Retrobird_Release_AnyCPU.xap)
@@ -67,13 +68,23 @@ $objs = $sources | ForEach-Object { "$obj\$_.obj" }
 & { $ErrorActionPreference = "Continue"
     & "$Llvm\lld-link.exe" @lflags @objs "/out:$obj\rbmaild.exe" 2>&1 | ForEach-Object { "$_" } }
 if ($LASTEXITCODE -ne 0) { throw "rbmaild link failed" }
+# The same helper as rbmail.dll, which the app loads and runs inside its own process
+& { $ErrorActionPreference = "Continue"
+    & "$Llvm\clang-cl.exe" @cflags -DRB_DLL "$here\helper\server.c" "/Fo$obj\server_dll.obj" 2>&1 | ForEach-Object { "$_" } }
+if ($LASTEXITCODE -ne 0) { throw "server.c (dll) compile failed" }
+$dllObjs = ($sources | Where-Object { $_ -ne "server" } | ForEach-Object { "$obj\$_.obj" }) + "$obj\server_dll.obj"
+$dllFlags = $lflags | Where-Object { $_ -ne "/subsystem:console" }
+& { $ErrorActionPreference = "Continue"
+    & "$Llvm\lld-link.exe" /dll @dllFlags @dllObjs "/out:$obj\rbmail.dll" 2>&1 | ForEach-Object { "$_" } }
+if ($LASTEXITCODE -ne 0) { throw "rbmail.dll link failed" }
 
 $helperDir = "$here\app\Retrobird\Helper"
 New-Item -ItemType Directory -Force $helperDir | Out-Null
 Copy-Item -Force "$obj\rbmaild.exe" $helperDir
+Copy-Item -Force "$obj\rbmail.dll" $helperDir
 Copy-Item -Force "$NssObj\lib\nssckbi.dll" $helperDir
 foreach ($dll in "nspr4.dll", "plc4.dll", "plds4.dll") { Copy-Item -Force "$NsprBin\$dll" $helperDir }
-Write-Host "rbmaild.exe built" -ForegroundColor Green
+Write-Host "rbmail.dll and rbmaild.exe built" -ForegroundColor Green
 
 # ---- app ----
 $msbuild = "$pf86\MSBuild\14.0\Bin\MSBuild.exe"

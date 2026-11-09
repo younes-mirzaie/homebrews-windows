@@ -14,13 +14,19 @@ namespace Retrobird.Core
         public const int DefaultPort = 8096;
 
         readonly string _token;
-        readonly int _port;
+        int _port;
         readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
         LineSocket _s;
 
         public MailClient(string token, int port = DefaultPort) { _token = token; _port = port; }
 
-        public int Port { get { return _port; } }
+        /// <summary>Changing it drops the current connection (the in-app helper and the separate
+        /// one listen on different ports).</summary>
+        public int Port
+        {
+            get { return _port; }
+            set { if (value != _port) { _port = value; Close(); } }
+        }
         public string ServerVersion { get; private set; }
 
         /// <summary>Called when nothing answers on the port: should start the helper and return

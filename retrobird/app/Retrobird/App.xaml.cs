@@ -20,8 +20,10 @@ namespace Retrobird
                 Deployment.Current.Dispatcher.BeginInvoke(() => MessageBox.Show(msg, "Retrobird error", MessageBoxButton.OK));
             };
             InitializeComponent();
-            AppState.Client = new MailClient(HelperLauncher.Token);
-            AppState.Client.StartHelper = () => HelperLauncher.EnsureRunningAsync(AppState.Client.Port, _ => { });
+            // the mail helper runs inside the app (rbmail.dll); the separate rbmaild.exe started
+            // through CMD Injector is only a fallback for when the DLL can't load
+            AppState.Client = new MailClient(HelperLauncher.Token, InAppHelper.Port);
+            AppState.Client.StartHelper = () => InAppHelper.EnsureRunningAsync(AppState.Client);
 
             RootFrame = new PhoneApplicationFrame();
             RootFrame.Navigated += CompleteInit;
