@@ -1,4 +1,4 @@
-// Mono checks for the C# catalogue client. Run via test/run-client-tests.sh.
+// Mono checks for the C# catalog client. Run via test/run-client-tests.sh.
 using System;
 using System.IO;
 using System.Text;

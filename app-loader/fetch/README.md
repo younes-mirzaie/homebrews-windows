@@ -1,6 +1,6 @@
 # rfxfetch
 
-Native HTTPS downloader for the App Loader's catalogue (stage 2). WP 8.1's own TLS can't reach
+Native HTTPS downloader for the App Loader's catalog (stage 2). WP 8.1's own TLS can't reach
 GitHub any more; this uses NSS (TLS 1.2/1.3, Mozilla roots, strict name checks) like Retrobird,
 and works on Wi-Fi and mobile data (no proxy needed).
 

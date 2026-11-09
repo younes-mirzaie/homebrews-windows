@@ -35,18 +35,18 @@ How an install goes (`Core/Phone.cs`):
    locks, the user leaves the app, or App Loader updates itself, it carries on and the result is
    shown when the app is opened again. The screen is kept on during an install, and one install
    runs at a time.
-7. Catalogue installs (stage 2) can pass an expected product ID and SHA-256, checked on the
+7. Catalog installs (stage 2) can pass an expected product ID and SHA-256, checked on the
    staged copy before TH runs.
 
 `Core/PackageInstaller.cs` is the install step alone: a local package path and a mode in, TH.exe's
 output and exit status out (or a run name to read later). `Core/Shell.cs` runs batch commands as SYSTEM. The app doesn't read
 or keep any secrets (no rfxdev token).
 
-## Stage 2: online catalogue
+## Stage 2: online catalog
 
-- **catalogue**: apps from the signed catalogue (public repo `wp-homebrew`), with what's installed.
+- **catalog**: apps from the signed catalog (public repo `wp-homebrew`), with what's installed.
   Tap one for its details page: description, license, versions, install / update / reinstall.
-- **updates**: catalogue apps with a newer version than the installed one.
+- **updates**: catalog apps with a newer version than the installed one.
 
 How it works (`Core/CatalogService.cs`, design in [catalog/DESIGN.md](catalog/DESIGN.md)):
 
@@ -61,8 +61,8 @@ How it works (`Core/CatalogService.cs`, design in [catalog/DESIGN.md](catalog/DE
    SHA-256, checked again on the staged copy.
 
 To publish: `catalog/tools/catalog.py` (`keygen` once, then `add` and `build`), see the
-`wp-homebrew` README. Until `CatalogConfig.PublicKey` is filled in, the catalogue panes say the
-catalogue isn't set up.
+`wp-homebrew` README. Until `CatalogConfig.PublicKey` is filled in, the catalog panes say the
+catalog isn't set up.
 
 ## Build
 

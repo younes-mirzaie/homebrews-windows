@@ -80,7 +80,7 @@ namespace AppLoader.Core
         public PackageInfo Package;
         public InstallJob Job;
         public ThResult Th;         // what TH said, once it has finished
-        public bool HashMismatch;   // a catalogue download didn't match its SHA-256
+        public bool HashMismatch;   // a catalog download didn't match its SHA-256
     }
 
     public static class Phone
@@ -151,7 +151,7 @@ namespace AppLoader.Core
 
         /// <summary>Copies the package into the app's folder under a plain name, reads and checks
         /// it there, then starts TH: update if the app is installed, deploy if not. For a package
-        /// from a catalogue, expectedProductId and expectedSha256 (hex) must match the staged copy.
+        /// from a catalog, expectedProductId and expectedSha256 (hex) must match the staged copy.
         /// Returns with Started set once TH is running; FinishAsync gives the result.</summary>
         public static async Task<InstallOutcome> InstallAsync(FoundPackage found, Action<string> status,
                                                               string expectedProductId, string expectedSha256)
@@ -199,7 +199,7 @@ namespace AppLoader.Core
                             if (!string.Equals(hash, expectedSha256.Trim(), StringComparison.OrdinalIgnoreCase))
                             {
                                 AppLog.Add("SHA-256 mismatch: " + found.Name, "expected " + expectedSha256 + "\ngot " + hash);
-                                outcome.Message = "The downloaded file isn't exactly the one the catalogue lists, so it was thrown away. " +
+                                outcome.Message = "The downloaded file isn't exactly the one the catalog lists, so it was thrown away. " +
                                                   "Try again. " + Friendly.Unchanged;
                                 outcome.HashMismatch = true;
                                 return outcome;
@@ -224,7 +224,7 @@ namespace AppLoader.Core
                 if (expectedProductId != null && PackageInfo.Guid(expectedProductId) != pkg.ProductId)
                 {
                     AppLog.Add("product ID mismatch: " + found.Name, "expected " + expectedProductId + "\ngot " + pkg.ProductId);
-                    outcome.Message = "The downloaded file is a different app (" + pkg.Title + ") than the catalogue says, " +
+                    outcome.Message = "The downloaded file is a different app (" + pkg.Title + ") than the catalog says, " +
                                       "so it wasn't installed. " + Friendly.Unchanged;
                     return outcome;
                 }

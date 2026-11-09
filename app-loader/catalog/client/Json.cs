@@ -1,5 +1,5 @@
 // Minimal strict JSON reader: objects -> Dictionary<string, object>, arrays -> List<object>,
-// numbers -> long or double, plus string, bool, null. Enough for the catalogue index.
+// numbers -> long or double, plus string, bool, null. Enough for the catalog index.
 using System;
 using System.Collections.Generic;
 using System.Globalization;

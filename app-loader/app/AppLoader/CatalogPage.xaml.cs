@@ -11,7 +11,7 @@ using AppLoader.Core;
 
 namespace AppLoader
 {
-    /// <summary>One catalogue app: description, versions, install/update.</summary>
+    /// <summary>One catalog app: description, versions, install/update.</summary>
     public partial class CatalogPage : PhoneApplicationPage
     {
         public sealed class VersionRow
@@ -124,7 +124,7 @@ namespace AppLoader
                 return;
             }
             string what = _app.Name + " " + r.Version + " (" + MainPage.Size(r.Size) + ")";
-            if (MessageBox.Show("Download and install " + what + "?\n\nIt's checked against the signed catalogue " +
+            if (MessageBox.Show("Download and install " + what + "?\n\nIt's checked against the signed catalog " +
                                 "before anything is installed. An installed app is updated in place and keeps its data.",
                                 "install", MessageBoxButton.OKCancel) != MessageBoxResult.OK)
                 return;

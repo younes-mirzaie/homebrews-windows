@@ -1,4 +1,4 @@
-// Stage 2: the online catalogue (../../../catalog/DESIGN.md).
+// Stage 2: the online catalog (../../../catalog/DESIGN.md).
 //
 //  - The index and its signature are downloaded by Helper\rfxfetch.exe (NSS, works on Wi-Fi and
 //    mobile data), run as SYSTEM through the shell, into the app's folder.
@@ -21,14 +21,14 @@ namespace AppLoader.Core
 {
     public static class CatalogConfig
     {
-        // GitHub Pages of the public catalogue repo
+        // GitHub Pages of the public catalog repo
         public const string IndexUrl = "https://younes-mirzaie.github.io/wp-homebrew/dist/index.json";
         // Ed25519 public key (base64, 32 bytes) printed by `catalog.py keygen`. Empty until the
-        // signing key exists: the catalogue panes then say it isn't set up yet.
+        // signing key exists: the catalog panes then say it isn't set up yet.
         public const string PublicKey = "1cxjX1wOkgO6WMJaGNdR589sCrfYyfUgiO+gT052gGU=";
     }
 
-    /// <summary>A catalogue app as the app shows it, with what's installed.</summary>
+    /// <summary>A catalog app as the app shows it, with what's installed.</summary>
     public sealed class CatalogEntry
     {
         public CatalogApp App;
@@ -115,7 +115,7 @@ namespace AppLoader.Core
         /// <summary>Downloads the index and its signature, checks them, and keeps them.</summary>
         public static async Task<CatalogIndex> RefreshAsync()
         {
-            if (!Configured) throw new CatalogException("The online catalogue isn't set up in this version of " + AppInfo.Name + ".");
+            if (!Configured) throw new CatalogException("The online catalog isn't set up in this version of " + AppInfo.Name + ".");
             string tmpIndex = Shell.LocalPath + "\\catalog-new.json", tmpSig = tmpIndex + ".sig";
             string fetch = Shell.Quote(Helper("rfxfetch.exe"));
             var r = await Shell.RunAsync(
@@ -124,7 +124,7 @@ namespace AppLoader.Core
                 "if errorlevel 1 exit /b 1\n" +
                 fetch + " " + Shell.Quote(CatalogConfig.IndexUrl + ".sig") + " " + Shell.Quote(tmpSig) + " --max-bytes 4096 --quiet\n", 120);
             if (!r.Reached) throw new CatalogException(r.Problem ?? Friendly.Slow);
-            if (r.ExitCode != 0) throw new CatalogException(Friendly.Download("the catalogue", r.Output));
+            if (r.ExitCode != 0) throw new CatalogException(Friendly.Download("the catalog", r.Output));
 
             using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
             {
@@ -194,7 +194,7 @@ namespace AppLoader.Core
             catch (Exception) { return null; }
         }
 
-        /// <summary>Joins the catalogue with the installed apps and their versions.</summary>
+        /// <summary>Joins the catalog with the installed apps and their versions.</summary>
         public static async Task<List<CatalogEntry>> EntriesAsync(CatalogIndex idx, List<InstalledApp> installed)
         {
             var list = new List<CatalogEntry>();

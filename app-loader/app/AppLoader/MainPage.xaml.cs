@@ -39,7 +39,7 @@ namespace AppLoader
             public string State { get; set; }
         }
 
-        /// <summary>The catalogue joined with what's installed, for the details page.</summary>
+        /// <summary>The catalog joined with what's installed, for the details page.</summary>
         public static List<CatalogEntry> Entries;
 
         bool _busy, _loaded, _waiting;
@@ -201,13 +201,13 @@ namespace AppLoader
             MessageBox.Show(outcome.Message, outcome.Succeeded ? "done" : "not installed", MessageBoxButton.OK);
         }
 
-        // ---- catalogue (stage 2) ----
+        // ---- catalog (stage 2) ----
 
         async Task RefreshCatalogAsync(List<InstalledApp> installed)
         {
             if (!CatalogService.Configured)
             {
-                CatalogNote.Text = "The online catalogue isn't set up in this version of " + AppInfo.Name + ".";
+                CatalogNote.Text = "The online catalog isn't set up in this version of " + AppInfo.Name + ".";
                 UpdatesNote.Text = CatalogNote.Text;
                 return;
             }
@@ -215,7 +215,7 @@ namespace AppLoader
             string problem = null;
             try
             {
-                Busy("downloading the catalogue...");
+                Busy("downloading the catalog...");
                 idx = await CatalogService.RefreshAsync();
             }
             catch (Exception ex)
@@ -225,7 +225,7 @@ namespace AppLoader
             }
             if (idx == null)
             {
-                CatalogNote.Text = problem ?? "No catalogue yet.";
+                CatalogNote.Text = problem ?? "No catalog yet.";
                 UpdatesNote.Text = CatalogNote.Text;
                 return;
             }
@@ -245,9 +245,9 @@ namespace AppLoader
             CatalogList.ItemsSource = rows;
             var updates = rows.Where(r => r.Entry.UpdateAvailable).ToList();
             UpdatesList.ItemsSource = updates;
-            CatalogNote.Text = (problem != null ? "Offline, showing the last catalogue (" + problem + "). " : "") +
+            CatalogNote.Text = (problem != null ? "Offline, showing the last catalog (" + problem + "). " : "") +
                                idx.Apps.Count + " apps. Tap one for details.";
-            UpdatesNote.Text = updates.Count == 0 ? "Everything from the catalogue is up to date."
+            UpdatesNote.Text = updates.Count == 0 ? "Everything from the catalog is up to date."
                              : updates.Count + (updates.Count == 1 ? " update" : " updates") + ". Tap one to update it.";
         }
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Homebrew catalogue tool for the WP 8.1 app loader (stage 2).
+"""Homebrew catalog tool for the WP 8.1 app loader (stage 2).
 
   catalog.py keygen  --out KEY.pem             new Ed25519 signing key (never commit it)
   catalog.py add     PKG --url URL [--id ID] [--app-dir DIR] [--notes TEXT]

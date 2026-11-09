@@ -1,4 +1,4 @@
-// The signed catalogue index (see ../DESIGN.md): verify, parse, and check it before the app trusts
+// The signed catalog index (see ../DESIGN.md): verify, parse, and check it before the app trusts
 // anything in it. The caller stores HighestSerial after a successful load and passes it next time.
 using System;
 using System.Collections.Generic;
@@ -42,26 +42,26 @@ namespace AppLoader.Catalog
 
         /// <summary>Checks the signature over the exact index bytes, then parses and validates it.
         /// highestSerialSeen: the largest serial this phone accepted before (0 the first time); an
-        /// older index is refused so nobody can roll the catalogue back to a known-bad version.</summary>
+        /// older index is refused so nobody can roll the catalog back to a known-bad version.</summary>
         public static CatalogIndex Load(byte[] indexBytes, string signatureBase64, byte[] publicKey, long highestSerialSeen)
         {
             if (indexBytes == null || indexBytes.Length == 0 || indexBytes.Length > MaxIndexBytes)
-                throw new CatalogException("The catalogue download was empty or far too large, so it wasn't used. Try again later.");
+                throw new CatalogException("The catalog download was empty or far too large, so it wasn't used. Try again later.");
             byte[] sig;
             try { sig = Convert.FromBase64String((signatureBase64 ?? "").Trim()); }
-            catch (FormatException) { throw new CatalogException("The catalogue's signature is damaged, so the catalogue wasn't used. Try again later."); }
+            catch (FormatException) { throw new CatalogException("The catalog's signature is damaged, so the catalog wasn't used. Try again later."); }
             if (!Ed25519.Verify(sig, indexBytes, publicKey))
-                throw new CatalogException("The catalogue didn't pass its security check (it may have been changed by someone else), so it wasn't used. Try again later.");
+                throw new CatalogException("The catalog didn't pass its security check (it may have been changed by someone else), so it wasn't used. Try again later.");
 
             Dictionary<string, object> root;
             try { root = Json.Parse(Encoding.UTF8.GetString(indexBytes, 0, indexBytes.Length)) as Dictionary<string, object>; }
-            catch (FormatException e) { throw new CatalogException("The catalogue has a mistake in it, so it wasn't used. Try again later. (" + e.Message + ")"); }
-            if (root == null) throw new CatalogException("The catalogue has a mistake in it, so it wasn't used. Try again later.");
+            catch (FormatException e) { throw new CatalogException("The catalog has a mistake in it, so it wasn't used. Try again later. (" + e.Message + ")"); }
+            if (root == null) throw new CatalogException("The catalog has a mistake in it, so it wasn't used. Try again later.");
             if (Num(root, "schema") != Schema)
-                throw new CatalogException("This catalogue needs a newer version of this app. Update it from a package file, then try again.");
+                throw new CatalogException("This catalog needs a newer version of this app. Update it from a package file, then try again.");
             var idx = new CatalogIndex { Serial = Num(root, "serial"), Generated = Str(root, "generated"), Name = Str(root, "name") };
             if (idx.Serial < highestSerialSeen)
-                throw new CatalogException("The server sent an older catalogue than the one this phone already has, so it wasn't used. Try again later.");
+                throw new CatalogException("The server sent an older catalog than the one this phone already has, so it wasn't used. Try again later.");
 
             var ids = new HashSet<string>();
             var pids = new HashSet<string>();
@@ -133,7 +133,7 @@ namespace AppLoader.Catalog
             return 0;
         }
 
-        static CatalogException Bad(string what) { return new CatalogException("The catalogue has a mistake in it (" + what + "), so it wasn't used. Try again later."); }
+        static CatalogException Bad(string what) { return new CatalogException("The catalog has a mistake in it (" + what + "), so it wasn't used. Try again later."); }
 
         static string Str(Dictionary<string, object> o, string k)
         {

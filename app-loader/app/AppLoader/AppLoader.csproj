@@ -48,7 +48,7 @@
     <Compile Include="MainPage.xaml.cs"><DependentUpon>MainPage.xaml</DependentUpon></Compile>
     <Compile Include="CatalogPage.xaml.cs"><DependentUpon>CatalogPage.xaml</DependentUpon></Compile>
     <Compile Include="Core\CatalogService.cs" />
-    <!-- stage 2 catalogue client, shared with the Mono tests in ..\..\catalog\test -->
+    <!-- stage 2 catalog client, shared with the Mono tests in ..\..\catalog\test -->
     <Compile Include="..\..\catalog\client\*.cs"><Link>Catalog\%(Filename)%(Extension)</Link></Compile>
     <Compile Include="Core\Friendly.cs" />
     <Compile Include="Core\LineSocket.cs" />
@@ -71,7 +71,7 @@
     <Content Include="Assets\**\*.png" />
     <!-- built by ..\..\build.ps1 (helper\aldetach.c) -->
     <Content Include="Helper\aldetach.exe" />
-    <!-- built by ..\..\fetch\build.ps1 (rfxfetch.c, NSS): catalogue downloads -->
+    <!-- built by ..\..\fetch\build.ps1 (rfxfetch.c, NSS): catalog downloads -->
     <Content Include="Helper\rfxfetch.exe" />
     <Content Include="Helper\nssckbi.dll" />
     <Content Include="Helper\nspr4.dll" />

@@ -62,12 +62,12 @@ namespace AppLoader.Core
             else if (e.Contains("certificate") || e.Contains("secure connection"))
                 why = "The server's security check failed. Make sure the phone's date and time are right, then try again.";
             else if (e.Contains("http 404") || e.Contains("http 410"))
-                why = "The file isn't on the server any more. Refresh the catalogue and try again.";
+                why = "The file isn't on the server any more. Refresh the catalog and try again.";
             else if (e.Contains("http "))
                 why = "The server didn't hand over the file right now. Try again later.";
             else if (e.Contains("mismatch") || e.Contains("larger than the limit"))
-                why = "What arrived wasn't the exact file the catalogue promised, so it was thrown away. Try again; " +
-                      "if it keeps happening, the catalogue may be in the middle of an update.";
+                why = "What arrived wasn't the exact file the catalog promised, so it was thrown away. Try again; " +
+                      "if it keeps happening, the catalog may be in the middle of an update.";
             else if (e.Contains("can't write") || e.Contains("can't create") || e.Contains("can't rename"))
                 why = "The file couldn't be saved. The phone may be out of storage space.";
             else

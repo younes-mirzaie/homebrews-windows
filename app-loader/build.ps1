@@ -38,7 +38,7 @@ New-Item -ItemType Directory -Force "$here\app\AppLoader\Helper" | Out-Null
 Copy-Item -Force "$obj\aldetach.exe" "$here\app\AppLoader\Helper"
 Write-Host "aldetach.exe built" -ForegroundColor Green
 
-# ---- rfxfetch.exe + NSS/NSPR DLLs (catalogue downloads, stage 2) ----
+# ---- rfxfetch.exe + NSS/NSPR DLLs (catalog downloads, stage 2) ----
 & "$here\fetch\build.ps1"
 
 # ---- app ----

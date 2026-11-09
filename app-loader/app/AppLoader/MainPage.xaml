@@ -15,14 +15,14 @@
     </shell:SystemTray.ProgressIndicator>
 
     <phone:Pivot x:Name="Pivots" Title="APP LOADER">
-        <phone:PivotItem Header="catalogue">
+        <phone:PivotItem Header="catalog">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
                 <TextBlock x:Name="CatalogNote" TextWrapping="Wrap" Margin="12,0,12,12"
-                           Style="{StaticResource PhoneTextSubtleStyle}" Text="Loading the catalogue..." />
+                           Style="{StaticResource PhoneTextSubtleStyle}" Text="Loading the catalog..." />
                 <ListBox x:Name="CatalogList" Grid.Row="1" SelectionChanged="CatalogList_SelectionChanged">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
