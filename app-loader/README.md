@@ -39,10 +39,27 @@ How an install goes (`Core/Phone.cs`):
 output and exit status out (or a run name to read later). `Core/Shell.cs` runs batch commands as SYSTEM. The app doesn't read
 or keep any secrets (no rfxdev token).
 
-## Stage 2 (planned)
+## Stage 2: online catalogue
 
-An online catalogue: a list file with each app's name, version, download link and checksum; the
-loader shows updates, downloads, checks and installs. Design notes live with the project thread.
+- **catalogue**: apps from the signed catalogue (public repo `wp-homebrew`), with what's installed.
+  Tap one for its details page: description, license, versions, install / update / reinstall.
+- **updates**: catalogue apps with a newer version than the installed one.
+
+How it works (`Core/CatalogService.cs`, design in [catalog/DESIGN.md](catalog/DESIGN.md)):
+
+1. `Helper\rfxfetch.exe` ([fetch/](fetch), NSS) downloads `index.json` and its signature; works on
+   Wi-Fi and mobile data. The index is checked with the Ed25519 key built into the app
+   (`CatalogConfig.PublicKey`, [catalog/client](catalog/client)) and must not be older than the
+   newest one this phone accepted. The last good index is kept for offline use.
+2. Installed versions are read from the installed manifests (`C:\Data\Programs\{id}\Install`,
+   `D:\WPSystem\Apps\{id}\Install`); where they aren't found the version shows as unknown.
+3. A package is downloaded by rfxfetch in the background (detached, like installs), pinned by
+   the index's SHA-256 and size, then installed by stage 1 with the expected product ID and
+   SHA-256, checked again on the staged copy.
+
+To publish: `catalog/tools/catalog.py` (`keygen` once, then `add` and `build`), see the
+`wp-homebrew` README. Until `CatalogConfig.PublicKey` is filled in, the catalogue panes say the
+catalogue isn't set up.
 
 ## Build
 

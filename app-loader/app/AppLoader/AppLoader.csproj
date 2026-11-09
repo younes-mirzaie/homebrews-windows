@@ -46,6 +46,10 @@
   <ItemGroup>
     <Compile Include="App.xaml.cs"><DependentUpon>App.xaml</DependentUpon></Compile>
     <Compile Include="MainPage.xaml.cs"><DependentUpon>MainPage.xaml</DependentUpon></Compile>
+    <Compile Include="CatalogPage.xaml.cs"><DependentUpon>CatalogPage.xaml</DependentUpon></Compile>
+    <Compile Include="Core\CatalogService.cs" />
+    <!-- stage 2 catalogue client, shared with the Mono tests in ..\..\catalog\test -->
+    <Compile Include="..\..\catalog\client\*.cs"><Link>Catalog\%(Filename)%(Extension)</Link></Compile>
     <Compile Include="Core\LineSocket.cs" />
     <Compile Include="Core\PackageInfo.cs" />
     <Compile Include="Core\PackageInstaller.cs" />
@@ -56,6 +60,7 @@
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml"><SubType>Designer</SubType><Generator>MSBuild:Compile</Generator></ApplicationDefinition>
+    <Page Include="CatalogPage.xaml"><SubType>Designer</SubType><Generator>MSBuild:Compile</Generator></Page>
     <Page Include="MainPage.xaml"><SubType>Designer</SubType><Generator>MSBuild:Compile</Generator></Page>
   </ItemGroup>
   <ItemGroup>
@@ -65,6 +70,12 @@
     <Content Include="Assets\**\*.png" />
     <!-- built by ..\..\build.ps1 (helper\aldetach.c) -->
     <Content Include="Helper\aldetach.exe" />
+    <!-- built by ..\..\fetch\build.ps1 (rfxfetch.c, NSS): catalogue downloads -->
+    <Content Include="Helper\rfxfetch.exe" />
+    <Content Include="Helper\nssckbi.dll" />
+    <Content Include="Helper\nspr4.dll" />
+    <Content Include="Helper\plc4.dll" />
+    <Content Include="Helper\plds4.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).$(TargetFrameworkVersion).Overrides.targets" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).CSharp.targets" />

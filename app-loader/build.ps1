@@ -1,4 +1,4 @@
-# Builds App Loader: helper\aldetach.c (native ARM) and the WP 8.1 Silverlight app
+# Builds App Loader: helper\aldetach.c and fetch\rfxfetch.c (native ARM) and the WP 8.1 Silverlight app
 #   .\build.ps1      ->  app\AppLoader\Bin\AnyCPU\Release\AppLoader_Release_AnyCPU.xap
 # Install it on the phone with retrofox's rfx tool:  rfx install <xap> -Mode di   (first time)
 #                                                    rfx install <xap> -Mode uda  (updates)
@@ -37,6 +37,9 @@ if ($LASTEXITCODE -ne 0) { throw "aldetach link failed" }
 New-Item -ItemType Directory -Force "$here\app\AppLoader\Helper" | Out-Null
 Copy-Item -Force "$obj\aldetach.exe" "$here\app\AppLoader\Helper"
 Write-Host "aldetach.exe built" -ForegroundColor Green
+
+# ---- rfxfetch.exe + NSS/NSPR DLLs (catalogue downloads, stage 2) ----
+& "$here\fetch\build.ps1"
 
 # ---- app ----
 $msbuild = "${env:ProgramFiles(x86)}\MSBuild\14.0\Bin\MSBuild.exe"

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -7,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
+using AppLoader.Catalog;
 using AppLoader.Core;
 
 namespace AppLoader
@@ -25,6 +27,18 @@ namespace AppLoader
             public string Title { get; set; }
             public string Detail { get; set; }
         }
+
+        public sealed class CatalogRow
+        {
+            public CatalogEntry Entry;
+            public string Letter { get; set; }
+            public string Name { get; set; }
+            public string Detail { get; set; }
+            public string State { get; set; }
+        }
+
+        /// <summary>The catalogue joined with what's installed, for the details page.</summary>
+        public static List<CatalogEntry> Entries;
 
         bool _busy, _loaded, _waiting;
 
@@ -60,7 +74,7 @@ namespace AppLoader
 
         // Keeps the phone from locking during an install (the install itself runs on without the
         // app, but the user sees it through)
-        static void KeepAwake(bool on)
+        public static void KeepAwake(bool on)
         {
             try
             {
@@ -97,6 +111,8 @@ namespace AppLoader
                         Detail = (a.OnSd ? "SD card" : "phone") + " · " + a.ProductId,
                     }).ToList();
                 InstalledNote.Text = apps.Count + " apps.";
+
+                await RefreshCatalogAsync(apps);
             }
             catch (Exception ex)
             {
@@ -108,7 +124,7 @@ namespace AppLoader
             }
         }
 
-        static string Size(long b)
+        public static string Size(long b)
         {
             if (b >= 1024 * 1024) return (b / 1048576.0).ToString("0.0") + " MB";
             return Math.Max(1, b / 1024) + " KB";
@@ -189,7 +205,77 @@ namespace AppLoader
             log.AppendLine(outcome.Message);
             LogText.Text = log.ToString();
             MessageBox.Show(outcome.Message, outcome.Succeeded ? "done" : "not installed", MessageBoxButton.OK);
-            if (!outcome.Succeeded && outcome.Th != null) Pivots.SelectedIndex = 2;
+            if (!outcome.Succeeded && outcome.Th != null) Pivots.SelectedItem = LogPivot;
+        }
+
+        // ---- catalogue (stage 2) ----
+
+        async Task RefreshCatalogAsync(List<InstalledApp> installed)
+        {
+            if (!CatalogService.Configured)
+            {
+                CatalogNote.Text = "The online catalogue isn't set up in this build yet.";
+                UpdatesNote.Text = CatalogNote.Text;
+                return;
+            }
+            CatalogIndex idx = null;
+            string problem = null;
+            try
+            {
+                Busy("downloading the catalogue...");
+                idx = await CatalogService.RefreshAsync();
+            }
+            catch (Exception ex)
+            {
+                problem = ex.Message;
+                idx = CatalogService.LoadCached();
+            }
+            if (idx == null)
+            {
+                CatalogNote.Text = problem ?? "No catalogue yet.";
+                UpdatesNote.Text = CatalogNote.Text;
+                return;
+            }
+            Busy("checking installed versions...");
+            Entries = await CatalogService.EntriesAsync(idx, installed);
+            var rows = Entries.OrderBy(x => x.App.Name, StringComparer.OrdinalIgnoreCase).Select(x => new CatalogRow
+            {
+                Entry = x,
+                Letter = x.App.Name.Substring(0, 1).ToUpperInvariant(),
+                Name = x.App.Name,
+                Detail = string.IsNullOrEmpty(x.App.Description) ? x.App.Latest.Version : x.App.Description,
+                State = StateText(x),
+            }).ToList();
+            CatalogList.ItemsSource = rows;
+            var updates = rows.Where(r => r.Entry.UpdateAvailable).ToList();
+            UpdatesList.ItemsSource = updates;
+            CatalogNote.Text = (problem != null ? "Offline, showing the last catalogue (" + problem + "). " : "") +
+                               idx.Apps.Count + " apps. Tap one for details.";
+            UpdatesNote.Text = updates.Count == 0 ? "Everything from the catalogue is up to date."
+                             : updates.Count + (updates.Count == 1 ? " update" : " updates") + ". Tap one to update it.";
+        }
+
+        static string StateText(CatalogEntry x)
+        {
+            if (!x.Installable) return "can't be installed by App Loader yet";
+            if (x.Installed == null) return "not installed · " + x.App.Latest.Version;
+            if (x.InstalledVersion == null) return "installed (version unknown) · " + x.App.Latest.Version + " available";
+            if (x.UpdateAvailable) return "installed " + x.InstalledVersion + " · update to " + x.App.Latest.Version;
+            return "installed " + x.InstalledVersion;
+        }
+
+        void CatalogList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var list = (ListBox)sender;
+            var row = list.SelectedItem as CatalogRow;
+            list.SelectedItem = null;
+            if (row == null) return;
+            if (_waiting)
+            {
+                MessageBox.Show("An install is still running. Try again once it's done.", "busy", MessageBoxButton.OK);
+                return;
+            }
+            NavigationService.Navigate(new Uri("/CatalogPage.xaml?id=" + Uri.EscapeDataString(row.Entry.App.Id), UriKind.Relative));
         }
 
         void Refresh_Click(object sender, EventArgs e)

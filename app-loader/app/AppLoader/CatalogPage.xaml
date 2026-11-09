@@ -1,0 +1,51 @@
+<phone:PhoneApplicationPage
+    x:Class="AppLoader.CatalogPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    FontFamily="{StaticResource PhoneFontFamilyNormal}"
+    FontSize="{StaticResource PhoneFontSizeNormal}"
+    Foreground="{StaticResource PhoneForegroundBrush}"
+    SupportedOrientations="Portrait" Orientation="Portrait"
+    shell:SystemTray.IsVisible="True">
+
+    <shell:SystemTray.ProgressIndicator>
+        <shell:ProgressIndicator x:Name="Progress" IsIndeterminate="True" IsVisible="False" />
+    </shell:SystemTray.ProgressIndicator>
+
+    <Grid Background="Transparent">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <StackPanel Margin="12,17,0,28">
+            <TextBlock Text="APP LOADER" Style="{StaticResource PhoneTextNormalStyle}" />
+            <TextBlock x:Name="AppName" Margin="9,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}"
+                       TextWrapping="Wrap" />
+        </StackPanel>
+        <ScrollViewer Grid.Row="1">
+            <StackPanel Margin="12,0,12,96">
+                <TextBlock x:Name="Status" Style="{StaticResource PhoneTextAccentStyle}" TextWrapping="Wrap"
+                           FontSize="{StaticResource PhoneFontSizeMedium}" Margin="12,0,12,12" />
+                <Button x:Name="InstallButton" HorizontalAlignment="Left" Click="Install_Click" Margin="0,0,0,12" />
+                <TextBlock x:Name="Description" Style="{StaticResource PhoneTextNormalStyle}" TextWrapping="Wrap" Margin="12,0,12,24" />
+                <TextBlock Text="details" Style="{StaticResource PhoneTextLargeStyle}" Margin="12,0,12,6" />
+                <TextBlock x:Name="Details" Style="{StaticResource PhoneTextSubtleStyle}" TextWrapping="Wrap" Margin="12,0,12,24" />
+                <TextBlock Text="versions" Style="{StaticResource PhoneTextLargeStyle}" Margin="12,0,12,6" />
+                <TextBlock Style="{StaticResource PhoneTextSubtleStyle}" TextWrapping="Wrap" Margin="12,0,12,12"
+                           Text="Tap a version to install that one (going back to an older version may be refused by the phone)." />
+                <ItemsControl x:Name="Versions">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="12,0,12,18" Tap="Version_Tap" Background="Transparent">
+                                <TextBlock Text="{Binding Title}" Style="{StaticResource PhoneTextLargeStyle}" Margin="0" />
+                                <TextBlock Text="{Binding Detail}" Style="{StaticResource PhoneTextSubtleStyle}" Margin="0" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</phone:PhoneApplicationPage>
