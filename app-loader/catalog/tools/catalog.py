@@ -2,7 +2,8 @@
 """Homebrew catalogue tool for the WP 8.1 app loader (stage 2).
 
   catalog.py keygen  --out KEY.pem             new Ed25519 signing key (never commit it)
-  catalog.py add     PKG --url URL [--app-dir DIR] [--notes TEXT]
+  catalog.py add     PKG --url URL [--id ID] [--app-dir DIR] [--notes TEXT]
+                     [--name N --author A --description D --license L --source URL --icon URL]
                                                read PKG's manifest, hash it, add a release
   catalog.py build   [--app-dir DIR] [--out DIR] --key KEY.pem
                                                merge apps/*.json into index.json + index.json.sig
@@ -169,6 +170,10 @@ def cmd_add(a):
            "url": a.url, "sha256": sha256_file(a.package), "size": os.path.getsize(a.package),
            "min_os": a.min_os, "notes": a.notes or "",
            "added": datetime.date.today().isoformat()}
+    for field in ("name", "author", "description", "license", "source", "icon"):
+        v = getattr(a, field, None)
+        if v is not None:
+            app[field] = v
     app["releases"] = [r for r in app["releases"] if r["version"] != rel["version"]] + [rel]
     app["releases"].sort(key=lambda r: vkey(r["version"]), reverse=True)
     validate_app(app, path)
@@ -248,6 +253,8 @@ def main():
     k = sub.add_parser("keygen"); k.add_argument("--out", required=True); k.set_defaults(fn=cmd_keygen)
     d = sub.add_parser("add"); d.add_argument("package"); d.add_argument("--url", required=True)
     d.add_argument("--id"); d.add_argument("--notes"); d.add_argument("--min-os", default="8.10.0.0")
+    for field in ("name", "author", "description", "license", "source", "icon"):
+        d.add_argument("--" + field, help="set the app's %s (kept for later releases)" % field)
     d.add_argument("--app-dir", default=os.path.join(here, "..", "apps")); d.set_defaults(fn=cmd_add)
     b = sub.add_parser("build"); b.add_argument("--key", required=True)
     b.add_argument("--app-dir", default=os.path.join(here, "..", "apps"))

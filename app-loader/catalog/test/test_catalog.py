@@ -50,8 +50,10 @@ with tempfile.TemporaryDirectory() as t:
     pkg(a1, "AppxManifest.xml", APPX % ("1.0.0.0", "eeeeeeeeeeee"))
     pkg(a2, "AppxManifest.xml", APPX % ("1.10.0.0", "eeeeeeeeeeee"))
     run("add", a1, "--url", "https://example.org/demo1.appx", "--app-dir", apps)
-    run("add", a2, "--url", "https://example.org/demo2.appx", "--app-dir", apps, "--notes", "faster")
+    run("add", a2, "--url", "https://example.org/demo2.appx", "--app-dir", apps, "--notes", "faster",
+        "--description", "A demo.", "--license", "MIT")
     app = json.load(open(os.path.join(apps, "rfx.demo.json")))
+    check("listing fields from flags", app["description"] == "A demo." and app["license"] == "MIT")
     check("appx manifest read", app["name"] == "Demo App" and app["releases"][0]["arch"] == "arm")
     check("releases newest first (numeric compare)", [r["version"] for r in app["releases"]] == ["1.10.0.0", "1.0.0.0"])
     check("sha256 + size recorded", len(app["releases"][0]["sha256"]) == 64 and app["releases"][0]["size"] == os.path.getsize(a2))
