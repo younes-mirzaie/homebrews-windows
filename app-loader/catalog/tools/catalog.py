@@ -39,7 +39,23 @@ def find(root, name):
     return None
 
 
+def guid(v):
+    return v.strip().strip("{}").upper() if v else None
+
+
+def phone_product_id(root):
+    el = find(root, "PhoneIdentity")
+    return guid(el.get("PhoneProductId")) if el is not None else None
+
+
 def read_manifest(path):
+    m = _read_manifest(path)
+    if not m.get("product_id"):
+        fail(path + ": no phone product ID in the manifest (PhoneIdentity/ProductID); the phone can't track it")
+    return m
+
+
+def _read_manifest(path):
     """Return identity facts from an .appx, .appxbundle or .xap."""
     ext = os.path.splitext(path)[1].lower()
     with zipfile.ZipFile(path) as z:
@@ -49,7 +65,19 @@ def read_manifest(path):
             ident = find(root, "Identity")
             archs = sorted({p.get("Architecture", "neutral") for p in root.iter()
                             if local(p.tag) == "Package" and p.get("Type", "application") == "application"})
-            return {"kind": "appxbundle", "package_name": ident.get("Name"),
+            pid = None
+            for p in root.iter():
+                if local(p.tag) == "Package" and p.get("Type", "application") == "application" and p.get("FileName"):
+                    inner = names.get(p.get("FileName").lower())
+                    if inner:
+                        import io
+                        with zipfile.ZipFile(io.BytesIO(z.read(inner))) as iz:
+                            n2 = {n.lower(): n for n in iz.namelist()}
+                            if "appxmanifest.xml" in n2:
+                                pid = phone_product_id(ET.fromstring(iz.read(n2["appxmanifest.xml"])))
+                    if pid:
+                        break
+            return {"kind": "appxbundle", "package_name": ident.get("Name"), "product_id": pid,
                     "publisher": ident.get("Publisher"), "version": ident.get("Version"),
                     "arch": ",".join(archs) or "neutral", "title": None}
         if "appxmanifest.xml" in names:  # .appx, or a Silverlight 8.1 .xap
@@ -59,13 +87,20 @@ def read_manifest(path):
             title = disp.text.strip() if disp is not None and disp.text else None
             if title and title.startswith("ms-resource:"):
                 title = None
+            pid = phone_product_id(root)
+            if ext == ".xap" and "wmappmanifest.xml" in names:
+                app = find(ET.fromstring(z.read(names["wmappmanifest.xml"])), "App")
+                if app is not None and app.get("ProductID"):
+                    pid = guid(app.get("ProductID"))
             return {"kind": "xap81" if ext == ".xap" else "appx", "package_name": ident.get("Name"),
+                    "product_id": pid,
                     "publisher": ident.get("Publisher"), "version": ident.get("Version"),
                     "arch": ident.get("ProcessorArchitecture", "neutral"), "title": title}
         if "wmappmanifest.xml" in names:  # WP 8.0 / 7.x .xap
             root = ET.fromstring(z.read(names["wmappmanifest.xml"]))
             app = find(root, "App")
-            return {"kind": "xap80", "package_name": app.get("ProductID"),
+            return {"kind": "xap80", "package_name": guid(app.get("ProductID")),
+                    "product_id": guid(app.get("ProductID")),
                     "publisher": app.get("Publisher"), "version": app.get("Version"),
                     "arch": "neutral", "title": app.get("Title")}
     fail(path + ": no AppxManifest.xml or WMAppManifest.xml (not a phone package?)")
@@ -94,8 +129,10 @@ def validate_app(app, fname):
         need(isinstance(r.get("size"), int) and r["size"] > 0, "size must be a positive int")
         need(r.get("kind") in ("appx", "appxbundle", "xap81", "xap80"), "bad kind")
         need(r.get("package_name"), "package_name missing")
-        pkgs.add(r["package_name"])
-    need(len(pkgs) == 1, "all releases of one app must share package_name (got %s)" % sorted(pkgs))
+        need(re.fullmatch(r"[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}", r.get("product_id") or ""),
+             "product_id must be an upper-case GUID without braces")
+        pkgs.add((r["package_name"], r["product_id"]))
+    need(len(pkgs) == 1, "all releases of one app must share package_name and product_id (got %s)" % sorted(pkgs))
 
 
 def vkey(v):
@@ -128,7 +165,7 @@ def cmd_add(a):
         app = {"id": app_id, "name": m["title"] or app_id, "author": "", "description": "",
                "license": "", "source": "", "icon": "", "releases": []}
     rel = {"version": m["version"], "kind": m["kind"], "arch": m["arch"],
-           "package_name": m["package_name"], "publisher": m["publisher"],
+           "package_name": m["package_name"], "product_id": m["product_id"], "publisher": m["publisher"],
            "url": a.url, "sha256": sha256_file(a.package), "size": os.path.getsize(a.package),
            "min_os": a.min_os, "notes": a.notes or "",
            "added": datetime.date.today().isoformat()}
@@ -155,10 +192,11 @@ def load_apps(app_dir):
             fail("%s: file name must be <id>.json" % p)
         app["releases"].sort(key=lambda r: vkey(r["version"]), reverse=True)
         apps.append(app)
-    names = [r["package_name"] for a in apps for r in a["releases"][:1]]
-    dup = {n for n in names if names.count(n) > 1}
-    if dup:
-        fail("package_name used by more than one app: %s" % sorted(dup))
+    for key in ("package_name", "product_id"):
+        names = [r[key] for a in apps for r in a["releases"][:1]]
+        dup = {n for n in names if names.count(n) > 1}
+        if dup:
+            fail("%s used by more than one app: %s" % (key, sorted(dup)))
     return apps
 
 

@@ -47,7 +47,7 @@ bytes). Older releases stay listed so a user can roll back on purpose.
   replaying an old index with a known-bad version).
 - **Packages**: pinned by `sha256` + `size` in the signed index. The URL can point anywhere
   (GitHub Releases, a community mirror, archive.org); a mismatch is deleted, never installed.
-- **Key handling**: the private key stays offline on the publisher's PC (`*.pem` is git-ignored). Signing
+- **Key handling**: the private key stays offline on the PC (`*.pem` is git-ignored). Signing
   happens on the PC when publishing, not in CI, so a leaked GitHub token can't publish.
   Losing the key means shipping a loader update with a new public key, so keep a backup.
 - Transport security is then a bonus, not the guarantee.
@@ -98,7 +98,7 @@ check once a day and set a live tile count; it only fetches the index, never ins
 ```
 python catalog/tools/catalog.py add Retrofox_0.3.1.0_ARM.appx --url https://github.com/.../releases/download/retrofox-0.3.1/Retrofox_0.3.1.0_ARM.appx
 # edit apps/<id>.json: description, license, icon
-python catalog/tools/catalog.py build --key C:\keys\wp-homebrew.pem
+python catalog/tools/catalog.py build --key <path-to-signing-key.pem>
 git add apps dist && git commit && git push      # GitHub Pages serves dist/
 ```
 
@@ -119,3 +119,15 @@ than rehosting.
 2. C# Ed25519 verify (small TweetNaCl port) + index parser + serial store, unit-tested on Mono.
 3. Catalogue/updates panes on top of stage 1's installer class.
 4. Background update check + live tile.
+
+## Status (2026-11-09)
+
+- `tools/catalog.py` + `test/test_catalog.py`: 16 checks. Records `product_id` (the phone's
+  product ID, what the installer matches on) for every release.
+- `../fetch/rfxfetch.c` + `../fetch/test/test_rfxfetch.py`: 16 checks against a local HTTPS server
+  (redirects, chunked, hash/size mismatch, size cap, http refused, bad cert, wrong host name).
+- `client/` (C#, Silverlight-safe: own SHA-512, Ed25519 verify, JSON reader, `CatalogIndex.Load`):
+  `test/run-client-tests.sh` runs 20 checks on Mono, including RFC 8032 vectors and an index
+  signed by `catalog.py`.
+- Next: catalogue/updates panes in the app on top of stage 1's
+  `Phone.InstallAsync(found, status, expectedProductId, expectedSha256)`; ARM build of rfxfetch.

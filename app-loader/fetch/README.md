@@ -13,5 +13,5 @@ Exit 0 ok, 1 network/HTTP/TLS, 2 hash or size mismatch, 3 usage. The file appear
 verified (written as `<out>.part`, renamed at the end); an existing `<out>` is kept on failure.
 https only, also for redirects (max 5). Default size cap 64 MB.
 
-- Phone build: `.\build.ps1` on the build PC (retrofox toolchain), output goes to `..\app\AppLoader\Helper`.
+- Phone build: `.\build.ps1` on the Windows PC (retrofox toolchain), output goes to `..\app\AppLoader\Helper`.
 - Linux tests: `make && python3 test/test_rfxfetch.py` (needs libnss3-dev, python `cryptography`): 16 checks.
