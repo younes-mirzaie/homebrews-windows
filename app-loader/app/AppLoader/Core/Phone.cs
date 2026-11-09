@@ -42,6 +42,7 @@ namespace AppLoader.Core
     public sealed class InstallJob
     {
         public string Run, Mode, ProductId, Title, Version, ExistingTitle, Staged;
+        public bool ExistingOnSd;   // the installed copy (if any) lives on the SD card
         public bool IsUpdate { get { return Mode == PackageInstaller.Update; } }
 
         const string Key = "job";
@@ -49,7 +50,7 @@ namespace AppLoader.Core
         public void Save()
         {
             IsolatedStorageSettings.ApplicationSettings[Key] = string.Join("\n",
-                new[] { Run, Mode, ProductId, Title, Version, ExistingTitle ?? "", Staged });
+                new[] { Run, Mode, ProductId, Title, Version, ExistingTitle ?? "", Staged, ExistingOnSd ? "sd" : "" });
             IsolatedStorageSettings.ApplicationSettings.Save();
         }
 
@@ -60,7 +61,8 @@ namespace AppLoader.Core
             var f = ((string)v).Split('\n');
             if (f.Length < 7) return null;
             return new InstallJob { Run = f[0], Mode = f[1], ProductId = f[2], Title = f[3], Version = f[4],
-                                    ExistingTitle = f[5].Length > 0 ? f[5] : null, Staged = f[6] };
+                                    ExistingTitle = f[5].Length > 0 ? f[5] : null, Staged = f[6],
+                                    ExistingOnSd = f.Length > 7 && f[7] == "sd" };
         }
 
         public static void Clear()
@@ -256,6 +258,7 @@ namespace AppLoader.Core
                 {
                     Run = run, Mode = mode, ProductId = pkg.ProductId, Title = pkg.Title, Version = pkg.Version,
                     ExistingTitle = existing != null ? existing.Title : null, Staged = stageName,
+                    ExistingOnSd = existing != null && existing.OnSd,
                 };
                 outcome.Job.Save();
                 outcome.Started = true;

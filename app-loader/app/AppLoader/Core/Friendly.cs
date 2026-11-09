@@ -115,6 +115,14 @@ namespace AppLoader.Core
                 case "0x80073cfb":
                     return "This exact version is already installed, but with different contents. " + Unchanged;
                 case "0x80073cf9":
+                    if (job.IsUpdate)
+                    {
+                        string app = job.ExistingTitle ?? job.Title;
+                        return "Close " + app + " if it's open. Then check Settings > storage sense: \"store new apps on\" " +
+                               "has to match where " + app + " is installed now (" + (job.ExistingOnSd ? "SD card" : "phone") +
+                               "). Then try again. " + Unchanged;
+                    }
+                    return "Close the app if it's open, check that the phone has free storage, then try again. " + Unchanged;
                 case "0x80073cf6":
                     return "The phone's installer gave up partway. Restart the phone and try again.";
             }
