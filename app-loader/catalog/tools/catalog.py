@@ -3,7 +3,8 @@
 
   catalog.py keygen  --out KEY.pem             new Ed25519 signing key (never commit it)
   catalog.py add     PKG --url URL [--id ID] [--app-dir DIR] [--notes TEXT]
-                     [--name N --author A --description D --license L --source URL --icon URL]
+                     [--name N --author A --description D --license L --source URL]
+                     [--icons-dir DIR --icons-url URL [--icon-file PNG]]
                                                read PKG's manifest, hash it, add a release
   catalog.py build   [--app-dir DIR] [--out DIR] --key KEY.pem
                                                merge apps/*.json into index.json + index.json.sig
@@ -40,6 +41,26 @@ def find(root, name):
     return None
 
 
+def zread(z, name):
+    """Read a zip member even when the central directory and local header spell the name
+    differently (Windows Phone .xap files use '\\' in one and '/' in the other)."""
+    import struct, zlib
+    info = z.getinfo(name)
+    with open(z.filename, "rb") as f:
+        f.seek(info.header_offset)
+        h = f.read(30)
+        if h[:4] != b"PK\x03\x04":
+            fail("bad zip entry " + name)
+        nlen, xlen = struct.unpack("<HH", h[26:30])
+        f.seek(info.header_offset + 30 + nlen + xlen)
+        raw = f.read(info.compress_size)
+    if info.compress_type == zipfile.ZIP_STORED:
+        return raw
+    if info.compress_type == zipfile.ZIP_DEFLATED:
+        return zlib.decompressobj(-15).decompress(raw)
+    fail("unsupported compression in " + name)
+
+
 def guid(v):
     return v.strip().strip("{}").upper() if v else None
 
@@ -62,7 +83,7 @@ def _read_manifest(path):
     with zipfile.ZipFile(path) as z:
         names = {n.lower(): n for n in z.namelist()}
         if ext == ".appxbundle":
-            root = ET.fromstring(z.read(names["appxmetadata/appxbundlemanifest.xml"]))
+            root = ET.fromstring(zread(z, names["appxmetadata/appxbundlemanifest.xml"]))
             ident = find(root, "Identity")
             archs = sorted({p.get("Architecture", "neutral") for p in root.iter()
                             if local(p.tag) == "Package" and p.get("Type", "application") == "application"})
@@ -72,7 +93,7 @@ def _read_manifest(path):
                     inner = names.get(p.get("FileName").lower())
                     if inner:
                         import io
-                        with zipfile.ZipFile(io.BytesIO(z.read(inner))) as iz:
+                        with zipfile.ZipFile(io.BytesIO(zread(z, inner))) as iz:
                             n2 = {n.lower(): n for n in iz.namelist()}
                             if "appxmanifest.xml" in n2:
                                 pid = phone_product_id(ET.fromstring(iz.read(n2["appxmanifest.xml"])))
@@ -82,7 +103,7 @@ def _read_manifest(path):
                     "publisher": ident.get("Publisher"), "version": ident.get("Version"),
                     "arch": ",".join(archs) or "neutral", "title": None}
         if "appxmanifest.xml" in names:  # .appx, or a Silverlight 8.1 .xap
-            root = ET.fromstring(z.read(names["appxmanifest.xml"]))
+            root = ET.fromstring(zread(z, names["appxmanifest.xml"]))
             ident = find(root, "Identity")
             disp = find(root, "DisplayName")
             title = disp.text.strip() if disp is not None and disp.text else None
@@ -90,7 +111,7 @@ def _read_manifest(path):
                 title = None
             pid = phone_product_id(root)
             if ext == ".xap" and "wmappmanifest.xml" in names:
-                app = find(ET.fromstring(z.read(names["wmappmanifest.xml"])), "App")
+                app = find(ET.fromstring(zread(z, names["wmappmanifest.xml"])), "App")
                 if app is not None and app.get("ProductID"):
                     pid = guid(app.get("ProductID"))
             return {"kind": "xap81" if ext == ".xap" else "appx", "package_name": ident.get("Name"),
@@ -98,13 +119,66 @@ def _read_manifest(path):
                     "publisher": ident.get("Publisher"), "version": ident.get("Version"),
                     "arch": ident.get("ProcessorArchitecture", "neutral"), "title": title}
         if "wmappmanifest.xml" in names:  # WP 8.0 / 7.x .xap
-            root = ET.fromstring(z.read(names["wmappmanifest.xml"]))
+            root = ET.fromstring(zread(z, names["wmappmanifest.xml"]))
             app = find(root, "App")
             return {"kind": "xap80", "package_name": guid(app.get("ProductID")),
                     "product_id": guid(app.get("ProductID")),
                     "publisher": app.get("Publisher"), "version": app.get("Version"),
                     "arch": "neutral", "title": app.get("Title")}
     fail(path + ": no AppxManifest.xml or WMAppManifest.xml (not a phone package?)")
+
+
+MAX_ICON = 256 * 1024
+
+
+def extract_icon(path):
+    """The app's tile/list icon (PNG bytes) from its package: the largest-scale variant of the
+    tile logo, else the app list icon. None if the package has none."""
+    with zipfile.ZipFile(path) as z:
+        names = {n.replace("\\", "/").lower(): n for n in z.namelist()}
+        cands = []
+        if "appxmanifest.xml" in names:
+            root = ET.fromstring(zread(z, names["appxmanifest.xml"]))
+            ve = find(root, "VisualElements")
+            for attr in ("Square150x150Logo", "Square71x71Logo", "Square44x44Logo"):
+                if ve is not None and ve.get(attr):
+                    cands.append(ve.get(attr))
+            logo = find(root, "Logo")
+            if logo is not None and logo.text:
+                cands.append(logo.text.strip())
+        if "wmappmanifest.xml" in names:
+            root = ET.fromstring(zread(z, names["wmappmanifest.xml"]))
+            for tag in ("BackgroundImageURI", "IconPath"):
+                el = find(root, tag)
+                if el is not None and el.text and el.text.strip():
+                    cands.append(el.text.strip())
+        for c in cands:
+            base = c.replace("\\", "/").lstrip("/").lower()
+            stem, ext = os.path.splitext(base)
+            if ext != ".png":
+                continue
+            # exact file, or resource-qualified variants: Logo.scale-240.png, Logo.targetsize-44.png
+            variants = [n for n in names if n == base or
+                        (n.startswith(stem + ".") and n.endswith(".png") and re.search(r"\.(scale|targetsize)-\d+", n[len(stem):]))]
+            if not variants:
+                continue
+            def score(n):
+                m = re.search(r"(?:scale|targetsize)-(\d+)", n[len(stem):])
+                return int(m.group(1)) if m else 100
+            best = max(variants, key=score)
+            data = zread(z, names[best])
+            if data[:8] == b"\x89PNG\r\n\x1a\n" and len(data) <= MAX_ICON:
+                return data
+    return None
+
+
+def set_icon(app, data, icons_dir, icons_url):
+    os.makedirs(icons_dir, exist_ok=True)
+    with open(os.path.join(icons_dir, app["id"] + ".png"), "wb") as f:
+        f.write(data)
+    app["icon"] = icons_url.rstrip("/") + "/" + app["id"] + ".png"
+    app["icon_sha256"] = hashlib.sha256(data).hexdigest()
+    app["icon_size"] = len(data)
 
 
 def sha256_file(path):
@@ -122,6 +196,10 @@ def validate_app(app, fname):
     need(ID_RE.match(app.get("id", "")), "id must match " + ID_RE.pattern)
     need(app.get("name"), "name missing")
     need(isinstance(app.get("releases"), list) and app["releases"], "no releases")
+    if app.get("icon"):
+        need(app["icon"].startswith("https://"), "icon must be an https URL")
+        need(re.fullmatch(r"[0-9a-f]{64}", app.get("icon_sha256", "")), "icon needs icon_sha256 (use --icons-dir)")
+        need(isinstance(app.get("icon_size"), int) and 0 < app["icon_size"] <= MAX_ICON, "icon_size must be 1..%d" % MAX_ICON)
     pkgs = set()
     for r in app["releases"]:
         need(VER_RE.match(r.get("version", "")), "bad version %r" % r.get("version"))
@@ -242,16 +320,30 @@ def cmd_add(a):
             app = json.load(f)
     else:
         app = {"id": app_id, "name": m["title"] or app_id, "author": "", "description": "",
-               "license": "", "source": "", "icon": "", "releases": []}
+               "license": "", "source": "", "releases": []}
     rel = {"version": m["version"], "kind": m["kind"], "arch": m["arch"],
            "package_name": m["package_name"], "product_id": m["product_id"], "publisher": m["publisher"],
            "url": a.url, "sha256": sha256_file(a.package), "size": os.path.getsize(a.package),
            "min_os": a.min_os, "notes": a.notes or "",
            "added": datetime.date.today().isoformat()}
-    for field in ("name", "author", "description", "license", "source", "icon"):
+    for field in ("name", "author", "description", "license", "source"):
         v = getattr(a, field, None)
         if v is not None:
             app[field] = v
+    if a.icons_dir:
+        if not a.icons_url:
+            fail("--icons-dir needs --icons-url")
+        if a.icon_file:
+            with open(a.icon_file, "rb") as f:
+                data = f.read()
+            if data[:8] != b"\x89PNG\r\n\x1a\n" or len(data) > MAX_ICON:
+                fail(a.icon_file + ": icon must be a PNG of at most %d bytes" % MAX_ICON)
+        else:
+            data = extract_icon(a.package)
+        if data:
+            set_icon(app, data, a.icons_dir, a.icons_url)
+        else:
+            print("note: no PNG icon found in the package; pass --icon-file")
     app["releases"] = [r for r in app["releases"] if r["version"] != rel["version"]] + [rel]
     app["releases"].sort(key=lambda r: vkey(r["version"]), reverse=True)
     validate_app(app, path)
@@ -324,8 +416,11 @@ def main():
     k = sub.add_parser("keygen"); k.add_argument("--out", required=True); k.set_defaults(fn=cmd_keygen)
     d = sub.add_parser("add"); d.add_argument("package"); d.add_argument("--url", required=True)
     d.add_argument("--id"); d.add_argument("--notes"); d.add_argument("--min-os", default="8.10.0.0")
-    for field in ("name", "author", "description", "license", "source", "icon"):
+    for field in ("name", "author", "description", "license", "source"):
         d.add_argument("--" + field, help="set the app's %s (kept for later releases)" % field)
+    d.add_argument("--icons-dir", help="write the app's icon here (taken from the package, or --icon-file)")
+    d.add_argument("--icons-url", help="https base URL the icons dir is served at")
+    d.add_argument("--icon-file", help="use this PNG as the icon instead of the package's")
     d.add_argument("--app-dir", default=os.path.join(here, "..", "apps")); d.set_defaults(fn=cmd_add)
     b = sub.add_parser("build"); b.add_argument("--key", required=True)
     b.add_argument("--app-dir", default=os.path.join(here, "..", "apps"))

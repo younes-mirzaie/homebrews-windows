@@ -100,6 +100,34 @@ with tempfile.TemporaryDirectory() as t:
     run("build", "--key", key, "--app-dir", apps, "--out", dist, ok=False)
     check("mixed package names in one app rejected", True)
 
+    # icons: taken from the package's tile logo (largest scale), hashed, written to the icons dir
+    png = lambda n: b"\x89PNG\r\n\x1a\n" + bytes([n]) * 50
+    ic = os.path.join(t, "icon.appx")
+    with zipfile.ZipFile(ic, "w") as z:
+        z.writestr("AppxManifest.xml", (APPX % ("3.0.0.0", "999999999999")).replace("Rfx.Demo", "Rfx.Icon").replace(
+            "<Properties>", '<Properties><Logo>Assets\\Store.png</Logo>').replace(
+            "</Package>", '<Applications><Application><m3:VisualElements xmlns:m3="x" Square150x150Logo="Assets\\Tile.png"/></Application></Applications></Package>'))
+        z.writestr("Assets/Tile.scale-100.png", png(1))
+        z.writestr("Assets/Tile.scale-240.png", png(2))
+        z.writestr("Assets/Store.png", png(3))
+    icons = os.path.join(t, "icons")
+    run("add", ic, "--url", "https://example.org/icon.appx", "--app-dir", apps, "--icons-dir", icons,
+        "--icons-url", "https://example.org/icons/")
+    ia = json.load(open(os.path.join(apps, "rfx.icon.json")))
+    check("icon from largest tile logo", open(os.path.join(icons, "rfx.icon.png"), "rb").read() == png(2))
+    check("icon url + hash recorded", ia["icon"] == "https://example.org/icons/rfx.icon.png" and len(ia["icon_sha256"]) == 64
+          and ia["icon_size"] == len(png(2)))
+    run("add", x80, "--url", "https://example.org/old.xap", "--id", "old-demo", "--app-dir", apps, "--icons-dir", icons,
+        "--icons-url", "https://example.org/icons", "--icon-file", os.path.join(icons, "rfx.icon.png"))
+    check("icon from --icon-file", json.load(open(os.path.join(apps, "old-demo.json")))["icon_size"] == len(png(2)))
+    bad_icon = json.load(open(os.path.join(apps, "rfx.icon.json")))
+    bad_icon["icon_sha256"] = ""
+    json.dump(bad_icon, open(os.path.join(apps, "rfx.icon.json"), "w"))
+    run("build", "--key", key, "--app-dir", apps, "--out", dist, ok=False)
+    check("icon without hash rejected", True)
+    bad_icon["icon_sha256"] = ia["icon_sha256"]
+    json.dump(bad_icon, open(os.path.join(apps, "rfx.icon.json"), "w"))
+
     # write a signed index for the C# client test
     bad["releases"][0]["package_name"] = "Rfx.Demo"
     json.dump(bad, open(os.path.join(apps, "rfx.demo.json"), "w"))

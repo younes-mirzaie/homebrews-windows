@@ -20,7 +20,8 @@ namespace AppLoader.Catalog
 
     public sealed class CatalogApp
     {
-        public string Id, Name, Author, Description, License, Source, Icon;
+        public string Id, Name, Author, Description, License, Source, Icon, IconSha256;
+        public long IconSize;
         public List<CatalogRelease> Releases = new List<CatalogRelease>();   // newest first
         public CatalogRelease Latest { get { return Releases[0]; } }
         public string ProductId { get { return Releases[0].ProductId; } }
@@ -73,7 +74,12 @@ namespace AppLoader.Catalog
                     Id = Str(ao, "id"), Name = Str(ao, "name"), Author = Str(ao, "author"),
                     Description = Str(ao, "description"), License = Str(ao, "license"),
                     Source = Str(ao, "source"), Icon = Str(ao, "icon"),
+                    IconSha256 = Str(ao, "icon_sha256"), IconSize = Num(ao, "icon_size"),
                 };
+                // an icon is optional; one that isn't pinned by hash is ignored
+                if (string.IsNullOrEmpty(app.Icon) || !app.Icon.StartsWith("https://", StringComparison.Ordinal) ||
+                    app.IconSha256 == null || !Sha256Re.IsMatch(app.IconSha256) || app.IconSize <= 0 || app.IconSize > 256 * 1024)
+                    app.Icon = app.IconSha256 = null;
                 if (app.Id == null || !IdRe.IsMatch(app.Id)) throw Bad("bad app id");
                 if (!ids.Add(app.Id)) throw Bad("app " + app.Id + " is listed twice");
                 if (string.IsNullOrEmpty(app.Name)) throw Bad(app.Id + " has no name");

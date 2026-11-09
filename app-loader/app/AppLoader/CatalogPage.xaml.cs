@@ -54,6 +54,9 @@ namespace AppLoader
         {
             var latest = _app.Latest;
             AppName.Text = _app.Name;
+            var icon = CatalogService.LoadIcon(_app);
+            AppIcon.Source = icon;
+            AppLetter.Text = icon == null ? _app.Name.Substring(0, 1).ToUpperInvariant() : "";
             Description.Text = string.IsNullOrEmpty(_app.Description) ? "No description." : _app.Description;
             var d = new StringBuilder();
             if (!string.IsNullOrEmpty(_app.Author)) d.AppendLine("by " + _app.Author);

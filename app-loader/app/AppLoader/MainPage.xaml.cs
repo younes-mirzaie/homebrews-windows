@@ -32,6 +32,8 @@ namespace AppLoader
         {
             public CatalogEntry Entry;
             public string Letter { get; set; }
+            public System.Windows.Media.ImageSource Icon { get; set; }
+            public Visibility LetterVisibility { get { return Icon == null ? Visibility.Visible : Visibility.Collapsed; } }
             public string Name { get; set; }
             public string Detail { get; set; }
             public string State { get; set; }
@@ -229,10 +231,13 @@ namespace AppLoader
             }
             Busy("checking installed versions...");
             Entries = await CatalogService.EntriesAsync(idx, installed);
+            Busy("getting app icons...");
+            await CatalogService.FetchIconsAsync(idx);
             var rows = Entries.OrderBy(x => x.App.Name, StringComparer.OrdinalIgnoreCase).Select(x => new CatalogRow
             {
                 Entry = x,
                 Letter = x.App.Name.Substring(0, 1).ToUpperInvariant(),
+                Icon = CatalogService.LoadIcon(x.App),
                 Name = x.App.Name,
                 Detail = string.IsNullOrEmpty(x.App.Description) ? x.App.Latest.Version : x.App.Description,
                 State = StateText(x),

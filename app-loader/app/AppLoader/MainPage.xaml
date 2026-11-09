@@ -32,8 +32,11 @@
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
                                 <Border Width="62" Height="62" Background="{StaticResource PhoneAccentBrush}" VerticalAlignment="Top">
-                                    <TextBlock Text="{Binding Letter}" FontSize="32" Foreground="White"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <Grid>
+                                        <TextBlock Text="{Binding Letter}" FontSize="32" Foreground="White" Visibility="{Binding LetterVisibility}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        <Image Source="{Binding Icon}" Stretch="UniformToFill" />
+                                    </Grid>
                                 </Border>
                                 <StackPanel Grid.Column="1" Margin="12,-6,0,0">
                                     <TextBlock Text="{Binding Name}" Style="{StaticResource PhoneTextLargeStyle}"
@@ -61,12 +64,25 @@
                 <ListBox x:Name="UpdatesList" Grid.Row="1" SelectionChanged="CatalogList_SelectionChanged">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Margin="12,0,0,20">
-                                <TextBlock Text="{Binding Name}" Style="{StaticResource PhoneTextLargeStyle}"
-                                           Margin="0" TextTrimming="WordEllipsis" />
-                                <TextBlock Text="{Binding State}" Style="{StaticResource PhoneTextSubtleStyle}"
-                                           Margin="0" TextTrimming="WordEllipsis" />
-                            </StackPanel>
+                            <Grid Margin="12,0,0,20">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="62" Height="62" Background="{StaticResource PhoneAccentBrush}" VerticalAlignment="Top">
+                                    <Grid>
+                                        <TextBlock Text="{Binding Letter}" FontSize="32" Foreground="White" Visibility="{Binding LetterVisibility}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        <Image Source="{Binding Icon}" Stretch="UniformToFill" />
+                                    </Grid>
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="12,-6,0,0">
+                                    <TextBlock Text="{Binding Name}" Style="{StaticResource PhoneTextLargeStyle}"
+                                               Margin="0" TextTrimming="WordEllipsis" />
+                                    <TextBlock Text="{Binding State}" Style="{StaticResource PhoneTextSubtleStyle}"
+                                               Margin="0" TextTrimming="WordEllipsis" />
+                                </StackPanel>
+                            </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>

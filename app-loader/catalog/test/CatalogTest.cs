@@ -46,7 +46,10 @@ static class CatalogTest
         var sig = File.ReadAllText(Path.Combine(dir, "index.json.sig"));
         var pub = Convert.FromBase64String(File.ReadAllText(Path.Combine(dir, "pub.txt")).Trim());
         var idx = CatalogIndex.Load(index, sig, pub, 0);
-        Check("python-signed index loads", idx.Apps.Count == 3 && idx.Serial > 0);
+        Check("python-signed index loads", idx.Apps.Count == 4 && idx.Serial > 0);
+        var withIcon = idx.Apps.Find(a => a.Id == "rfx.icon");
+        Check("icon fields parsed", withIcon != null && withIcon.Icon.StartsWith("https://") && withIcon.IconSha256.Length == 64 && withIcon.IconSize > 0);
+        Check("app without icon has none", idx.FindByProductId("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE").Icon == null);
         var demo = idx.FindByProductId("{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}");
         Check("find by product id", demo != null && demo.Id == "rfx.demo");
         Check("latest is highest version", demo.Latest.Version == "1.10.0.0" && demo.Releases.Count == 2);

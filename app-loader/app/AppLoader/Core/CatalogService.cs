@@ -142,6 +142,58 @@ namespace AppLoader.Core
             }
         }
 
+        /// <summary>The cached icon file for an app (named by its hash), or null if it has none.</summary>
+        public static string IconFile(CatalogApp app)
+        {
+            return app.IconSha256 == null ? null : "icon-" + app.IconSha256.Substring(0, 16) + ".png";
+        }
+
+        /// <summary>Downloads the icons that aren't cached yet (each pinned by the index's SHA-256).
+        /// Failures only mean a letter is shown instead.</summary>
+        public static async Task FetchIconsAsync(CatalogIndex idx)
+        {
+            var cmds = new StringBuilder();
+            var wanted = new List<string>();
+            using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
+                foreach (var app in idx.Apps)
+                {
+                    string f = IconFile(app);
+                    if (f == null || iso.FileExists(f)) continue;
+                    try
+                    {
+                        cmds.Append(Shell.Quote(Shell.Helper("rfxfetch.exe")) + " " + Shell.Quote(app.Icon) + " " +
+                                    Shell.Quote(Shell.LocalPath + "\\" + f) + " --sha256 " + app.IconSha256 +
+                                    " --size " + app.IconSize + " --max-bytes " + app.IconSize + " --quiet --timeout 20\n");
+                        wanted.Add(app.Id);
+                    }
+                    catch (ArgumentException) { }
+                }
+            if (wanted.Count == 0) return;
+            var r = await Shell.RunAsync(cmds.ToString(), 30 + 20 * wanted.Count);
+            if (!r.Reached || r.Output.Contains("ERROR ")) AppLog.Add("some app icons didn't download", r.Problem ?? r.Output);
+        }
+
+        /// <summary>The cached icon as an image, or null.</summary>
+        public static System.Windows.Media.Imaging.BitmapImage LoadIcon(CatalogApp app)
+        {
+            string f = IconFile(app);
+            if (f == null) return null;
+            try
+            {
+                using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
+                {
+                    if (!iso.FileExists(f)) return null;
+                    using (var s = iso.OpenFile(f, FileMode.Open, FileAccess.Read))
+                    {
+                        var bmp = new System.Windows.Media.Imaging.BitmapImage();
+                        bmp.SetSource(s);
+                        return bmp;
+                    }
+                }
+            }
+            catch (Exception) { return null; }
+        }
+
         /// <summary>Joins the catalogue with the installed apps and their versions.</summary>
         public static async Task<List<CatalogEntry>> EntriesAsync(CatalogIndex idx, List<InstalledApp> installed)
         {

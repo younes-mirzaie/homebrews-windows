@@ -21,8 +21,21 @@
         </Grid.RowDefinitions>
         <StackPanel Margin="12,17,0,28">
             <TextBlock x:Name="AppTitle" Style="{StaticResource PhoneTextNormalStyle}" />
-            <TextBlock x:Name="AppName" Margin="9,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}"
-                       TextWrapping="Wrap" />
+            <Grid Margin="12,12,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Width="99" Height="99" Background="{StaticResource PhoneAccentBrush}" VerticalAlignment="Center">
+                    <Grid>
+                        <TextBlock x:Name="AppLetter" FontSize="48" Foreground="White"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Image x:Name="AppIcon" Stretch="UniformToFill" />
+                    </Grid>
+                </Border>
+                <TextBlock x:Name="AppName" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center"
+                           Style="{StaticResource PhoneTextExtraLargeStyle}" TextWrapping="Wrap" />
+            </Grid>
         </StackPanel>
         <ScrollViewer Grid.Row="1">
             <StackPanel Margin="12,0,12,96">
