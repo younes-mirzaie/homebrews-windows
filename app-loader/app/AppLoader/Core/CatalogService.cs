@@ -25,7 +25,7 @@ namespace AppLoader.Core
         public const string IndexUrl = "https://younes-mirzaie.github.io/wp-homebrew/dist/index.json";
         // Ed25519 public key (base64, 32 bytes) printed by `catalog.py keygen`. Empty until the
         // signing key exists: the catalogue panes then say it isn't set up yet.
-        public const string PublicKey = "";
+        public const string PublicKey = "1cxjX1wOkgO6WMJaGNdR589sCrfYyfUgiO+gT052gGU=";
     }
 
     /// <summary>A catalogue app as the app shows it, with what's installed.</summary>
