@@ -51,6 +51,25 @@ namespace AppLoader.Core
             return n;
         }
 
+        // The helper programs (aldetach, rfxfetch and its DLLs) run from a copy here, not from the
+        // app's package: when the app is installed on the SD card (D:\WPSystem\Apps\...), the
+        // phone refuses to start programs from there ("The system cannot execute the specified
+        // program"). File Explorer's helper does the same (C:\Data\SharedData\RetroFiles).
+        public const string HelperDir = @"C:\Data\SharedData\AppLoader";
+
+        public static string Helper(string exe) { return HelperDir + "\\" + exe; }
+
+        /// <summary>Batch lines that copy the package's helpers to HelperDir, once per app version.</summary>
+        static string StageLines()
+        {
+            var v = Package.Current.Id.Version;
+            string stamp = HelperDir + "\\version-" + v.Major + "." + v.Minor + "." + v.Build + "." + v.Revision + ".txt";
+            string src = Package.Current.InstalledLocation.Path + "\\Helper";
+            return "if not exist " + Quote(HelperDir) + " mkdir " + Quote(HelperDir) + "\r\n" +
+                   "if not exist " + Quote(stamp) + " copy /y " + Quote(src + "\\*.*") + " " + Quote(HelperDir + "\\") +
+                   " >nul && > " + Quote(stamp) + " echo staged\r\n";
+        }
+
         static string Batch(string name, string commands)
         {
             var bat = new StringBuilder();
@@ -61,6 +80,7 @@ namespace AppLoader.Core
             bat.Append("> \"%~dp0" + name + ".done\" echo done\r\n");
             bat.Append("echo " + Marker + "\r\n");
             bat.Append("goto :eof\r\n:main\r\n");
+            bat.Append(StageLines());
             bat.Append(commands.Replace("\r\n", "\n").Replace("\n", "\r\n"));
             bat.Append("\r\ngoto :eof\r\n");
             return bat.ToString();
@@ -129,12 +149,18 @@ namespace AppLoader.Core
             {
                 string name = "run-" + NextRun();
                 WriteFile(name + ".cmd", Batch(name, commands));
-                string detach = Package.Current.InstalledLocation.Path + "\\Helper\\aldetach.exe";
-                var typed = await TypeAsync(Quote(detach) + " " + Quote(LocalPath + "\\" + name + ".cmd"),
-                                            "aldetach: ", 30);
+                // A small batch puts the helpers in place and starts aldetach from there; only its
+                // path is typed
+                string launch = "launch-" + name;
+                WriteFile(launch + ".cmd", "@echo off\r\n" + StageLines() +
+                          Quote(Helper("aldetach.exe")) + " " + Quote(LocalPath + "\\" + name + ".cmd") + "\r\n" +
+                          "echo aldetach: finished\r\n");
+                string line = Quote(LocalPath + "\\" + launch + ".cmd");
+                var typed = await TypeAsync(line, "aldetach: ", 60);
+                Delete(launch);
                 if (typed == null) throw new IOException(NoShell);
                 if (typed.IndexOf("aldetach: started", StringComparison.Ordinal) < 0)
-                    throw new IOException("Couldn't start the installer in the background. The shell said:\n" + Tail(Clean(typed), 400));
+                    throw new IOException("Couldn't start the installer in the background. The shell said:\n" + ShellReply(typed, line));
                 return name;
             }
             finally { _one.Release(); }
@@ -216,5 +242,19 @@ namespace AppLoader.Core
         }
 
         static string Tail(string s, int n) { return s.Length <= n ? s : "..." + s.Substring(s.Length - n); }
+
+        /// <summary>What the shell answered to a typed line, without the echo: the shell redraws
+        /// the line as each character arrives, so the reply starts after the last copy of the
+        /// line's end.</summary>
+        static string ShellReply(string typed, string line)
+        {
+            string text = Clean(typed);
+            string end = line.Length > 24 ? line.Substring(line.Length - 24) : line;
+            int at = text.LastIndexOf(end, StringComparison.Ordinal);
+            if (at >= 0) text = text.Substring(at + end.Length);
+            text = text.Trim();
+            if (text.EndsWith(">")) text = text.Substring(0, text.LastIndexOf('\n') > 0 ? text.LastIndexOf('\n') : text.Length).Trim();
+            return text.Length == 0 ? "(nothing)" : Tail(text, 400);
+        }
     }
 }

@@ -80,7 +80,8 @@ namespace AppLoader.Core
 
         public static bool Configured { get { return CatalogConfig.PublicKey.Length > 0; } }
 
-        static string Helper(string exe) { return Package.Current.InstalledLocation.Path + "\\Helper\\" + exe; }
+        // Run from the copy on C: (Shell.HelperDir): the shell batches put it there first
+        static string Helper(string exe) { return Shell.Helper(exe); }
 
         static long HighestSerial
         {
