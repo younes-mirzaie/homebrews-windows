@@ -8,6 +8,7 @@ typedef struct {
     conn *c;
     buf_t ehlo;      /* capability lines from the last EHLO */
     char err[512];
+    int secret;      /* the next command carries credentials: never log it */
 } smtp;
 
 /* Reads a (multi-line) reply; returns the code or -1. The text goes to *text if given. */
@@ -45,7 +46,7 @@ static int cmd(smtp *s, buf_t *text, const char *fmt, ...)
     va_start(ap, fmt);
     buf_vprintf(&b, fmt, ap);
     va_end(ap);
-    if (rb_debug) rb_log("smtp C: %s", starts_with_i(b.p, "AUTH") ? "AUTH <hidden>" : b.p);
+    if (rb_debug) rb_log("smtp C: %s", s->secret || starts_with_i(b.p, "AUTH") ? "<credentials hidden>" : b.p);
     buf_adds(&b, "\r\n");
     if (conn_write(s->c, b.p, b.len) != 0) {
         snprintf(s->err, sizeof(s->err), "%s", conn_error(s->c));
@@ -155,10 +156,12 @@ static int smtp_open(smtp *s, account *a)
         } else {
             b64_encode(&b64, user, strlen(user), 0);
             code = cmd(s, &t, "AUTH LOGIN");
+            s->secret = 1;
             if (code == 334) code = cmd(s, &t, "%s", b64.p);
             buf_clear(&b64);
             b64_encode(&b64, a->pass, strlen(a->pass), 0);
             if (code == 334) code = cmd(s, &t, "%s", b64.p);
+            s->secret = 0;
         }
         if (raw.p) memset(raw.p, 0, raw.len);
         if (b64.p) memset(b64.p, 0, b64.len);

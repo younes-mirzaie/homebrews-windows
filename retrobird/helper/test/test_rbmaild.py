@@ -98,13 +98,18 @@ def port_free():
         return True
 
 
+# --debug logs every IMAP/SMTP line (the password check below needs that); a file, not a
+# pipe, so a full pipe can't stall the helper
+errlog = tempfile.TemporaryFile()
+
+
 def start(data, token=TOKEN):
     for _ in range(50):          # the previous helper may still be shutting down
         if port_free():
             break
         time.sleep(0.1)
     p = subprocess.Popen([RBMAILD, "--token", token, "--port", str(PORT), "--data", data,
-                          "--sync-minutes", "0"], stderr=subprocess.PIPE)
+                          "--sync-minutes", "0", "--debug"], stderr=errlog)
     for _ in range(50):
         try:
             socket.create_connection(("127.0.0.1", PORT), timeout=1).close()
@@ -112,7 +117,8 @@ def start(data, token=TOKEN):
             return p
         except OSError:
             time.sleep(0.1)
-    raise SystemExit("rbmaild didn't start: " + p.stderr.read().decode())
+    errlog.seek(0)
+    raise SystemExit("rbmaild didn't start: " + errlog.read().decode(errors="replace")[-2000:])
     
 
 
@@ -172,7 +178,8 @@ def main():
                 sp.kill()
                 check(False, "helper didn't exit after QUIT")
         log = open(os.path.join(data, "rbmaild.log"), encoding="utf-8", errors="replace").read()
-        check(PASSWORD not in log and base64.b64encode(("\0test@localhost\0" + PASSWORD).encode()).decode() not in log,
+        check(PASSWORD not in log and base64.b64encode(("\0test@localhost\0" + PASSWORD).encode()).decode() not in log and
+              base64.b64encode(PASSWORD.encode()).decode() not in log,
               "password must not appear in the log")
         shutil.rmtree(attdir, ignore_errors=True)
         if failed:

@@ -38,7 +38,8 @@ class Session:
     def ehlo(self):
         caps = ["fake.test", "SIZE 10000000", "8BITMIME"]
         if self.tls:
-            caps.append("AUTH PLAIN LOGIN")
+            # the STARTTLS port offers only LOGIN so both client paths get exercised
+            caps.append("AUTH PLAIN LOGIN" if self.sock.getsockname()[1] == tls_port else "AUTH LOGIN")
         else:
             caps.append("STARTTLS")
         for i, c in enumerate(caps):
