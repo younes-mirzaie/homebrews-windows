@@ -55,9 +55,9 @@ static class CatalogTest
         Check("same serial accepted again", true);
         Throws("older serial refused", () => CatalogIndex.Load(index, sig, pub, idx.Serial + 1), "older");
         var tampered = (byte[])index.Clone(); tampered[tampered.Length / 2] ^= 0x20;
-        Throws("tampered index refused", () => CatalogIndex.Load(tampered, sig, pub, 0), "signature");
-        Throws("wrong key refused", () => CatalogIndex.Load(index, sig, pk1, 0), "signature");
-        Throws("garbage signature refused", () => CatalogIndex.Load(index, "!!!", pub, 0), "signature");
+        Throws("tampered index refused", () => CatalogIndex.Load(tampered, sig, pub, 0), "security check");
+        Throws("wrong key refused", () => CatalogIndex.Load(index, sig, pk1, 0), "security check");
+        Throws("garbage signature refused", () => CatalogIndex.Load(index, "!!!", pub, 0), "signature is damaged");
         Check("version compare", CatalogIndex.CompareVersions("1.10.0.0", "1.9.0.0") > 0 && CatalogIndex.CompareVersions("1.0.0.0", "1.0.0.0") == 0);
         Check("json escapes", (string)Json.Parse("\"a\\u00e9\\n\"") == "aé\n");
         Console.WriteLine(passed + " checks passed");
