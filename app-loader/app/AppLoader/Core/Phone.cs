@@ -78,6 +78,7 @@ namespace AppLoader.Core
         public PackageInfo Package;
         public InstallJob Job;
         public ThResult Th;         // what TH said, once it has finished
+        public bool HashMismatch;   // a catalogue download didn't match its SHA-256
     }
 
     public static class Phone
@@ -100,7 +101,7 @@ namespace AppLoader.Core
                             " %%f in (*.xap *.appx) do echo pkg^|%%~zf^|%%f\n");
             cmds.Append("for %%f in (D:\\*.xap D:\\*.appx C:\\Data\\*.xap C:\\Data\\*.appx) do echo pkg^|%%~zf^|%%f\n");
             var r = await Shell.RunAsync(cmds.ToString(), 60);
-            if (!r.Reached) throw new IOException(r.Problem ?? "The shell didn't answer.");
+            if (!r.Reached) throw new IOException(r.Problem ?? Friendly.Slow);
             var list = new List<FoundPackage>();
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var raw in r.Output.Split('\n'))
@@ -120,7 +121,7 @@ namespace AppLoader.Core
         public static async Task<List<InstalledApp>> InstalledAppsAsync()
         {
             var r = await Shell.RunAsync("TH.exe -?", 90);
-            if (!r.Reached) throw new IOException(r.Problem ?? "The shell didn't answer.");
+            if (!r.Reached) throw new IOException(r.Problem ?? Friendly.Slow);
             var apps = new Dictionary<string, InstalledApp>();
             var order = new List<string>();
             foreach (var raw in r.Output.Split('\n'))
@@ -157,7 +158,7 @@ namespace AppLoader.Core
             var pending = InstallJob.Load();
             if (pending != null && !Shell.IsDone(pending.Run))
             {
-                outcome.Message = "The installer is still busy with " + pending.Title + ". Wait for it to finish, then try again.";
+                outcome.Message = "The phone is still installing " + pending.Title + ". Wait for it to finish, then try again.";
                 return outcome;
             }
 
@@ -166,8 +167,8 @@ namespace AppLoader.Core
             string staged = Shell.LocalPath + "\\" + stageName;
             if (!IsPlain(staged))
             {
-                outcome.Message = "The app's own folder has spaces or unusual characters in its path (" + staged +
-                                  "), so the installer can't be given a safe copy. Nothing was installed.";
+                AppLog.Add("unusable app folder", staged);
+                outcome.Message = AppInfo.Name + "'s storage folder has an unusual name, so it can't hand the package to the installer safely. Reinstalling " + AppInfo.Name + " may help. " + Friendly.Unchanged;
                 return outcome;
             }
             try
@@ -178,7 +179,9 @@ namespace AppLoader.Core
                 using (var iso = IsolatedStorageFile.GetUserStoreForApplication()) exists = iso.FileExists(stageName);
                 if (!copy.Reached || !exists)
                 {
-                    outcome.Message = "Couldn't copy the package: " + (copy.Problem ?? copy.Output.Trim());
+                    AppLog.Add("copy failed: " + found.Path, copy.Problem ?? copy.Output);
+                    outcome.Message = copy.Problem == Friendly.NoShell ? Friendly.NoShell
+                        : "Couldn't make a working copy of " + found.Name + ". The phone may be out of storage space, or the file was moved. " + Friendly.Unchanged;
                     return outcome;
                 }
 
@@ -193,8 +196,10 @@ namespace AppLoader.Core
                             string hash = Sha256Hex(s);
                             if (!string.Equals(hash, expectedSha256.Trim(), StringComparison.OrdinalIgnoreCase))
                             {
-                                outcome.Message = "The downloaded package isn't the one the catalogue lists (its SHA-256 " +
-                                                  "doesn't match). Nothing was installed.";
+                                AppLog.Add("SHA-256 mismatch: " + found.Name, "expected " + expectedSha256 + "\ngot " + hash);
+                                outcome.Message = "The downloaded file isn't exactly the one the catalogue lists, so it was thrown away. " +
+                                                  "Try again. " + Friendly.Unchanged;
+                                outcome.HashMismatch = true;
                                 return outcome;
                             }
                             s.Seek(0, SeekOrigin.Begin);
@@ -204,19 +209,21 @@ namespace AppLoader.Core
                 }
                 catch (Exception e)
                 {
-                    outcome.Message = "This isn't a package the phone can install: " + e.Message;
+                    AppLog.Add("unreadable package: " + found.Name, e.Message);
+                    outcome.Message = found.Name + " isn't an app package this phone can install (it may be damaged, or made for a different phone). " + Friendly.Unchanged;
                     return outcome;
                 }
                 var pkg = outcome.Package;
                 if (pkg.ProductId == null)
                 {
-                    outcome.Message = "The package has no product ID in its manifest, so it can't be checked. Nothing was installed.";
+                    outcome.Message = found.Name + " doesn't say which app it is, so it can't be installed safely. " + Friendly.Unchanged;
                     return outcome;
                 }
                 if (expectedProductId != null && PackageInfo.Guid(expectedProductId) != pkg.ProductId)
                 {
-                    outcome.Message = "The package is a different app than the catalogue says (" + pkg.Title + ", " +
-                                      pkg.ProductId + "). Nothing was installed.";
+                    AppLog.Add("product ID mismatch: " + found.Name, "expected " + expectedProductId + "\ngot " + pkg.ProductId);
+                    outcome.Message = "The downloaded file is a different app (" + pkg.Title + ") than the catalogue says, " +
+                                      "so it wasn't installed. " + Friendly.Unchanged;
                     return outcome;
                 }
 
@@ -240,7 +247,9 @@ namespace AppLoader.Core
                 try { run = await PackageInstaller.StartAsync(staged, mode, true); }
                 catch (Exception e)
                 {
-                    outcome.Message = e.Message;
+                    AppLog.Add("couldn't start the installer", e.Message);
+                    outcome.Message = e is IOException ? e.Message + " " + Friendly.Unchanged
+                        : "Couldn't start the phone's installer. Restart the phone and try again. " + Friendly.Unchanged;
                     return outcome;
                 }
                 outcome.Job = new InstallJob
@@ -277,7 +286,7 @@ namespace AppLoader.Core
             outcome.Th = th;
             if (!th.Finished)
             {
-                outcome.Message = th.Problem ?? "The installer hasn't finished yet.";
+                outcome.Message = "The phone is still installing " + job.Title + ". Its result shows up when it's done.";
                 return outcome;   // still remembered: picked up again next time
             }
             outcome.Succeeded = th.Succeeded;
@@ -316,22 +325,9 @@ namespace AppLoader.Core
             string what = job.Title + " " + job.Version;
             if (th.Succeeded)
                 return job.IsUpdate ? what + " is updated." : what + " is installed.";
-            switch (th.PacManCode)
-            {
-                case "0x8103012e":
-                    return what + " refuses the SD card. Set Settings > storage sense > store new apps on: phone, " +
-                           "then try again. Nothing was changed.";
-                case "0x81030137":
-                    return job.IsUpdate
-                        ? "The phone didn't take this as an update of " + job.ExistingTitle + ": it may be the same version " +
-                          "as the one installed, or not newer. Nothing was changed."
-                        : "The phone says this package isn't valid or isn't applicable. Nothing was installed.";
-                case "0x800b0100":
-                    return "The phone wants a signed package for this kind of install. Nothing was installed.";
-                case "0x80070005":
-                    return "The phone said access is denied. Unlock the phone and try again.";
-            }
-            return "The install didn't complete. The installer's last words are in the log tab.";
+            AppLog.Add((job.IsUpdate ? "update failed: " : "install failed: ") + what,
+                       "TH.exe -" + th.Mode + ", exit " + th.ExitCode + "\n" + th.Output);
+            return Friendly.InstallFailed(th, job);
         }
     }
 }

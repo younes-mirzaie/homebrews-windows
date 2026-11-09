@@ -124,7 +124,7 @@
             <ScrollViewer>
                 <TextBlock x:Name="LogText" TextWrapping="Wrap" Margin="12,0,12,24"
                            FontFamily="Courier New" FontSize="16"
-                           Text="What the installer says shows up here." />
+                           Text="" />
             </ScrollViewer>
         </phone:PivotItem>
     </phone:Pivot>

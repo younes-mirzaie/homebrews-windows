@@ -45,22 +45,22 @@ namespace AppLoader.Catalog
         public static CatalogIndex Load(byte[] indexBytes, string signatureBase64, byte[] publicKey, long highestSerialSeen)
         {
             if (indexBytes == null || indexBytes.Length == 0 || indexBytes.Length > MaxIndexBytes)
-                throw new CatalogException("The catalogue is empty or too large.");
+                throw new CatalogException("The catalogue download was empty or far too large, so it wasn't used. Try again later.");
             byte[] sig;
             try { sig = Convert.FromBase64String((signatureBase64 ?? "").Trim()); }
-            catch (FormatException) { throw new CatalogException("The catalogue's signature is unreadable."); }
+            catch (FormatException) { throw new CatalogException("The catalogue's signature is damaged, so the catalogue wasn't used. Try again later."); }
             if (!Ed25519.Verify(sig, indexBytes, publicKey))
-                throw new CatalogException("The catalogue's signature doesn't match. It may have been tampered with, so it wasn't used.");
+                throw new CatalogException("The catalogue didn't pass its security check (it may have been changed by someone else), so it wasn't used. Try again later.");
 
             Dictionary<string, object> root;
             try { root = Json.Parse(Encoding.UTF8.GetString(indexBytes, 0, indexBytes.Length)) as Dictionary<string, object>; }
-            catch (FormatException e) { throw new CatalogException("The catalogue is signed but unreadable: " + e.Message); }
-            if (root == null) throw new CatalogException("The catalogue is signed but unreadable.");
+            catch (FormatException e) { throw new CatalogException("The catalogue has a mistake in it, so it wasn't used. Try again later. (" + e.Message + ")"); }
+            if (root == null) throw new CatalogException("The catalogue has a mistake in it, so it wasn't used. Try again later.");
             if (Num(root, "schema") != Schema)
-                throw new CatalogException("This catalogue needs a newer App Loader.");
+                throw new CatalogException("This catalogue needs a newer version of this app. Update it from a package file, then try again.");
             var idx = new CatalogIndex { Serial = Num(root, "serial"), Generated = Str(root, "generated"), Name = Str(root, "name") };
             if (idx.Serial < highestSerialSeen)
-                throw new CatalogException("This catalogue is older than one the phone has already seen, so it wasn't used.");
+                throw new CatalogException("The server sent an older catalogue than the one this phone already has, so it wasn't used. Try again later.");
 
             var ids = new HashSet<string>();
             var pids = new HashSet<string>();
@@ -127,7 +127,7 @@ namespace AppLoader.Catalog
             return 0;
         }
 
-        static CatalogException Bad(string what) { return new CatalogException("The catalogue is signed but invalid: " + what + "."); }
+        static CatalogException Bad(string what) { return new CatalogException("The catalogue has a mistake in it (" + what + "), so it wasn't used. Try again later."); }
 
         static string Str(Dictionary<string, object> o, string k)
         {

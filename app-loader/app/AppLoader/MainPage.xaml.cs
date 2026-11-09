@@ -45,6 +45,9 @@ namespace AppLoader
         public MainPage()
         {
             InitializeComponent();
+            Pivots.Title = AppInfo.Name.ToUpperInvariant();
+            LogText.Text = AppLog.Text;
+            AppLog.Changed += () => Dispatcher.BeginInvoke(() => LogText.Text = AppLog.Text);
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -116,7 +119,7 @@ namespace AppLoader
             }
             catch (Exception ex)
             {
-                PackagesNote.Text = ex.Message;
+                PackagesNote.Text = Friendly.Of(ex);
             }
             finally
             {
@@ -147,7 +150,7 @@ namespace AppLoader
             }
             catch (Exception ex)
             {
-                outcome = new InstallOutcome { Message = ex.Message };
+                outcome = new InstallOutcome { Message = Friendly.Of(ex) };
             }
             finally
             {
@@ -160,8 +163,8 @@ namespace AppLoader
                 return;
             }
             if (outcome.Job.ProductId == Phone.OwnProductId)
-                MessageBox.Show("App Loader is updating itself, so it will close in a moment. Open it again " +
-                                "afterwards to see how it went.", "updating App Loader", MessageBoxButton.OK);
+                MessageBox.Show(AppInfo.Name + " is updating itself, so it will close in a moment. Open it again " +
+                                "afterwards to see how it went.", "updating " + AppInfo.Name, MessageBoxButton.OK);
             await FinishAsync(outcome.Job, outcome.Package);
         }
 
@@ -178,7 +181,7 @@ namespace AppLoader
             }
             catch (Exception ex)
             {
-                outcome = new InstallOutcome { Job = job, Message = ex.Message };
+                outcome = new InstallOutcome { Job = job, Message = Friendly.Of(ex) };
             }
             finally
             {
@@ -192,20 +195,8 @@ namespace AppLoader
 
         void Show(string what, InstallOutcome outcome)
         {
-            var log = new StringBuilder();
-            log.AppendLine(DateTime.Now.ToString("HH:mm:ss") + " " + what);
-            if (outcome.Package != null)
-                log.AppendLine(outcome.Package.Title + " " + outcome.Package.Version + " (" + outcome.Package.ProductId + ")" +
-                               (outcome.Package.SdOptOut ? ", phone storage only" : ""));
-            if (outcome.Th != null)
-            {
-                log.AppendLine("TH.exe -" + outcome.Th.Mode + (outcome.Th.Finished ? ", exit " + outcome.Th.ExitCode : ", still running"));
-                log.AppendLine(outcome.Th.Output.Trim());
-            }
-            log.AppendLine(outcome.Message);
-            LogText.Text = log.ToString();
+            if (outcome.Succeeded) AppLog.Add(outcome.Message, null);
             MessageBox.Show(outcome.Message, outcome.Succeeded ? "done" : "not installed", MessageBoxButton.OK);
-            if (!outcome.Succeeded && outcome.Th != null) Pivots.SelectedItem = LogPivot;
         }
 
         // ---- catalogue (stage 2) ----
@@ -214,7 +205,7 @@ namespace AppLoader
         {
             if (!CatalogService.Configured)
             {
-                CatalogNote.Text = "The online catalogue isn't set up in this build yet.";
+                CatalogNote.Text = "The online catalogue isn't set up in this version of " + AppInfo.Name + ".";
                 UpdatesNote.Text = CatalogNote.Text;
                 return;
             }
@@ -227,7 +218,7 @@ namespace AppLoader
             }
             catch (Exception ex)
             {
-                problem = ex.Message;
+                problem = Friendly.Of(ex);
                 idx = CatalogService.LoadCached();
             }
             if (idx == null)
@@ -257,7 +248,7 @@ namespace AppLoader
 
         static string StateText(CatalogEntry x)
         {
-            if (!x.Installable) return "can't be installed by App Loader yet";
+            if (!x.Installable) return "can't be installed by " + AppInfo.Name + " yet";
             if (x.Installed == null) return "not installed · " + x.App.Latest.Version;
             if (x.InstalledVersion == null) return "installed (version unknown) · " + x.App.Latest.Version + " available";
             if (x.UpdateAvailable) return "installed " + x.InstalledVersion + " · update to " + x.App.Latest.Version;

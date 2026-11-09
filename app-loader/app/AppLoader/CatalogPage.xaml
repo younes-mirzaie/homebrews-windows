@@ -20,7 +20,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <StackPanel Margin="12,17,0,28">
-            <TextBlock Text="APP LOADER" Style="{StaticResource PhoneTextNormalStyle}" />
+            <TextBlock x:Name="AppTitle" Style="{StaticResource PhoneTextNormalStyle}" />
             <TextBlock x:Name="AppName" Margin="9,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}"
                        TextWrapping="Wrap" />
         </StackPanel>

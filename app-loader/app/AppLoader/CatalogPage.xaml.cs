@@ -28,6 +28,7 @@ namespace AppLoader
         public CatalogPage()
         {
             InitializeComponent();
+            AppTitle.Text = AppInfo.Name.ToUpperInvariant();
         }
 
         protected override async void OnNavigatedTo(NavigationEventArgs e)
@@ -66,7 +67,7 @@ namespace AppLoader
                 : (_entry.InstalledVersion ?? "a version App Loader can't read");
             if (!CatalogService.Supported(latest))
             {
-                Status.Text = "This package type (" + latest.Kind + ") can't be installed by App Loader yet.";
+                Status.Text = "This kind of package (" + latest.Kind + ") can't be installed by " + AppInfo.Name + " yet.";
                 InstallButton.Visibility = Visibility.Collapsed;
             }
             else if (installed == null)
@@ -116,7 +117,7 @@ namespace AppLoader
         {
             if (!CatalogService.Supported(r))
             {
-                MessageBox.Show("This package type (" + r.Kind + ") can't be installed by App Loader yet.", "not supported", MessageBoxButton.OK);
+                MessageBox.Show("This kind of package (" + r.Kind + ") can't be installed by " + AppInfo.Name + " yet.", "not supported", MessageBoxButton.OK);
                 return;
             }
             string what = _app.Name + " " + r.Version + " (" + MainPage.Size(r.Size) + ")";
@@ -136,12 +137,12 @@ namespace AppLoader
                 {
                     Busy("starting the download...");
                     var job = running ?? await CatalogService.StartDownloadAsync(_app, r);
-                    var err = await CatalogService.WaitDownloadAsync(job, (d, t) =>
+                    var err = await CatalogService.WaitDownloadAsync(job, _app.Name + " " + r.Version, (d, t) =>
                         Busy("downloading " + MainPage.Size(d) + (t > 0 ? " of " + MainPage.Size(t) : "") + "..."));
                     if (err != null)
                     {
                         Busy(null);
-                        MessageBox.Show("The download didn't work: " + err + "\n\nNothing was installed.", "download", MessageBoxButton.OK);
+                        MessageBox.Show(err + " " + Friendly.Unchanged, "download", MessageBoxButton.OK);
                         return;
                     }
                 }
@@ -153,15 +154,15 @@ namespace AppLoader
                     return;
                 }
                 if (outcome.Job.ProductId == Phone.OwnProductId)
-                    MessageBox.Show("App Loader is updating itself, so it will close in a moment. Open it again " +
-                                    "afterwards to see how it went.", "updating App Loader", MessageBoxButton.OK);
+                    MessageBox.Show(AppInfo.Name + " is updating itself, so it will close in a moment. Open it again " +
+                                    "afterwards to see how it went.", "updating " + AppInfo.Name, MessageBoxButton.OK);
                 // the main page picks the running install up and shows the result
                 if (NavigationService.CanGoBack) NavigationService.GoBack();
             }
             catch (Exception ex)
             {
                 Busy(null);
-                MessageBox.Show(ex.Message, "not installed", MessageBoxButton.OK);
+                MessageBox.Show(Friendly.Of(ex), "not installed", MessageBoxButton.OK);
             }
             finally
             {

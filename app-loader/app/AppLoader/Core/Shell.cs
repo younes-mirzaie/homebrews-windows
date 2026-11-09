@@ -117,8 +117,7 @@ namespace AppLoader.Core
             return null;
         }
 
-        const string NoShell = "Can't reach the phone's system shell (telnet on 127.0.0.1:9999 or :23). " +
-                               "It is set up by CMD Injector and starts with the phone; try restarting the phone.";
+        const string NoShell = Friendly.NoShell;
 
         /// <summary>Runs short commands (batch file lines) as SYSTEM and waits for what they print.
         /// The shell echoes typed input slowly and drops what was typed if the session closes
@@ -133,7 +132,7 @@ namespace AppLoader.Core
                 var typed = await TypeAsync(Quote(LocalPath + "\\" + name + ".cmd"), Marker, timeoutSeconds);
                 if (typed == null) return new ShellResult { Problem = NoShell };
                 var result = Read(name);
-                if (!result.Reached) result.Problem = "The command didn't finish within " + timeoutSeconds + " s.";
+                if (!result.Reached) { result.Problem = Friendly.Slow; AppLog.Add("shell command timed out after " + timeoutSeconds + " s", commands); }
                 else Delete(name);
                 return result;
             }
@@ -160,7 +159,10 @@ namespace AppLoader.Core
                 Delete(launch);
                 if (typed == null) throw new IOException(NoShell);
                 if (typed.IndexOf("aldetach: started", StringComparison.Ordinal) < 0)
-                    throw new IOException("Couldn't start the installer in the background. The shell said:\n" + ShellReply(typed, line));
+                {
+                    AppLog.Add("couldn't start the background task", ShellReply(typed, line));
+                    throw new IOException("Couldn't start the phone's installer in the background. Restart the phone and try again.");
+                }
                 return name;
             }
             finally { _one.Release(); }
@@ -188,7 +190,8 @@ namespace AppLoader.Core
             }
             catch (Exception e)
             {
-                result.Problem = "Can't read the output: " + e.Message;
+                AppLog.Add("couldn't read a task's output", e.Message);
+                result.Problem = "Couldn't read what the phone answered. Try again.";
                 return result;
             }
             int at = result.Output.LastIndexOf("exit=", StringComparison.Ordinal);
@@ -217,7 +220,7 @@ namespace AppLoader.Core
         public static string Quote(string path)
         {
             if (path.IndexOfAny(new[] { '"', '%', '^', '&', '|', '<', '>', '\r', '\n' }) >= 0)
-                throw new ArgumentException("This path has characters the installer can't pass on safely: " + path);
+                throw new ArgumentException("The file name or folder \"" + path + "\" has characters (like & or %) the installer can't handle. Rename the file or move it to Downloads, then try again.");
             return "\"" + path + "\"";
         }
 

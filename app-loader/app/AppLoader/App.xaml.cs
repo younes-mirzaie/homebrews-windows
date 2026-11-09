@@ -14,8 +14,8 @@ namespace AppLoader
             {
                 // keep the app alive on a stray async failure; show what happened
                 e.Handled = true;
-                var msg = e.ExceptionObject.Message;
-                Deployment.Current.Dispatcher.BeginInvoke(() => MessageBox.Show(msg, "App Loader error", MessageBoxButton.OK));
+                var msg = AppLoader.Core.Friendly.Of(e.ExceptionObject);
+                Deployment.Current.Dispatcher.BeginInvoke(() => MessageBox.Show(msg, AppLoader.Core.AppInfo.Name, MessageBoxButton.OK));
             };
             InitializeComponent();
             RootFrame = new PhoneApplicationFrame();
@@ -23,8 +23,8 @@ namespace AppLoader
             RootFrame.NavigationFailed += (s, e) =>
             {
                 e.Handled = true;
-                var msg = e.Exception != null ? e.Exception.Message : "unknown error";
-                Deployment.Current.Dispatcher.BeginInvoke(() => MessageBox.Show(msg, "App Loader error", MessageBoxButton.OK));
+                var msg = e.Exception != null ? AppLoader.Core.Friendly.Of(e.Exception) : "Something went wrong opening that page.";
+                Deployment.Current.Dispatcher.BeginInvoke(() => MessageBox.Show(msg, AppLoader.Core.AppInfo.Name, MessageBoxButton.OK));
             };
         }
 

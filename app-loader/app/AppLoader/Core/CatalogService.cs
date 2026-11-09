@@ -115,7 +115,7 @@ namespace AppLoader.Core
         /// <summary>Downloads the index and its signature, checks them, and keeps them.</summary>
         public static async Task<CatalogIndex> RefreshAsync()
         {
-            if (!Configured) throw new CatalogException("The catalogue isn't set up in this build yet (no signing key).");
+            if (!Configured) throw new CatalogException("The online catalogue isn't set up in this version of " + AppInfo.Name + ".");
             string tmpIndex = Shell.LocalPath + "\\catalog-new.json", tmpSig = tmpIndex + ".sig";
             string fetch = Shell.Quote(Helper("rfxfetch.exe"));
             var r = await Shell.RunAsync(
@@ -123,8 +123,8 @@ namespace AppLoader.Core
                     " --max-bytes " + CatalogIndex.MaxIndexBytes + " --quiet\n" +
                 "if errorlevel 1 exit /b 1\n" +
                 fetch + " " + Shell.Quote(CatalogConfig.IndexUrl + ".sig") + " " + Shell.Quote(tmpSig) + " --max-bytes 4096 --quiet\n", 120);
-            if (!r.Reached) throw new CatalogException(r.Problem ?? "The download didn't finish.");
-            if (r.ExitCode != 0) throw new CatalogException("Couldn't download the catalogue: " + FetchError(r.Output));
+            if (!r.Reached) throw new CatalogException(r.Problem ?? Friendly.Slow);
+            if (r.ExitCode != 0) throw new CatalogException(Friendly.Download("the catalogue", r.Output));
 
             using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
             {
@@ -232,7 +232,7 @@ namespace AppLoader.Core
         {
             var pending = DownloadJob.Load();
             if (pending != null && !Shell.IsDone(pending.Run))
-                throw new CatalogException("Still downloading " + pending.AppId + " " + pending.Version + ".");
+                throw new CatalogException("Still downloading " + pending.AppId + " " + pending.Version + ". Wait for it to finish, then try again.");
             string file = DownloadName(r);
             string cmds = Shell.Quote(Helper("rfxfetch.exe")) + " " + Shell.Quote(r.Url) + " " +
                           Shell.Quote(Shell.LocalPath + "\\" + file) +
@@ -255,7 +255,7 @@ namespace AppLoader.Core
         }
 
         /// <summary>Waits for a download; returns null on success, or what went wrong.</summary>
-        public static async Task<string> WaitDownloadAsync(DownloadJob job, Action<long, long> progress)
+        public static async Task<string> WaitDownloadAsync(DownloadJob job, string what, Action<long, long> progress)
         {
             while (!Shell.IsDone(job.Run))
             {
@@ -268,7 +268,7 @@ namespace AppLoader.Core
             Shell.Delete(job.Run);
             DownloadJob.Clear();
             if (r.Reached && r.ExitCode == 0) return null;
-            return FetchError(r.Output);
+            return Friendly.Download(what, r.Output);
         }
 
         /// <summary>Installs a downloaded release through stage 1 (which checks product ID and
@@ -278,7 +278,7 @@ namespace AppLoader.Core
             string file = DownloadName(r);
             var found = new FoundPackage { Path = Shell.LocalPath + "\\" + file, Size = r.Size };
             var outcome = await Phone.InstallAsync(found, status, r.ProductId, r.Sha256);
-            if (outcome.Started || (outcome.Message != null && outcome.Message.Contains("SHA-256")))
+            if (outcome.Started || outcome.HashMismatch)
             {
                 try
                 {
@@ -288,14 +288,6 @@ namespace AppLoader.Core
                 catch (Exception) { }
             }
             return outcome;
-        }
-
-        static string FetchError(string output)
-        {
-            foreach (var line in output.Split('\n'))
-                if (line.StartsWith("ERROR ", StringComparison.Ordinal)) return line.Substring(6).Trim();
-            var t = output.Trim();
-            return t.Length > 300 ? t.Substring(t.Length - 300) : (t.Length > 0 ? t : "unknown error");
         }
 
         static byte[] ReadAll(IsolatedStorageFile iso, string name)
