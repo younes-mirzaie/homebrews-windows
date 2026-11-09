@@ -67,7 +67,7 @@ namespace AppLoader
             Details.Text = d.ToString();
 
             string installed = _entry == null || _entry.Installed == null ? null
-                : (_entry.InstalledVersion ?? "a version App Loader can't read");
+                : (_entry.InstalledVersion ?? "a version " + AppInfo.Name + " can't read");
             if (!CatalogService.Supported(latest))
             {
                 Status.Text = "This kind of package (" + latest.Kind + ") can't be installed by " + AppInfo.Name + " yet.";

@@ -1,5 +1,8 @@
-# App Loader
+# Unesbrews (App Loader)
 
+
+Shown on the phone as **Unesbrews**, "Homebrew apps by Younes". The code, folders and package
+identity keep the App Loader name, so installed copies update in place.
 Installs and updates apps on an interop-unlocked Windows Phone 8.1 from the phone itself, without
 a PC and without the CMD Injector app.
 
