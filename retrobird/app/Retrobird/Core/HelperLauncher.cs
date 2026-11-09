@@ -2,6 +2,7 @@
 // same way File Explorer starts its helper. The helper and its NSS/NSPR DLLs ship in the package's
 // Helper folder and are copied to C:\Data\SharedData\Retrobird, where the mail cache also lives.
 using System;
+using System.IO;
 using System.IO.IsolatedStorage;
 using System.Security.Cryptography;
 using System.Text;
@@ -40,6 +41,7 @@ namespace Retrobird.Core
         }
 
         public static string LastShellOutput;
+        const string Marker = "rbstart-finished";
 
         static string Clean(string s)
         {
@@ -96,17 +98,28 @@ namespace Retrobird.Core
             }
             else status("starting the mail helper...");
 
+            // The shell echoes typed input slowly and closing the session too early kills what it
+            // started, so the commands go into a batch file in our own folder (readable by the
+            // SYSTEM shell) and only its path is typed. Its output lands in rbstart.log.
             string pkg = Package.Current.InstalledLocation.Path + @"\Helper";
-            var cmds = new StringBuilder();
-            if (kill) cmds.Append("kill -f rbmaild.exe\r\n");
-            cmds.Append("mkdir \"" + HelperDir + "\" 2>nul\r\n");
-            foreach (var f in Files)
-                cmds.Append("copy /y \"" + pkg + "\\" + f + "\" \"" + HelperDir + "\\" + f + "\" >nul\r\n");
-            // if the copy failed, run it straight from the package (data still goes to SharedData)
+            string local = Windows.Storage.ApplicationData.Current.LocalFolder.Path;
             string args = " --token " + Token + " --port " + port + " --data \"" + HelperDir + "\\data\"";
-            cmds.Append("if exist \"" + HelperDir + "\\rbmaild.exe\" (start \"\" \"" + HelperDir + "\\rbmaild.exe\"" + args +
-                        ") else (start \"\" \"" + pkg + "\\rbmaild.exe\"" + args + ")\r\n");
-            cmds.Append("exit\r\n");
+            var bat = new StringBuilder();
+            bat.Append("@echo off\r\n(\r\n");
+            if (kill) bat.Append("kill -f rbmaild.exe\r\n");
+            bat.Append("mkdir \"" + HelperDir + "\" 2>nul\r\n");
+            foreach (var f in Files)
+                bat.Append("copy /y \"" + pkg + "\\" + f + "\" \"" + HelperDir + "\\" + f + "\"\r\n");
+            // if the copy failed, run it straight from the package (data still goes to SharedData).
+            // rbmaild detaches itself from the shell's console and job, then this call returns.
+            bat.Append("if exist \"" + HelperDir + "\\rbmaild.exe\" (\"" + HelperDir + "\\rbmaild.exe\"" + args +
+                       ") else (\"" + pkg + "\\rbmaild.exe\"" + args + ")\r\n");
+            bat.Append(") > \"%~dp0rbstart.log\" 2>&1\r\necho " + Marker + "\r\n");
+            using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
+            {
+                using (var w = new StreamWriter(iso.CreateFile("rbstart.cmd"), new UTF8Encoding(false))) w.Write(bat.ToString());
+                if (iso.FileExists("rbstart.log")) iso.DeleteFile("rbstart.log");
+            }
 
             string shellOut = null;
             int shellPort = 0;
@@ -116,9 +129,17 @@ namespace Retrobird.Core
                 if (sh == null) continue;
                 using (sh)
                 {
-                    await sh.ReadAvailableAsync(800);   // banner and telnet negotiation
-                    await sh.SendAsync(cmds.ToString());
-                    shellOut = await sh.ReadAvailableAsync(1500);
+                    var log = new StringBuilder();
+                    log.Append(await sh.ReadAvailableAsync(800));   // banner and telnet negotiation
+                    await sh.SendAsync("\"" + local + "\\rbstart.cmd\"\r\n");
+                    // wait for the batch to finish (the marker only appears in its output, not in
+                    // the typed line), up to 30 s, before ending the session
+                    var until = DateTime.UtcNow.AddSeconds(30);
+                    while (DateTime.UtcNow < until && log.ToString().IndexOf(Marker, StringComparison.Ordinal) < 0 && !sh.IsClosed)
+                        log.Append(await sh.ReadAvailableAsync(1000));
+                    await sh.SendAsync("exit\r\n");
+                    log.Append(await sh.ReadAvailableAsync(300));
+                    shellOut = log.ToString();
                 }
                 shellPort = sp;
                 break;
@@ -134,8 +155,19 @@ namespace Retrobird.Core
                 if (s == "foreign") return "Another program with a different key holds port " + port + ". Restart the phone and try again.";
             }
             LastShellOutput = shellOut;
-            return "Asked CMD Injector's shell (port " + shellPort + ") to start the mail helper, but it didn't answer on 127.0.0.1:" + port +
-                   ". Shell said:\n" + Tail(Clean(shellOut), 600);
+            string startLog = null;
+            try
+            {
+                using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
+                    if (iso.FileExists("rbstart.log"))
+                        using (var r = new StreamReader(iso.OpenFile("rbstart.log", FileMode.Open, FileAccess.Read))) startLog = r.ReadToEnd();
+            }
+            catch { }
+            bool ran = shellOut.IndexOf(Marker, StringComparison.Ordinal) >= 0;
+            return "Asked CMD Injector's shell (port " + shellPort + ") to start the mail helper, but it didn't answer on 127.0.0.1:" + port + ". " +
+                   (startLog != null ? "Start log:\n" + Tail(startLog.Trim(), 600)
+                    : ran ? "The start script ran but wrote no log."
+                    : "The start script didn't run. Shell said:\n" + Tail(Clean(shellOut), 400));
         }
     }
 }
