@@ -1,5 +1,14 @@
 /* Network connections over NSPR with NSS TLS (implicit TLS or STARTTLS), certificate pinning,
    and small crypto helpers (hashing, random, sealing secrets). */
+#ifdef _WIN32
+#include <winsock2.h>   /* before windows.h */
+#include <ws2tcpip.h>
+#else
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -172,31 +181,94 @@ static int start_tls(conn *c)
     return 0;
 }
 
+/* Host name to addresses. NSPR's lookup failed inside the phone app ("can't find server"), so
+   this tries, in order: an IP literal, the system's getaddrinfo directly (Winsock on the phone),
+   then NSPR's PR_GetAddrInfoByName and PR_GetHostByName. Returns how many addresses it found;
+   on 0, err says what each method answered. */
+static int resolve(const char *host, int port, PRNetAddr *out, int max, char *err, size_t errlen)
+{
+    int n = 0;
+    char why[200] = "";
+    PRNetAddr a;
+    if (PR_StringToNetAddr(host, &a) == PR_SUCCESS) {
+        a.inet.port = PR_htons((PRUint16)port);   /* same offset for inet and ipv6 */
+        out[0] = a;
+        return 1;
+    }
+    {
+        struct addrinfo hints, *res = NULL, *p;
+        int rc;
+#ifdef _WIN32
+        static int wsa;
+        if (!wsa) { WSADATA d; wsa = WSAStartup(MAKEWORD(2, 2), &d) == 0 ? 1 : -1; }
+#endif
+        memset(&hints, 0, sizeof(hints));
+        hints.ai_family = AF_UNSPEC;
+        hints.ai_socktype = SOCK_STREAM;
+        hints.ai_protocol = IPPROTO_TCP;
+        rc = getaddrinfo(host, NULL, &hints, &res);
+        for (p = rc == 0 ? res : NULL; p && n < max; p = p->ai_next) {
+            if (p->ai_family == AF_INET) {
+                const struct sockaddr_in *sin = (const struct sockaddr_in *)p->ai_addr;
+                PR_SetNetAddr(PR_IpAddrNull, PR_AF_INET, (PRUint16)port, &out[n]);
+                out[n++].inet.ip = sin->sin_addr.s_addr;
+            } else if (p->ai_family == AF_INET6) {
+                const struct sockaddr_in6 *sin6 = (const struct sockaddr_in6 *)p->ai_addr;
+                PR_SetNetAddr(PR_IpAddrNull, PR_AF_INET6, (PRUint16)port, &out[n]);
+                memcpy(&out[n++].ipv6.ip, &sin6->sin6_addr, 16);
+            }
+        }
+        if (res) freeaddrinfo(res);
+        if (n) return n;
+#ifdef _WIN32
+        snprintf(why, sizeof(why), "getaddrinfo %d", rc ? WSAGetLastError() : 0);
+#else
+        snprintf(why, sizeof(why), "getaddrinfo: %s", rc ? gai_strerror(rc) : "no addresses");
+#endif
+    }
+    {
+        PRAddrInfo *ai = PR_GetAddrInfoByName(host, PR_AF_UNSPEC, PR_AI_ADDRCONFIG);
+        void *it = NULL;
+        if (ai) {
+            while (n < max && (it = PR_EnumerateAddrInfo(it, ai, (PRUint16)port, &out[n])) != NULL) n++;
+            PR_FreeAddrInfo(ai);
+            if (n) return n;
+        }
+        snprintf(why + strlen(why), sizeof(why) - strlen(why), "; NSPR %d", (int)PR_GetError());
+    }
+    {
+        char buf[PR_NETDB_BUF_SIZE];
+        PRHostEnt he;
+        if (PR_GetHostByName(host, buf, sizeof(buf), &he) == PR_SUCCESS) {
+            int i = 0;
+            while (n < max && (i = PR_EnumerateHostEnt(i, &he, (PRUint16)port, &out[n])) > 0) n++;
+            if (n) return n;
+        }
+        snprintf(why + strlen(why), sizeof(why) - strlen(why), "; hostbyname %d", (int)PR_GetError());
+    }
+    snprintf(err, errlen, "can't find server %s (check the name and your connection; %s)", host, why);
+    rb_log("lookup %s failed: %s", host, why);
+    return 0;
+}
+
 conn *conn_open(const char *host, int port, int tls, const char *pin, char *err, size_t errlen)
 {
     conn *c = xcalloc(1, sizeof(*c));
-    PRAddrInfo *ai;
-    PRNetAddr addr;
-    void *it = NULL;
-    int connected = 0;
+    PRNetAddr addrs[16];
+    int naddr, connected = 0;
     snprintf(c->host, sizeof(c->host), "%s", host);
     snprintf(c->pin, sizeof(c->pin), "%s", pin ? pin : "");
     c->timeout = PR_SecondsToInterval(60);
-    ai = PR_GetAddrInfoByName(host, PR_AF_UNSPEC, PR_AI_ADDRCONFIG);
-    if (!ai) {
-        snprintf(err, errlen, "can't find server %s (check the name and your connection)", host);
-        free(c);
-        return NULL;
-    }
-    while ((it = PR_EnumerateAddrInfo(it, ai, (PRUint16)port, &addr)) != NULL) {
-        c->fd = PR_OpenTCPSocket(addr.raw.family);
+    naddr = resolve(host, port, addrs, 16, err, errlen);
+    if (!naddr) { free(c); return NULL; }
+    for (int i = 0; i < naddr && !connected; i++) {
+        c->fd = PR_OpenTCPSocket(addrs[i].raw.family);
         if (!c->fd) continue;
-        if (PR_Connect(c->fd, &addr, PR_SecondsToInterval(20)) == PR_SUCCESS) { connected = 1; break; }
+        if (PR_Connect(c->fd, &addrs[i], PR_SecondsToInterval(20)) == PR_SUCCESS) { connected = 1; break; }
         set_err(c, "connecting to");
         PR_Close(c->fd);
         c->fd = NULL;
     }
-    PR_FreeAddrInfo(ai);
     if (!connected) {
         if (!c->err[0]) snprintf(c->err, sizeof(c->err), "can't connect to %s:%d", host, port);
         snprintf(err, errlen, "%s", c->err);
