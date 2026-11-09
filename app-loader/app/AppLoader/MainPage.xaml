@@ -1,0 +1,79 @@
+<phone:PhoneApplicationPage
+    x:Class="AppLoader.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    FontFamily="{StaticResource PhoneFontFamilyNormal}"
+    FontSize="{StaticResource PhoneFontSizeNormal}"
+    Foreground="{StaticResource PhoneForegroundBrush}"
+    SupportedOrientations="Portrait" Orientation="Portrait"
+    shell:SystemTray.IsVisible="True">
+
+    <shell:SystemTray.ProgressIndicator>
+        <shell:ProgressIndicator x:Name="Progress" IsIndeterminate="True" IsVisible="False" />
+    </shell:SystemTray.ProgressIndicator>
+
+    <phone:Pivot x:Name="Pivots" Title="APP LOADER">
+        <phone:PivotItem Header="packages">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="PackagesNote" TextWrapping="Wrap" Margin="12,0,12,12"
+                           Style="{StaticResource PhoneTextSubtleStyle}"
+                           Text="Looking in Downloads and Documents for .xap and .appx files..." />
+                <ListBox x:Name="PackagesList" Grid.Row="1" SelectionChanged="PackagesList_SelectionChanged">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="12,0,0,20">
+                                <TextBlock Text="{Binding Name}" Style="{StaticResource PhoneTextLargeStyle}"
+                                           Margin="0" TextTrimming="WordEllipsis" />
+                                <TextBlock Text="{Binding Detail}" Style="{StaticResource PhoneTextSubtleStyle}"
+                                           Margin="0" TextTrimming="WordEllipsis" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </phone:PivotItem>
+
+        <phone:PivotItem Header="installed">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="InstalledNote" TextWrapping="Wrap" Margin="12,0,12,12"
+                           Style="{StaticResource PhoneTextSubtleStyle}" Text="" />
+                <ListBox x:Name="InstalledList" Grid.Row="1">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="12,0,0,20">
+                                <TextBlock Text="{Binding Title}" Style="{StaticResource PhoneTextLargeStyle}"
+                                           Margin="0" TextTrimming="WordEllipsis" />
+                                <TextBlock Text="{Binding Detail}" Style="{StaticResource PhoneTextSubtleStyle}"
+                                           Margin="0" TextTrimming="WordEllipsis" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </phone:PivotItem>
+
+        <phone:PivotItem Header="log">
+            <ScrollViewer>
+                <TextBlock x:Name="LogText" TextWrapping="Wrap" Margin="12,0,12,24"
+                           FontFamily="Courier New" FontSize="16"
+                           Text="What the installer says shows up here." />
+            </ScrollViewer>
+        </phone:PivotItem>
+    </phone:Pivot>
+
+    <phone:PhoneApplicationPage.ApplicationBar>
+        <shell:ApplicationBar Mode="Minimized" Opacity="0.9">
+            <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/refresh.png" Text="refresh" Click="Refresh_Click" />
+        </shell:ApplicationBar>
+    </phone:PhoneApplicationPage.ApplicationBar>
+</phone:PhoneApplicationPage>
