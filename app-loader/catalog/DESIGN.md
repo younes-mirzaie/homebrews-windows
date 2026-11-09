@@ -108,8 +108,8 @@ than rehosting.
 
 ## Open questions
 
-1. Repo for the catalogue: a new public repo (e.g. `wp-homebrew`) so GitHub Pages can be public
-   while `wp-projects` stays as it is? GitHub Pages on a private repo needs a paid plan.
+1. ~~Repo for the catalogue~~ Decided 2026-11-09: new public repo `wp-homebrew` (GitHub Pages
+   serves `dist/`). The tool stays here; the repo holds `apps/` and `dist/`.
 2. Community catalogues: allow adding other people's catalogues (each with its own key), or keep
    it to the official one for now?
 
