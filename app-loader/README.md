@@ -26,9 +26,17 @@ How an install goes (`Core/Phone.cs`):
    SD card. The phone refuses that update and the app can be lost (this is how CMD Injector
    disappeared on 9 Nov 2026). The user moves the app to the phone first.
 5. It never uninstalls anything, not even as a fallback.
+6. TH runs detached from the app: `Helperldetach.exe` (`helper/aldetach.c`) starts the install
+   batch outside the telnet session's console and job, and the batch reports through
+   `run-N.log` and `run-N.done` in the app's folder. The install is remembered, so if the screen
+   locks, the user leaves the app, or App Loader updates itself, it carries on and the result is
+   shown when the app is opened again. The screen is kept on during an install, and one install
+   runs at a time.
+7. Catalogue installs (stage 2) can pass an expected product ID and SHA-256, checked on the
+   staged copy before TH runs.
 
 `Core/PackageInstaller.cs` is the install step alone: a local package path and a mode in, TH.exe's
-output and exit status out. `Core/Shell.cs` runs batch commands as SYSTEM. The app doesn't read
+output and exit status out (or a run name to read later). `Core/Shell.cs` runs batch commands as SYSTEM. The app doesn't read
 or keep any secrets (no rfxdev token).
 
 ## Stage 2 (planned)

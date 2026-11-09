@@ -6,11 +6,16 @@
 //  - A package that refuses the SD card is not installed over a copy that lives on the SD card:
 //    the phone refuses that update and the app can be lost. The user moves the app first.
 //  - The package is copied to a plain path in the app's own folder first (ASCII, no spaces), and
-//    read from there, so the checks look at exactly what gets installed.
+//    checked and installed from there, so the checks look at exactly what gets installed.
+//  - One install at a time: a new one waits until the last one's done marker is there.
+//  - TH runs detached and the install is remembered (settings "job"), so it survives the app
+//    being suspended or updating itself, and the result is shown when the app comes back.
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.IsolatedStorage;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -33,16 +38,53 @@ namespace AppLoader.Core
         public bool OnSd { get { return string.Equals(Location, "SD", StringComparison.OrdinalIgnoreCase); } }
     }
 
+    /// <summary>An install that has been started: kept in the settings until its result is shown.</summary>
+    public sealed class InstallJob
+    {
+        public string Run, Mode, ProductId, Title, Version, ExistingTitle, Staged;
+        public bool IsUpdate { get { return Mode == PackageInstaller.Update; } }
+
+        const string Key = "job";
+
+        public void Save()
+        {
+            IsolatedStorageSettings.ApplicationSettings[Key] = string.Join("\n",
+                new[] { Run, Mode, ProductId, Title, Version, ExistingTitle ?? "", Staged });
+            IsolatedStorageSettings.ApplicationSettings.Save();
+        }
+
+        public static InstallJob Load()
+        {
+            object v;
+            if (!IsolatedStorageSettings.ApplicationSettings.TryGetValue(Key, out v) || !(v is string)) return null;
+            var f = ((string)v).Split('\n');
+            if (f.Length < 7) return null;
+            return new InstallJob { Run = f[0], Mode = f[1], ProductId = f[2], Title = f[3], Version = f[4],
+                                    ExistingTitle = f[5].Length > 0 ? f[5] : null, Staged = f[6] };
+        }
+
+        public static void Clear()
+        {
+            IsolatedStorageSettings.ApplicationSettings.Remove(Key);
+            IsolatedStorageSettings.ApplicationSettings.Save();
+        }
+    }
+
     public sealed class InstallOutcome
     {
+        public bool Started;        // TH is running (Job), the result comes from FinishAsync
         public bool Succeeded;
         public string Message;      // plain words for the user
         public PackageInfo Package;
-        public ThResult Th;         // what TH said, when it ran
+        public InstallJob Job;
+        public ThResult Th;         // what TH said, once it has finished
     }
 
     public static class Phone
     {
+        // App Loader's own product ID: updating it ends this app while TH runs
+        public const string OwnProductId = "0145BB18-825E-4266-9094-5CA73FEF56A9";
+
         // Where downloads and copied files usually land
         static readonly string[] Roots =
         {
@@ -52,7 +94,7 @@ namespace AppLoader.Core
 
         public static async Task<List<FoundPackage>> FindPackagesAsync()
         {
-            var cmds = new System.Text.StringBuilder();
+            var cmds = new StringBuilder();
             foreach (var root in Roots)
                 cmds.Append("if exist " + Shell.Quote(root) + " for /r " + Shell.Quote(root) +
                             " %%f in (*.xap *.appx) do echo pkg^|%%~zf^|%%f\n");
@@ -99,13 +141,28 @@ namespace AppLoader.Core
             return list;
         }
 
-        /// <summary>Copies the package into the app's folder under a plain name, reads its manifest
-        /// there and checks, then installs it: update if installed, deploy if not.</summary>
-        public static async Task<InstallOutcome> InstallAsync(FoundPackage found, Action<string> status)
+        public static Task<InstallOutcome> InstallAsync(FoundPackage found, Action<string> status)
+        {
+            return InstallAsync(found, status, null, null);
+        }
+
+        /// <summary>Copies the package into the app's folder under a plain name, reads and checks
+        /// it there, then starts TH: update if the app is installed, deploy if not. For a package
+        /// from a catalogue, expectedProductId and expectedSha256 (hex) must match the staged copy.
+        /// Returns with Started set once TH is running; FinishAsync gives the result.</summary>
+        public static async Task<InstallOutcome> InstallAsync(FoundPackage found, Action<string> status,
+                                                              string expectedProductId, string expectedSha256)
         {
             var outcome = new InstallOutcome();
+            var pending = InstallJob.Load();
+            if (pending != null && !Shell.IsDone(pending.Run))
+            {
+                outcome.Message = "The installer is still busy with " + pending.Title + ". Wait for it to finish, then try again.";
+                return outcome;
+            }
+
             string ext = found.Path.EndsWith(".appx", StringComparison.OrdinalIgnoreCase) ? ".appx" : ".xap";
-            string stageName = "staged" + ext;
+            string stageName = "staged-" + DateTime.UtcNow.Ticks + ext;
             string staged = Shell.LocalPath + "\\" + stageName;
             if (!IsPlain(staged))
             {
@@ -113,64 +170,138 @@ namespace AppLoader.Core
                                   "), so the installer can't be given a safe copy. Nothing was installed.";
                 return outcome;
             }
+            try
+            {
+                status("copying " + found.Name + "...");
+                var copy = await Shell.RunAsync("copy /y " + Shell.Quote(found.Path) + " " + Shell.Quote(staged), 120);
+                bool exists;
+                using (var iso = IsolatedStorageFile.GetUserStoreForApplication()) exists = iso.FileExists(stageName);
+                if (!copy.Reached || !exists)
+                {
+                    outcome.Message = "Couldn't copy the package: " + (copy.Problem ?? copy.Output.Trim());
+                    return outcome;
+                }
 
-            status("copying " + found.Name + "...");
-            using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
-            {
-                if (iso.FileExists("staged.xap")) iso.DeleteFile("staged.xap");
-                if (iso.FileExists("staged.appx")) iso.DeleteFile("staged.appx");
-            }
-            var copy = await Shell.RunAsync("copy /y " + Shell.Quote(found.Path) + " " + Shell.Quote(staged), 120);
-            bool exists;
-            using (var iso = IsolatedStorageFile.GetUserStoreForApplication()) exists = iso.FileExists(stageName);
-            if (!copy.Reached || !exists)
-            {
-                outcome.Message = "Couldn't copy the package: " + (copy.Problem ?? copy.Output.Trim());
+                status("reading the package...");
+                try
+                {
+                    using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
+                    using (var s = iso.OpenFile(stageName, FileMode.Open, FileAccess.Read))
+                    {
+                        if (expectedSha256 != null)
+                        {
+                            string hash = Sha256Hex(s);
+                            if (!string.Equals(hash, expectedSha256.Trim(), StringComparison.OrdinalIgnoreCase))
+                            {
+                                outcome.Message = "The downloaded package isn't the one the catalogue lists (its SHA-256 " +
+                                                  "doesn't match). Nothing was installed.";
+                                return outcome;
+                            }
+                            s.Seek(0, SeekOrigin.Begin);
+                        }
+                        outcome.Package = PackageInfo.Read(s);
+                    }
+                }
+                catch (Exception e)
+                {
+                    outcome.Message = "This isn't a package the phone can install: " + e.Message;
+                    return outcome;
+                }
+                var pkg = outcome.Package;
+                if (pkg.ProductId == null)
+                {
+                    outcome.Message = "The package has no product ID in its manifest, so it can't be checked. Nothing was installed.";
+                    return outcome;
+                }
+                if (expectedProductId != null && PackageInfo.Guid(expectedProductId) != pkg.ProductId)
+                {
+                    outcome.Message = "The package is a different app than the catalogue says (" + pkg.Title + ", " +
+                                      pkg.ProductId + "). Nothing was installed.";
+                    return outcome;
+                }
+
+                status("checking what's installed...");
+                InstalledApp existing = null;
+                foreach (var a in await InstalledAppsAsync())
+                    if (a.ProductId == pkg.ProductId) { existing = a; break; }
+
+                if (existing != null && existing.OnSd && pkg.SdOptOut)
+                {
+                    outcome.Message = pkg.Title + " " + pkg.Version + " can't be installed on the SD card, and the " +
+                        existing.Title + " you have now is on the SD card. The phone would refuse this update, and an app " +
+                        "can get lost that way. Move " + existing.Title + " to the phone first (Settings > storage sense > " +
+                        "SD card > apps+games > select it > move to phone), then try again. Nothing was changed.";
+                    return outcome;
+                }
+
+                string mode = existing != null ? PackageInstaller.Update : PackageInstaller.Deploy;
+                status((existing != null ? "updating " : "installing ") + pkg.Title + "...");
+                string run;
+                try { run = await PackageInstaller.StartAsync(staged, mode, true); }
+                catch (Exception e)
+                {
+                    outcome.Message = e.Message;
+                    return outcome;
+                }
+                outcome.Job = new InstallJob
+                {
+                    Run = run, Mode = mode, ProductId = pkg.ProductId, Title = pkg.Title, Version = pkg.Version,
+                    ExistingTitle = existing != null ? existing.Title : null, Staged = stageName,
+                };
+                outcome.Job.Save();
+                outcome.Started = true;
                 return outcome;
             }
+            finally
+            {
+                // The staged copy goes once it isn't needed: on every early return here, and after
+                // TH by the install batch itself
+                if (!outcome.Started)
+                {
+                    try
+                    {
+                        using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
+                            if (iso.FileExists(stageName)) iso.DeleteFile(stageName);
+                    }
+                    catch (Exception) { }
+                }
+            }
+        }
 
-            status("reading the package...");
+        /// <summary>Waits for a started install to finish and turns TH's answer into words.
+        /// Clears the remembered job once it has finished.</summary>
+        public static async Task<InstallOutcome> FinishAsync(InstallJob job)
+        {
+            var outcome = new InstallOutcome { Job = job };
+            var th = await PackageInstaller.WaitAsync(job.Run, job.Mode, 900);
+            outcome.Th = th;
+            if (!th.Finished)
+            {
+                outcome.Message = th.Problem ?? "The installer hasn't finished yet.";
+                return outcome;   // still remembered: picked up again next time
+            }
+            outcome.Succeeded = th.Succeeded;
+            outcome.Message = Explain(th, job);
+            InstallJob.Clear();
+            Shell.Delete(job.Run);
             try
             {
                 using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
-                using (var s = iso.OpenFile(stageName, FileMode.Open, FileAccess.Read))
-                    outcome.Package = PackageInfo.Read(s);
+                    if (iso.FileExists(job.Staged)) iso.DeleteFile(job.Staged);
             }
-            catch (Exception e)
-            {
-                outcome.Message = "This isn't a package the phone can install: " + e.Message;
-                return outcome;
-            }
-            var pkg = outcome.Package;
-            if (pkg.ProductId == null)
-            {
-                outcome.Message = "The package has no product ID in its manifest, so it can't be checked. Nothing was installed.";
-                return outcome;
-            }
-
-            status("checking what's installed...");
-            InstalledApp existing = null;
-            foreach (var a in await InstalledAppsAsync())
-                if (a.ProductId == pkg.ProductId) { existing = a; break; }
-
-            if (existing != null && existing.OnSd && pkg.SdOptOut)
-            {
-                outcome.Message = pkg.Title + " " + pkg.Version + " can't be installed on the SD card, and the " +
-                    existing.Title + " you have now is on the SD card. The phone would refuse this update, and an app " +
-                    "can get lost that way. Move " + existing.Title + " to the phone first (Settings > storage sense > " +
-                    "SD card > apps+games > select it > move to phone), then try again. Nothing was changed.";
-                return outcome;
-            }
-
-            string mode = existing != null ? PackageInstaller.Update : PackageInstaller.Deploy;
-            status((existing != null ? "updating " : "installing ") + pkg.Title + "...");
-            outcome.Th = await PackageInstaller.RunAsync(staged, mode);
-            outcome.Succeeded = outcome.Th.Succeeded;
-            outcome.Message = Explain(outcome.Th, pkg, existing);
-
-            // the staged copy isn't needed any more
-            try { await Shell.RunAsync("del /f /q " + Shell.Quote(staged), 30); } catch (Exception) { }
+            catch (Exception) { }
             return outcome;
+        }
+
+        static string Sha256Hex(Stream s)
+        {
+            using (var sha = new SHA256Managed())
+            {
+                var hash = sha.ComputeHash(s);
+                var sb = new StringBuilder();
+                foreach (var b in hash) sb.Append(b.ToString("x2"));
+                return sb.ToString();
+            }
         }
 
         static bool IsPlain(string path)
@@ -180,20 +311,19 @@ namespace AppLoader.Core
             return true;
         }
 
-        public static string Explain(ThResult th, PackageInfo pkg, InstalledApp existing)
+        public static string Explain(ThResult th, InstallJob job)
         {
-            string what = pkg.Title + " " + pkg.Version;
-            if (th.ShellProblem != null && th.Output.Length == 0) return th.ShellProblem;
+            string what = job.Title + " " + job.Version;
             if (th.Succeeded)
-                return existing != null ? what + " is updated." : what + " is installed.";
+                return job.IsUpdate ? what + " is updated." : what + " is installed.";
             switch (th.PacManCode)
             {
                 case "0x8103012e":
                     return what + " refuses the SD card. Set Settings > storage sense > store new apps on: phone, " +
                            "then try again. Nothing was changed.";
                 case "0x81030137":
-                    return existing != null
-                        ? "The phone didn't take this as an update of " + existing.Title + ": it may be the same version " +
+                    return job.IsUpdate
+                        ? "The phone didn't take this as an update of " + job.ExistingTitle + ": it may be the same version " +
                           "as the one installed, or not newer. Nothing was changed."
                         : "The phone says this package isn't valid or isn't applicable. Nothing was installed.";
                 case "0x800b0100":

@@ -64,7 +64,8 @@ namespace AppLoader.Core
                 }
                 p += 46 + nlen + xlen + clen;
                 if (!string.Equals(entry, name, StringComparison.OrdinalIgnoreCase)) continue;
-                if (usize > 8 * 1024 * 1024) throw new InvalidDataException(name + " is too large");
+                if (usize > 8 * 1024 * 1024 || csize > 8 * 1024 * 1024)
+                    throw new InvalidDataException(name + " is too large");
                 var lh = new byte[30];
                 zip.Seek(local, SeekOrigin.Begin);
                 ReadFully(zip, lh, 0, 30);
