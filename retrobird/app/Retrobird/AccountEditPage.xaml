@@ -22,7 +22,7 @@
         </StackPanel>
         <ScrollViewer Grid.Row="1" Margin="12,0,12,0">
             <StackPanel>
-                <TextBlock Text="e-mail address" Style="{StaticResource PhoneTextSubtleStyle}"/>
+                <TextBlock Text="email address" Style="{StaticResource PhoneTextSubtleStyle}"/>
                 <TextBox x:Name="EmailBox" InputScope="EmailSmtpAddress" TextChanged="EmailBox_TextChanged"/>
                 <TextBlock Text="password" Style="{StaticResource PhoneTextSubtleStyle}"/>
                 <PasswordBox x:Name="PassBox"/>

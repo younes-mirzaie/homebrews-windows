@@ -190,7 +190,7 @@ namespace Retrobird
             var email = EmailBox.Text.Trim();
             if (email.IndexOf('@') <= 0)
             {
-                MessageBox.Show("Enter your e-mail address.", "account", MessageBoxButton.OK);
+                MessageBox.Show("Enter your email address.", "account", MessageBoxButton.OK);
                 return;
             }
             if (_id == null && PassBox.Password.Length == 0)

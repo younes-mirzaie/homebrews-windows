@@ -19,6 +19,10 @@ namespace Retrobird
                 var msg = e.ExceptionObject.Message;
                 Deployment.Current.Dispatcher.BeginInvoke(() => MessageBox.Show(msg, "Retrobird error", MessageBoxButton.OK));
             };
+            // US English throughout (dates, numbers, built-in control text), whatever the phone's region
+            var us = new System.Globalization.CultureInfo("en-US");
+            System.Threading.Thread.CurrentThread.CurrentCulture = us;
+            System.Threading.Thread.CurrentThread.CurrentUICulture = us;
             InitializeComponent();
             // the mail helper runs inside the app (rbmail.dll); the separate rbmaild.exe started
             // through CMD Injector is only a fallback for when the DLL can't load

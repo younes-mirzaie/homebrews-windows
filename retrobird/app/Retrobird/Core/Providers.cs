@@ -1,4 +1,4 @@
-// Server settings for common mail providers, picked from the e-mail address.
+// Server settings for common mail providers, picked from the email address.
 using System;
 using System.Collections.Generic;
 

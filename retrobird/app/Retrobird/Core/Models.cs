@@ -148,7 +148,7 @@ namespace Retrobird.Core
             var now = DateTime.Now;
             if (local.Date == now.Date) return local.ToString("t");
             if ((now.Date - local.Date).TotalDays < 7) return local.ToString("ddd");
-            if (local.Year == now.Year) return local.ToString("d MMM");
+            if (local.Year == now.Year) return local.ToString("MMM d");
             return local.ToString("d");
         }
 
