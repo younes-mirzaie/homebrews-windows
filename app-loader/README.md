@@ -26,7 +26,7 @@ How an install goes (`Core/Phone.cs`):
    SD card. The phone refuses that update and the app can be lost (this is how CMD Injector
    disappeared on 9 Nov 2026). The user moves the app to the phone first.
 5. It never uninstalls anything, not even as a fallback.
-6. TH runs detached from the app: `Helperldetach.exe` (`helper/aldetach.c`) starts the install
+6. TH runs detached from the app: `Helper\aldetach.exe` (`helper/aldetach.c`) starts the install
    batch outside the telnet session's console and job, and the batch reports through
    `run-N.log` and `run-N.done` in the app's folder. The install is remembered, so if the screen
    locks, the user leaves the app, or App Loader updates itself, it carries on and the result is
