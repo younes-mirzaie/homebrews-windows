@@ -26,7 +26,7 @@
 #include <string.h>
 #include <wchar.h>
 
-#define RFXFSD_VERSION "1"
+#define RFXFSD_VERSION "2"
 #define LINE_MAX_BYTES 8192
 #define IO_CHUNK (256 * 1024)
 #define READ_MAX (4 * 1024 * 1024)
@@ -690,22 +690,79 @@ static unsigned __stdcall serve(void *arg)
     return 0;
 }
 
+/* Started from CMD Injector's telnet shell, the helper would share that session's console and
+   job and die with it. So the first instance starts a copy of itself detached from both and
+   exits; the copy gets --fg. CreateProcessW and GetCommandLineW are looked up at run time
+   because the phone's import libs may lack them. */
+typedef BOOL(WINAPI *CreateProcessW_t)(LPCWSTR, LPWSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES,
+                                       BOOL, DWORD, LPVOID, LPCWSTR, LPSTARTUPINFOW, LPPROCESS_INFORMATION);
+typedef LPWSTR(WINAPI *GetCommandLineW_t)(void);
+
+static FARPROC find_proc(const char *name)
+{
+    static const WCHAR *dlls[] = {L"KERNELBASE.DLL", L"KERNEL32LEGACY.DLL", L"KERNEL32.DLL"};
+    int i;
+    for (i = 0; i < (int)(sizeof dlls / sizeof dlls[0]); i++) {
+        HMODULE m = LoadLibraryExW(dlls[i], NULL, 0);
+        FARPROC p = m ? GetProcAddress(m, name) : NULL;
+        if (p) return p;
+    }
+    return NULL;
+}
+
+/* 1: a detached copy is running, this process should exit. 0: run here. */
+static int detach_self(void)
+{
+    static const DWORD modes[] = {DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_BREAKAWAY_FROM_JOB,
+                                  DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP, CREATE_NO_WINDOW};
+    CreateProcessW_t create = (CreateProcessW_t)(void *)find_proc("CreateProcessW");
+    GetCommandLineW_t getcl = (GetCommandLineW_t)(void *)find_proc("GetCommandLineW");
+    const WCHAR *cl = getcl ? getcl() : NULL;
+    WCHAR exe[MAX_PATH], *line;
+    size_t n;
+    int i;
+    if (!create || !cl || !GetModuleFileNameW(NULL, exe, MAX_PATH)) return 0;
+    n = wcslen(cl) + 8;
+    line = (WCHAR *)calloc(n, sizeof(WCHAR));
+    for (i = 0; i < (int)(sizeof modes / sizeof modes[0]); i++) {
+        STARTUPINFOW si;
+        PROCESS_INFORMATION pi;
+        memset(&si, 0, sizeof si);
+        si.cb = sizeof si;
+        _snwprintf(line, n, L"%ls --fg", cl);   /* CreateProcessW may write to the buffer */
+        line[n - 1] = 0;
+        if (create(exe, line, NULL, NULL, FALSE, modes[i], NULL, NULL, &si, &pi)) {
+            printf("rfxfsd started (pid %lu)\n", (unsigned long)pi.dwProcessId);
+            fflush(stdout);
+            CloseHandle(pi.hThread);
+            CloseHandle(pi.hProcess);
+            free(line);
+            return 1;
+        }
+        printf("rfxfsd: detach mode %d failed (%lu)\n", i, (unsigned long)GetLastError());
+    }
+    free(line);
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     WSADATA wsa;
     struct sockaddr_in addr;
     const char *bind_ip = "127.0.0.1";
-    int port = 8093, i, one = 1;
+    int port = 8093, i, one = 1, fg = 0;
 
     for (i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--token") && i + 1 < argc) strncpy(gToken, argv[++i], sizeof gToken - 1);
         else if (!strcmp(argv[i], "--port") && i + 1 < argc) port = atoi(argv[++i]);
         else if (!strcmp(argv[i], "--bind") && i + 1 < argc) bind_ip = argv[++i];
+        else if (!strcmp(argv[i], "--fg")) fg = 1;   /* stay in this process (tests, debugging) */
     }
     if (strlen(gToken) < 16) {
-        fprintf(stderr, "usage: rfxfsd --token TOKEN(16+ chars) [--port 8093] [--bind 127.0.0.1]\n");
+        fprintf(stderr, "usage: rfxfsd --token TOKEN(16+ chars) [--port 8093] [--bind 127.0.0.1] [--fg]\n");
         return 2;
     }
+    if (!fg && detach_self()) return 0;
     WSAStartup(MAKEWORD(2, 2), &wsa);
     web_init();
     gListen = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);

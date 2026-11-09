@@ -25,8 +25,11 @@ The app runs in the normal app sandbox, so it can't touch most of the phone itse
 (the same channel CMD Injector's own app uses), and then does all file work through it:
 
 1. On launch the app connects to 127.0.0.1:8093 with its key (random, made on first run).
-2. If nothing answers, it copies `Helper\rfxfsd.exe` from its package to
-   `C:\Data\SharedData\RetroFiles\` and runs it there with the key, via the shell.
+2. If nothing answers, it writes `rfxstart.cmd` to its own folder and types only that path into
+   CMD Injector's shell. The script copies `Helper\rfxfsd.exe` from the package to
+   `C:\Data\SharedData\RetroFiles\` and runs it there with the key; its output goes to
+   `rfxstart.log`, which the app shows if the helper still doesn't answer.
+   rfxfsd starts a detached copy of itself (`--fg` skips that) so it outlives the shell session.
 3. The helper only listens on loopback and only serves clients that send the key.
 
 Nothing runs at boot and no PC is involved. The helper keeps running until the phone restarts.

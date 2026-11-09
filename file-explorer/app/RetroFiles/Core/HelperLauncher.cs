@@ -1,6 +1,7 @@
 // Starts rfxfsd as SYSTEM through CMD Injector's shell (telnetd on 127.0.0.1:9999, or 23),
 // the same way CMD Injector's own app runs privileged commands.
 using System;
+using System.IO;
 using System.IO.IsolatedStorage;
 using System.Security.Cryptography;
 using System.Text;
@@ -11,7 +12,7 @@ namespace RetroFiles.Core
 {
     public static class HelperLauncher
     {
-        public const string BundledVersion = "1";
+        public const string BundledVersion = "2";
         public const string HelperDir = @"C:\Data\SharedData\RetroFiles";
         static readonly int[] ShellPorts = { 9999, 23 };
 
@@ -36,6 +37,7 @@ namespace RetroFiles.Core
         }
 
         public static string LastShellOutput;
+        const string Marker = "rfxstart-finished";
 
         /// <summary>Drops telnet negotiation bytes and terminal escapes so the shell's reply is readable.</summary>
         static string Clean(string s)
@@ -85,13 +87,25 @@ namespace RetroFiles.Core
             status("starting the helper...");
             string src = Package.Current.InstalledLocation.Path + @"\Helper\rfxfsd.exe";
             string dst = HelperDir + @"\rfxfsd.exe";
-            var cmds = new System.Collections.Generic.List<string>();
-            if (restart) cmds.Add("kill -f rfxfsd.exe");
-            cmds.Add("mkdir \"" + HelperDir + "\" 2>nul");
-            cmds.Add("copy /y \"" + src + "\" \"" + dst + "\"");
-            // if the copy failed, run it straight from the app package
-            cmds.Add("if exist \"" + dst + "\" (start \"\" \"" + dst + "\" --token " + Token + ") else (start \"\" \"" + src + "\" --token " + Token + ")");
-            cmds.Add("exit");
+            // The shell echoes typed input slowly, and closing the session too early loses what was
+            // typed, so the commands go into a batch file in our own folder (the SYSTEM shell can read
+            // it) and only its path is typed. Its output lands in rfxstart.log next to it.
+            string local = Windows.Storage.ApplicationData.Current.LocalFolder.Path;
+            string args = " --token " + Token;
+            var bat = new StringBuilder();
+            bat.Append("@echo off\r\n(\r\n");
+            if (restart) bat.Append("kill -f rfxfsd.exe\r\n");
+            bat.Append("mkdir \"" + HelperDir + "\" 2>nul\r\n");
+            bat.Append("copy /y \"" + src + "\" \"" + dst + "\"\r\n");
+            // if the copy failed, run it straight from the app package. rfxfsd detaches itself from
+            // the shell's console and job, then this call returns.
+            bat.Append("if exist \"" + dst + "\" (\"" + dst + "\"" + args + ") else (\"" + src + "\"" + args + ")\r\n");
+            bat.Append(") > \"%~dp0rfxstart.log\" 2>&1\r\necho " + Marker + "\r\n");
+            using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
+            {
+                using (var w = new StreamWriter(iso.CreateFile("rfxstart.cmd"), new UTF8Encoding(false))) w.Write(bat.ToString());
+                if (iso.FileExists("rfxstart.log")) iso.DeleteFile("rfxstart.log");
+            }
 
             string shellOut = null;
             int shellPort = 0;
@@ -103,12 +117,14 @@ namespace RetroFiles.Core
                 {
                     var log = new StringBuilder();
                     log.Append(await sh.ReadAvailableAsync(800));   // banner and telnet negotiation
-                    // one command at a time: input typed while a command runs can be dropped by the shell
-                    foreach (var cmd in cmds)
-                    {
-                        await sh.SendAsync(cmd + "\r\n");
-                        log.Append(await sh.ReadAvailableAsync(1200));
-                    }
+                    await sh.SendAsync("\"" + local + "\\rfxstart.cmd\"\r\n");
+                    // wait for the batch to finish (the marker only appears in its output, not in the
+                    // typed line), up to 30 s, before ending the session
+                    var until = DateTime.UtcNow.AddSeconds(30);
+                    while (DateTime.UtcNow < until && log.ToString().IndexOf(Marker, StringComparison.Ordinal) < 0 && !sh.IsClosed)
+                        log.Append(await sh.ReadAvailableAsync(1000));
+                    await sh.SendAsync("exit\r\n");
+                    log.Append(await sh.ReadAvailableAsync(300));
                     shellOut = log.ToString();
                 }
                 shellPort = port;
@@ -124,8 +140,19 @@ namespace RetroFiles.Core
                 catch (RfxException e) { return "The helper is running with a different key (" + e.Message + "). Reboot the phone and try again."; }
             }
             LastShellOutput = shellOut;
-            return "Asked CMD Injector's shell (port " + shellPort + ") to start the helper, but it didn't answer on 127.0.0.1:" + RfxClient.Port +
-                   ". Shell said:\n" + Tail(Clean(shellOut), 600);
+            string startLog = null;
+            try
+            {
+                using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
+                    if (iso.FileExists("rfxstart.log"))
+                        using (var r = new StreamReader(iso.OpenFile("rfxstart.log", FileMode.Open, FileAccess.Read))) startLog = r.ReadToEnd();
+            }
+            catch { }
+            bool ran = shellOut.IndexOf(Marker, StringComparison.Ordinal) >= 0;
+            return "Asked CMD Injector's shell (port " + shellPort + ") to start the helper, but it didn't answer on 127.0.0.1:" + RfxClient.Port + ". " +
+                   (startLog != null ? "Start log:\n" + Tail(startLog.Trim(), 600)
+                    : ran ? "The start script ran but wrote no log."
+                    : "The start script didn't run. Shell said:\n" + Tail(Clean(shellOut), 400));
         }
     }
 }
