@@ -240,7 +240,7 @@ namespace Retrobird
             if (acct != null && !acct.HasPassword) Go("/AccountEditPage.xaml?id=" + acct.Id);
         }
 
-        void AddButton_Click(object sender, RoutedEventArgs e) { Go("/AccountEditPage.xaml"); }
+        void AddButton_Click(object sender, RoutedEventArgs e) { Go("/ProviderPage.xaml"); }
 
         async void RetryButton_Click(object sender, RoutedEventArgs e) { await Start(); }
     }

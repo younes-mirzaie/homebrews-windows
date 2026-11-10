@@ -25,14 +25,22 @@
             <StackPanel>
                 <TextBlock Text="email address" Style="{StaticResource PhoneTextSubtleStyle}"/>
                 <TextBox x:Name="EmailBox" InputScope="EmailSmtpAddress" TextChanged="EmailBox_TextChanged"/>
-                <TextBlock Text="password" Style="{StaticResource PhoneTextSubtleStyle}"/>
+                <TextBlock x:Name="PassLabel" Text="password" Style="{StaticResource PhoneTextSubtleStyle}"/>
                 <PasswordBox x:Name="PassBox"/>
                 <TextBlock x:Name="PassHint" Text="leave empty to keep the saved password" Visibility="Collapsed"
                            Style="{StaticResource PhoneTextSubtleStyle}" FontSize="{StaticResource PhoneFontSizeSmall}"/>
                 <TextBlock Text="your name (shown to people you write to)" Style="{StaticResource PhoneTextSubtleStyle}"/>
                 <TextBox x:Name="NameBox" InputScope="PersonalFullName"/>
-                <TextBlock x:Name="ProviderText" TextWrapping="Wrap" Margin="12,4,12,8" Visibility="Collapsed"
-                           Foreground="{StaticResource PhoneAccentBrush}"/>
+                <!-- app password advice: the phone platform is old, so a revocable app password is safer -->
+                <StackPanel x:Name="AdvicePanel" Margin="12,12,12,12">
+                    <TextBlock x:Name="ProviderText" TextWrapping="Wrap" Visibility="Collapsed" Margin="0,0,0,6"
+                               Foreground="{StaticResource PhoneAccentBrush}" FontSize="{StaticResource PhoneFontSizeMedium}"/>
+                    <TextBlock x:Name="NoteText" TextWrapping="Wrap" Visibility="Collapsed" Margin="0,0,0,6"/>
+                    <TextBlock TextWrapping="Wrap" Foreground="{StaticResource PhoneSubtleBrush}" FontSize="{StaticResource PhoneFontSizeSmall}"
+                               Text="Use an app password, not your main password. Windows Phone is an older system that no longer gets security updates. An app password works only for mail, and you can cancel it from your account at any time without changing your main password."/>
+                    <Button local:Motion.Tilt="True" x:Name="AppPasswordButton" Content="get an app password" HorizontalAlignment="Left"
+                            Margin="-12,6,0,0" Visibility="Collapsed" Click="AppPasswordButton_Click"/>
+                </StackPanel>
                 <CheckBox x:Name="SaveSentBox" Content="keep a copy of sent mail in Sent" IsChecked="True"/>
                 <Button local:Motion.Tilt="True" x:Name="AdvancedButton" Content="server settings" HorizontalAlignment="Left" Click="AdvancedButton_Click"/>
 

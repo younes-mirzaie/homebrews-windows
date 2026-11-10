@@ -15,6 +15,7 @@ namespace Retrobird.Core
         public static FolderInfo PickedFolder;
         /// <summary>Set when a page changed messages so the list should reload from the cache.</summary>
         public static bool ListDirty;
+        public static bool AccountAdded;   // the provider page skips itself on the way back
 
         static T Get<T>(string key, T dflt)
         {

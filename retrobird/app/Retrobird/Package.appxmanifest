@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/2010/manifest" xmlns:m2="http://schemas.microsoft.com/appx/2013/manifest" xmlns:m3="http://schemas.microsoft.com/appx/2014/manifest" xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest">
-  <Identity Name="Retrobird" Publisher="CN=Retrofox" Version="0.1.7.0" />
+  <Identity Name="Retrobird" Publisher="CN=Retrofox" Version="0.1.8.0" />
   <mp:PhoneIdentity PhoneProductId="c3aee8d4-1737-44dd-9024-374293813696" PhonePublisherId="e1e99522-17c9-4cc7-a879-b7ccf6aecc53" />
   <Properties>
     <DisplayName>Retrobird</DisplayName>

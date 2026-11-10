@@ -91,7 +91,7 @@ namespace Retrobird
 
         void Add_Click(object sender, RoutedEventArgs e)
         {
-            NavigationService.Navigate(new Uri("/AccountEditPage.xaml", UriKind.Relative));
+            NavigationService.Navigate(new Uri("/ProviderPage.xaml", UriKind.Relative));
         }
     }
 }

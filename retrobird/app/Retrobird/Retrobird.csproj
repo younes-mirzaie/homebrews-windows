@@ -51,6 +51,7 @@
     <Compile Include="FoldersPage.xaml.cs"><DependentUpon>FoldersPage.xaml</DependentUpon></Compile>
     <Compile Include="AccountsPage.xaml.cs"><DependentUpon>AccountsPage.xaml</DependentUpon></Compile>
     <Compile Include="Motion.cs" />
+    <Compile Include="ProviderPage.xaml.cs"><DependentUpon>ProviderPage.xaml</DependentUpon></Compile>
     <Compile Include="LicensePage.xaml.cs"><DependentUpon>LicensePage.xaml</DependentUpon></Compile>
     <Compile Include="AccountEditPage.xaml.cs"><DependentUpon>AccountEditPage.xaml</DependentUpon></Compile>
     <Compile Include="Ui.cs" />
@@ -69,6 +70,7 @@
     <Page Include="ComposePage.xaml"><SubType>Designer</SubType><Generator>MSBuild:Compile</Generator></Page>
     <Page Include="FoldersPage.xaml"><SubType>Designer</SubType><Generator>MSBuild:Compile</Generator></Page>
     <Page Include="AccountsPage.xaml"><SubType>Designer</SubType><Generator>MSBuild:Compile</Generator></Page>
+    <Page Include="ProviderPage.xaml"><SubType>Designer</SubType><Generator>MSBuild:Compile</Generator></Page>
     <Page Include="LicensePage.xaml"><SubType>Designer</SubType><Generator>MSBuild:Compile</Generator></Page>
     <Page Include="AccountEditPage.xaml"><SubType>Designer</SubType><Generator>MSBuild:Compile</Generator></Page>
   </ItemGroup>

@@ -20,6 +20,7 @@ namespace Retrobird
         string _imapSec = "tls", _smtpSec = "tls", _imapPin, _smtpPin;
         bool _manual, _filling, _saving, _loaded;
         Provider _provider;
+        Provider _chosen;   // picked on the provider page: its servers apply whatever the domain
         ApplicationBarIconButton _save;
 
         public AccountEditPage()
@@ -35,7 +36,19 @@ namespace Retrobird
             base.OnNavigatedTo(e);
             if (_loaded) return;
             _loaded = true;
-            if (!NavigationContext.QueryString.TryGetValue("id", out _id)) { _id = null; return; }
+            string chosen;
+            if (NavigationContext.QueryString.TryGetValue("provider", out chosen)) _chosen = Provider.ByName(chosen);
+            if (!NavigationContext.QueryString.TryGetValue("id", out _id))
+            {
+                _id = null;
+                if (_chosen != null)
+                {
+                    PassLabel.Text = "app password";
+                    _provider = _chosen;
+                    ShowProvider(_chosen);
+                }
+                return;
+            }
             TitleText.Text = "edit account";
             PassHint.Visibility = Visibility.Visible;
             Ui.Menu(ApplicationBar, "delete this account", async (s, ev) => await Delete());
@@ -60,6 +73,8 @@ namespace Retrobird
                 SaveSentBox.IsChecked = g("save_sent") != "0";
                 if (g("has_pass") != "1") PassHint.Text = "the saved password can't be used any more: enter it again";
                 _filling = false;
+                _provider = Provider.ForEmail(EmailBox.Text);
+                ShowProvider(_provider);
                 ShowSec();
                 ShowPins();
             }
@@ -67,17 +82,31 @@ namespace Retrobird
             finally { Ui.Busy(this, null); }
         }
 
+        void ShowProvider(Provider p)
+        {
+            bool known = p != null && !string.IsNullOrEmpty(p.Name);
+            ProviderText.Text = known ? p.Name : "";
+            ProviderText.Visibility = known ? Visibility.Visible : Visibility.Collapsed;
+            NoteText.Text = known && !string.IsNullOrEmpty(p.Note) ? p.Note : "";
+            NoteText.Visibility = NoteText.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+            AppPasswordButton.Visibility = known && !string.IsNullOrEmpty(p.AppPasswordUrl) ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        void AppPasswordButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_provider == null || string.IsNullOrEmpty(_provider.AppPasswordUrl)) return;
+            new Microsoft.Phone.Tasks.WebBrowserTask { Uri = new Uri(_provider.AppPasswordUrl) }.Show();
+        }
+
         void EmailBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (_filling) return;
-            var p = Provider.ForEmail(EmailBox.Text);
+            // a service picked from the list wins (e.g. Gmail with your own domain); else guess from the address
+            var guess = Provider.ForEmail(EmailBox.Text);
+            var p = _chosen != null && (guess == null || string.IsNullOrEmpty(guess.Name)) ? _chosen : guess;
+            if (p == null && _chosen != null) p = _chosen;
             _provider = p;
-            if (p != null && !string.IsNullOrEmpty(p.Name))
-            {
-                ProviderText.Text = p.Name + (string.IsNullOrEmpty(p.Note) ? "" : ": " + p.Note);
-                ProviderText.Visibility = Visibility.Visible;
-            }
-            else ProviderText.Visibility = Visibility.Collapsed;
+            ShowProvider(p);
             if (_manual || p == null) return;
             _filling = true;
             ImapHostBox.Text = p.ImapHost;
@@ -214,6 +243,7 @@ namespace Retrobird
                         AppState.Accounts = await AppState.Client.GetAccountsAsync();
                         if (_id == null)
                         {
+                            AppState.AccountAdded = true;
                             foreach (var a in AppState.Accounts) if (a.Id == id) AppState.SelectAccount(a);
                         }
                         AppState.ListDirty = true;
