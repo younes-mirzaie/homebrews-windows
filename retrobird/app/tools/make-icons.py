@@ -1,4 +1,4 @@
-"""Draws Retrobird's app bar icons and tiles (white on transparent, as Windows Phone expects).
+"""Draws Retrobird's app bar icons (white on transparent, as Windows Phone expects).
 Run: python3 make-icons.py ../Retrobird/Assets   (needs Pillow)"""
 import math
 import os
@@ -86,33 +86,5 @@ appbar("send", lambda d: (line(d, [(24, 38), (52, 26), (44, 52), (36, 41), (24, 
 appbar("cc", lambda d: (arc(d, 32, 38, 8, 40, 320), arc(d, 48, 38, 8, 40, 320)))
 
 
-# Tiles: envelope with a small bird on the flap.
-def tile(size, path, glyph_frac=0.55, ypos=0.5):
-    img, d = canvas(size)
-    g = size * glyph_frac
-    x0, y0 = (size - g) / 2, size * ypos - g * 0.36
-    w = max(2.0, size / 40)
-    h = g * 0.68
-    line(d, [(x0, y0), (x0 + g, y0), (x0 + g, y0 + h), (x0, y0 + h), (x0, y0)], w)
-    line(d, [(x0, y0), (x0 + g / 2, y0 + h * 0.55), (x0 + g, y0)], w)
-    # bird: two wing arcs above the right corner
-    bx, by, br = x0 + g * 0.80, y0 - g * 0.16, g * 0.13
-    arc(d, bx - br, by + br * 0.2, br, 200, 330, w)
-    arc(d, bx + br, by + br * 0.2, br, 210, 340, w)
-    save(img, size, path)
-
-
-tile(100, os.path.join(out, "ApplicationIcon.png"))
-tile(159, os.path.join(out, "Tiles", "FlipCycleTileSmall.png"))
-tile(336, os.path.join(out, "Tiles", "FlipCycleTileMedium.png"))
-tile(150, os.path.join(out, "Square150x150Logo.png"))
-tile(44, os.path.join(out, "Square44x44Logo.png"), 0.8)
-tile(71, os.path.join(out, "Square71x71Logo.png"))
-tile(50, os.path.join(out, "StoreLogo.png"), 0.8)
-
-# splash: the tile glyph on the app's blue
-img = Image.new("RGBA", (480, 800), (21, 101, 192, 255))
-glyph = Image.open(os.path.join(out, "Tiles", "FlipCycleTileMedium.png"))
-img.alpha_composite(glyph.resize((240, 240), Image.LANCZOS), (120, 260))
-img.save(os.path.join(out, "SplashScreen.png"))
-print("icons written to", out)
+# Tiles, app icon, store logo and splash come from Younes's art: render-art.js.
+print("app bar icons written to", out)

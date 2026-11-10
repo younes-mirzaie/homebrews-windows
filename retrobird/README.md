@@ -44,7 +44,7 @@ See [PROTOCOL.md](PROTOCOL.md).
 | `helper/test/` | `mimetest.c` (62 unit checks), `test_rbmaild.py` (82 checks against Dovecot and a fake SMTP server), `run-tests.sh` |
 | `app/Retrobird/` | Silverlight 8.1 app; `Core/` holds the protocol client and models, testable on Mono |
 | `app/tests/ClientTest.cs` | 20 checks of the C# client against a live helper; `InProcessTest.cs` runs them with the helper loaded as a library in the same process |
-| `app/tools/make-icons.py` | generates app bar icons, tiles and the splash screen |
+| `app/art/`, `app/tools/render-art.js` | Younes's Retrobird art (SVG) and the script that renders the tile, icon, store logo and splash PNGs; `make-icons.py` draws the app bar icons |
 
 ## Building (Windows)
 
