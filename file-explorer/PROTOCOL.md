@@ -10,7 +10,7 @@ Replies: `OK[\tfield...]` or `ERR\t<win32 code>\t<message>`.
 List replies are `OK` followed by one row per line and an empty line.
 Long operations (COPY, MOVE, DELETE, DU) may send `P\t<bytes>\t<items>\t<current path>` lines
 (at most 4 a second) before the final reply. Sending any byte while one runs cancels it
-(`ERR\t1223\tcancelled...`).
+(`ERR\t1223\tcanceled...`).
 
 | request | reply |
 |---|---|

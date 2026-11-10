@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/2010/manifest" xmlns:m2="http://schemas.microsoft.com/appx/2013/manifest" xmlns:m3="http://schemas.microsoft.com/appx/2014/manifest" xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest">
-  <Identity Name="RetroFiles" Publisher="CN=Retrofox" Version="0.1.1.0" />
+  <Identity Name="RetroFiles" Publisher="CN=Retrofox" Version="0.1.2.0" />
   <mp:PhoneIdentity PhoneProductId="4f2d373f-9b22-4224-9d65-5d974f803959" PhonePublisherId="e1e99522-17c9-4cc7-a879-b7ccf6aecc53" />
   <Properties>
     <DisplayName>File Explorer</DisplayName>
@@ -16,7 +16,7 @@
   </Resources>
   <Applications>
     <Application Id="App" Executable="AGHost.exe" EntryPoint="MainPage.xaml">
-      <m3:VisualElements DisplayName="File Explorer" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" Description="Root file manager" ForegroundText="light" BackgroundColor="#1b5e20">
+      <m3:VisualElements DisplayName="File Explorer" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" Description="Root file manager" ForegroundText="dark" BackgroundColor="#FFE83B">
         <m3:DefaultTile Square71x71Logo="Assets\Square71x71Logo.png" />
         <m3:SplashScreen Image="Assets\SplashScreen.png" />
       </m3:VisualElements>

@@ -124,7 +124,7 @@ namespace RetroFiles
         void ShowError(Exception e)
         {
             var re = e as RfxException;
-            if (re != null && re.Cancelled) { ShowStatus("cancelled", false); return; }
+            if (re != null && re.Cancelled) { ShowStatus("canceled", false); return; }
             ShowStatus(e.Message, false);
             if (re != null && re.Code == 0)
             {

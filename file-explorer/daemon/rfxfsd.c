@@ -391,7 +391,7 @@ static void cmd_du(Conn *c, const WCHAR *dir)
 {
     unsigned long long b = 0, f = 0, d = 0;
     du(c, dir, &b, &f, &d);
-    if (c->cancelled) { send_msg(c, ERROR_CANCELLED, "cancelled"); return; }
+    if (c->cancelled) { send_msg(c, ERROR_CANCELLED, "canceled"); return; }
     sendf(c, "OK\t%llu\t%llu\t%llu\n", b, f, d);
 }
 
