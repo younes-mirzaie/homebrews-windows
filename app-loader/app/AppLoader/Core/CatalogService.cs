@@ -342,6 +342,27 @@ namespace AppLoader.Core
             return outcome;
         }
 
+        /// <summary>Removes copies, downloads and run files left behind by installs and downloads
+        /// that ended while the app was away. Leaves whatever a remembered job still needs.</summary>
+        public static void CleanUp()
+        {
+            var job = InstallJob.Load();
+            var dl = DownloadJob.Load();
+            if ((job != null && !Shell.IsDone(job.Run)) || (dl != null && !Shell.IsDone(dl.Run))) return;
+            try
+            {
+                using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
+                    foreach (var pattern in new[] { "staged-*", "dl-*", "ver-*" })
+                        foreach (var f in iso.GetFileNames(pattern))
+                        {
+                            if (job != null && f == job.Staged) continue;
+                            if (dl != null && f == dl.File) continue;
+                            try { iso.DeleteFile(f); } catch (Exception) { }
+                        }
+            }
+            catch (Exception e) { AppLog.Add("cleanup skipped", e.Message); }
+        }
+
         static byte[] ReadAll(IsolatedStorageFile iso, string name)
         {
             using (var s = iso.OpenFile(name, FileMode.Open, FileAccess.Read))

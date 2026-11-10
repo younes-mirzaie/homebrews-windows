@@ -97,9 +97,12 @@ namespace AppLoader.Core
         /// up or the time is up. Null if the shell can't be reached.</summary>
         static async Task<string> TypeAsync(string line, string until, int timeoutSeconds)
         {
+            // The shell can be slow to answer, especially right after an install: a few tries
+            for (int attempt = 0; attempt < 3; attempt++)
             foreach (int port in Ports)
             {
-                var sh = await LineSocket.ConnectAsync("127.0.0.1", port, 1500);
+                if (attempt > 0 && port == Ports[0]) await Task.Delay(2000);
+                var sh = await LineSocket.ConnectAsync("127.0.0.1", port, 3500);
                 if (sh == null) continue;
                 using (sh)
                 {
@@ -160,18 +163,25 @@ namespace AppLoader.Core
                 if (typed == null) throw new IOException(NoShell);
                 if (typed.IndexOf("aldetach: started", StringComparison.Ordinal) < 0)
                 {
-                    AppLog.Add("couldn't start the background task", ShellReply(typed, line));
-                    throw new IOException("Couldn't start the phone's installer in the background. Restart the phone and try again.");
+                    // the reply can get lost while the task did start: its log shows up then
+                    for (int i = 0; i < 10 && !Exists(name + ".log"); i++) await Task.Delay(500);
+                    if (!Exists(name + ".log"))
+                    {
+                        AppLog.Add("couldn't start the background task", ShellReply(typed, line));
+                        throw new IOException("The phone's system shell didn't start the task. Try again in a moment.");
+                    }
                 }
                 return name;
             }
             finally { _one.Release(); }
         }
 
-        public static bool IsDone(string name)
+        public static bool IsDone(string name) { return Exists(name + ".done"); }
+
+        static bool Exists(string file)
         {
             using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
-                return iso.FileExists(name + ".done");
+                return iso.FileExists(file);
         }
 
         /// <summary>What a run printed so far, and its exit code once it has finished.</summary>

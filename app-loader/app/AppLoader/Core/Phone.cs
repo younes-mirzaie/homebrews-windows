@@ -251,7 +251,7 @@ namespace AppLoader.Core
                 {
                     AppLog.Add("couldn't start the installer", e.Message);
                     outcome.Message = e is IOException ? e.Message + " " + Friendly.Unchanged
-                        : "Couldn't start the phone's installer. Restart the phone and try again. " + Friendly.Unchanged;
+                        : "Couldn't start the phone's installer. Try again in a moment. " + Friendly.Unchanged;
                     return outcome;
                 }
                 outcome.Job = new InstallJob
@@ -287,13 +287,35 @@ namespace AppLoader.Core
             var outcome = new InstallOutcome { Job = job };
             var th = await PackageInstaller.WaitAsync(job.Run, job.Mode, 900);
             outcome.Th = th;
-            if (!th.Finished)
+            // What's really installed now decides, not only what TH said
+            string installed = await InstalledVersionAsync(job.ProductId);
+            bool isNew = installed != null && SameVersion(installed, job.Version);
+            if (!th.Finished && !isNew)
             {
                 outcome.Message = "The phone is still installing " + job.Title + ". Its result shows up when it's done.";
                 return outcome;   // still remembered: picked up again next time
             }
-            outcome.Succeeded = th.Succeeded;
-            outcome.Message = Explain(th, job);
+            AppLog.Add("installer finished: " + job.Title + " " + job.Version,
+                       "TH.exe -" + th.Mode + ", exit " + th.ExitCode + ", installed version now " + (installed ?? "unknown") +
+                       (th.Output.Length > 0 ? "\n" + th.Output : ""));
+            if (isNew)
+            {
+                outcome.Succeeded = true;
+                outcome.Message = job.IsUpdate ? job.Title + " is updated to " + job.Version + "." : job.Title + " " + job.Version + " is installed.";
+            }
+            else if (th.Succeeded && installed == null && !job.IsUpdate)
+            {
+                // a fresh install whose version can't be read: trust the installer
+                outcome.Succeeded = true;
+                outcome.Message = job.Title + " " + job.Version + " is installed.";
+            }
+            else if (th.Succeeded)
+            {
+                outcome.Message = "The phone's installer finished, but " + job.Title + " is " +
+                    (installed != null ? "still version " + installed : "not showing up as installed") +
+                    ". Close " + job.Title + " if it's open, then try again.";
+            }
+            else outcome.Message = Explain(th, job);
             InstallJob.Clear();
             Shell.Delete(job.Run);
             try
@@ -303,6 +325,24 @@ namespace AppLoader.Core
             }
             catch (Exception) { }
             return outcome;
+        }
+
+        /// <summary>The installed version of an app, or null when it can't be read.</summary>
+        public static async Task<string> InstalledVersionAsync(string productId)
+        {
+            try
+            {
+                string v;
+                var all = await CatalogService.InstalledVersionsAsync(new List<string> { productId });
+                return all.TryGetValue(productId, out v) ? v : null;
+            }
+            catch (Exception) { return null; }
+        }
+
+        static bool SameVersion(string a, string b)
+        {
+            try { return AppLoader.Catalog.CatalogIndex.CompareVersions(a, b) == 0; }
+            catch (Exception) { return string.Equals(a, b, StringComparison.Ordinal); }
         }
 
         static string Sha256Hex(Stream s)
@@ -326,8 +366,6 @@ namespace AppLoader.Core
         public static string Explain(ThResult th, InstallJob job)
         {
             string what = job.Title + " " + job.Version;
-            if (th.Succeeded)
-                return job.IsUpdate ? what + " is updated." : what + " is installed.";
             AppLog.Add((job.IsUpdate ? "update failed: " : "install failed: ") + what,
                        "TH.exe -" + th.Mode + ", exit " + th.ExitCode + "\n" + th.Output);
             return Friendly.InstallFailed(th, job);

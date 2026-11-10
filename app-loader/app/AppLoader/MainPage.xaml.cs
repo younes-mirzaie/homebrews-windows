@@ -67,6 +67,7 @@ namespace AppLoader
             if (!_loaded)
             {
                 _loaded = true;
+                CatalogService.CleanUp();
                 var t = RefreshAsync();
             }
         }
@@ -249,7 +250,75 @@ namespace AppLoader
             CatalogNote.Text = (problem != null ? "Offline, showing the last catalog (" + problem + "). " : "") +
                                idx.Apps.Count + " apps. Tap one for details.";
             UpdatesNote.Text = updates.Count == 0 ? "Everything from the catalog is up to date."
-                             : updates.Count + (updates.Count == 1 ? " update" : " updates") + ". Tap one to update it.";
+                             : updates.Count + (updates.Count == 1 ? " update" : " updates") + ". Tap one for details, or update all at once.";
+            UpdateAllButton.Visibility = updates.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>Downloads and installs every available update, one after the other, then says
+        /// how each one went. Unesbrews itself goes last, because updating it closes the app.</summary>
+        async void UpdateAll_Click(object sender, RoutedEventArgs e)
+        {
+            if (_busy || _waiting || Entries == null) return;
+            var todo = Entries.Where(x => x.UpdateAvailable)
+                              .OrderBy(x => x.App.ProductId == Phone.OwnProductId ? 1 : 0)
+                              .ThenBy(x => x.App.Name, StringComparer.OrdinalIgnoreCase).ToList();
+            if (todo.Count == 0) return;
+            bool self = todo.Any(x => x.App.ProductId == Phone.OwnProductId);
+            long total = todo.Sum(x => x.App.Latest.Size);
+            if (MessageBox.Show("Update " + string.Join(", ", todo.Select(x => x.App.Name)) + " (" + Size(total) + ")?\n\n" +
+                                "Each one is checked against the signed catalog, then updated in place with its data. " +
+                                "Close those apps first." +
+                                (self ? " " + AppInfo.Name + " updates itself last and closes; open it again afterwards." : ""),
+                                "update all", MessageBoxButton.OKCancel) != MessageBoxResult.OK)
+                return;
+
+            _waiting = true;
+            KeepAwake(true);
+            var report = new List<string>();
+            try
+            {
+                for (int i = 0; i < todo.Count; i++)
+                {
+                    var app = todo[i].App;
+                    var r = app.Latest;
+                    string step = (todo.Count > 1 ? (i + 1) + "/" + todo.Count + ": " : "");
+                    string what = app.Name + " " + r.Version;
+                    try
+                    {
+                        if (!CatalogService.IsDownloaded(r))
+                        {
+                            Busy(step + "downloading " + app.Name + "...");
+                            var job = await CatalogService.StartDownloadAsync(app, r);
+                            var err = await CatalogService.WaitDownloadAsync(job, what, (d, t) =>
+                                Busy(step + "downloading " + app.Name + " " + Size(d) + (t > 0 ? " of " + Size(t) : "") + "..."));
+                            if (err != null) { report.Add(err); continue; }
+                        }
+                        if (app.ProductId == Phone.OwnProductId && report.Count > 0)
+                        {
+                            Busy(null);
+                            MessageBox.Show(string.Join("\n\n", report) + "\n\n" + AppInfo.Name + " updates itself now and closes. " +
+                                            "Open it again afterwards to see how it went.", "update all", MessageBoxButton.OK);
+                            report.Clear();
+                        }
+                        var outcome = await CatalogService.InstallDownloadedAsync(app, r, s => Busy(step + s));
+                        if (!outcome.Started) { report.Add(outcome.Message ?? "Nothing was installed for " + app.Name + "."); continue; }
+                        Busy(step + "updating " + app.Name + "...");
+                        var done = await Phone.FinishAsync(outcome.Job);
+                        report.Add(done.Message);
+                        if (done.Th != null && !done.Th.Finished && !done.Succeeded) break;   // still running: wait for it
+                    }
+                    catch (Exception ex) { report.Add(what + ": " + Friendly.Of(ex)); }
+                }
+            }
+            finally
+            {
+                Busy(null);
+                KeepAwake(false);
+                _waiting = false;
+            }
+            foreach (var line in report) AppLog.Add(line, null);
+            if (report.Count > 0) MessageBox.Show(string.Join("\n\n", report), "update all", MessageBoxButton.OK);
+            var t2 = RefreshAsync();
         }
 
         static string StateText(CatalogEntry x)

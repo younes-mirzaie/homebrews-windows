@@ -18,13 +18,17 @@ namespace AppLoader.Core
         public string Output = "";  // TH.exe's output
         public int ExitCode = -1;
         public string Problem;      // couldn't start it or read it
-        public bool Succeeded { get { return Finished && Output.Contains("Completed Successfully") && !Output.Contains("ERROR:"); } }
+        // TH prints to the console, not to the redirected output, so the log usually holds only
+        // the exit code. Success is exit 0; Phone also checks the installed version afterwards.
+        public bool Succeeded { get { return Finished && ExitCode == 0 && !Output.Contains("ERROR:"); } }
         public string PacManCode    // e.g. "0x8103012e", or null
         {
             get
             {
                 var m = Regex.Match(Output, @"PacMan Error Code\s*=\s*(0x[0-9a-fA-F]{8})");
-                return m.Success ? m.Groups[1].Value.ToLowerInvariant() : null;
+                if (m.Success) return m.Groups[1].Value.ToLowerInvariant();
+                if (Finished && ExitCode != 0 && ExitCode != -1) return "0x" + ((uint)ExitCode).ToString("x8");
+                return null;
             }
         }
     }

@@ -40,8 +40,8 @@ namespace AppLoader.Core
         public const string Unchanged = "Nothing on the phone was changed.";
 
         public const string NoShell =
-            "The phone's system shell isn't answering, so " + AppInfo.Name + " can't install anything right now. " +
-            "Restart the phone and try again. (" + AppInfo.Name + " needs a phone unlocked with CMD Injector.)";
+            "The phone's system shell didn't answer. Try again in a moment. If it never answers, " + AppInfo.Name +
+            " needs a phone unlocked with CMD Injector, and restarting the phone brings the shell back.";
 
         public const string Slow = "The phone took too long to answer. Try again in a moment.";
 
@@ -123,11 +123,11 @@ namespace AppLoader.Core
                     }
                     return "Close the app if it's open, check that the phone has free storage, then try again. " + Unchanged;
                 case "0x80073cf6":
-                    return "The phone's installer gave up partway. Restart the phone and try again.";
+                    return "The phone's installer gave up partway. Try again in a moment.";
             }
             return code != null
-                ? "The phone's installer refused it. Restarting the phone and trying again sometimes helps."
-                : "The phone's installer stopped without saying why. Restart the phone and try again.";
+                ? "The phone's installer refused it. Try again in a moment. " + Unchanged
+                : "The phone's installer stopped without saying why. Try again in a moment.";
         }
 
         /// <summary>An exception as the user should see it: our own messages as they are, anything

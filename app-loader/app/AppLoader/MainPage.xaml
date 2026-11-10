@@ -61,8 +61,12 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
-                <TextBlock x:Name="UpdatesNote" TextWrapping="Wrap" Margin="12,0,12,12"
-                           Style="{StaticResource PhoneTextSubtleStyle}" Text="" />
+                <StackPanel>
+                    <TextBlock x:Name="UpdatesNote" TextWrapping="Wrap" Margin="12,0,12,12"
+                               Style="{StaticResource PhoneTextSubtleStyle}" Text="" />
+                    <Button x:Name="UpdateAllButton" Content="update all" HorizontalAlignment="Left"
+                            Visibility="Collapsed" Click="UpdateAll_Click" Margin="0,0,0,12" />
+                </StackPanel>
                 <ListBox x:Name="UpdatesList" Grid.Row="1" Padding="0,0,0,96" SelectionChanged="CatalogList_SelectionChanged">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
