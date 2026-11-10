@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
     xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    xmlns:local="clr-namespace:Retrobird"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
     Foreground="{StaticResource PhoneForegroundBrush}"
@@ -18,7 +19,7 @@
         <StackPanel Grid.Row="0" Margin="12,8,12,8">
             <TextBlock Text="RETROBIRD" Style="{StaticResource PhoneTextNormalStyle}" Margin="12,0"/>
             <TextBlock x:Name="TitleText" Text="add account" Margin="9,-7,12,0"
-                       FontSize="{StaticResource PhoneFontSizeExtraExtraLarge}" FontFamily="{StaticResource PhoneFontFamilySemiLight}"/>
+                       Style="{StaticResource PhoneTextTitle1Style}"/>
         </StackPanel>
         <ScrollViewer Grid.Row="1" Margin="12,0,12,0">
             <StackPanel>
@@ -33,7 +34,7 @@
                 <TextBlock x:Name="ProviderText" TextWrapping="Wrap" Margin="12,4,12,8" Visibility="Collapsed"
                            Foreground="{StaticResource PhoneAccentBrush}"/>
                 <CheckBox x:Name="SaveSentBox" Content="keep a copy of sent mail in Sent" IsChecked="True"/>
-                <Button x:Name="AdvancedButton" Content="server settings" HorizontalAlignment="Left" Click="AdvancedButton_Click"/>
+                <Button local:Motion.Tilt="True" x:Name="AdvancedButton" Content="server settings" HorizontalAlignment="Left" Click="AdvancedButton_Click"/>
 
                 <StackPanel x:Name="AdvancedPanel" Visibility="Collapsed">
                     <TextBlock Text="incoming mail (IMAP)" Margin="12,16,12,0" FontSize="{StaticResource PhoneFontSizeMediumLarge}"/>
@@ -50,7 +51,7 @@
                         </StackPanel>
                         <StackPanel Grid.Column="1">
                             <TextBlock Text="security" Style="{StaticResource PhoneTextSubtleStyle}"/>
-                            <Button x:Name="ImapSecButton" HorizontalAlignment="Left" Click="ImapSecButton_Click"/>
+                            <Button local:Motion.Tilt="True" x:Name="ImapSecButton" HorizontalAlignment="Left" Click="ImapSecButton_Click"/>
                         </StackPanel>
                     </Grid>
                     <TextBlock Text="user name" Style="{StaticResource PhoneTextSubtleStyle}"/>
@@ -70,15 +71,15 @@
                         </StackPanel>
                         <StackPanel Grid.Column="1">
                             <TextBlock Text="security" Style="{StaticResource PhoneTextSubtleStyle}"/>
-                            <Button x:Name="SmtpSecButton" HorizontalAlignment="Left" Click="SmtpSecButton_Click"/>
+                            <Button local:Motion.Tilt="True" x:Name="SmtpSecButton" HorizontalAlignment="Left" Click="SmtpSecButton_Click"/>
                         </StackPanel>
                     </Grid>
                     <TextBlock x:Name="PinsText" TextWrapping="Wrap" Margin="12,8,12,0" Visibility="Collapsed"
                                Style="{StaticResource PhoneTextSubtleStyle}" FontSize="{StaticResource PhoneFontSizeSmall}"/>
-                    <Button x:Name="ForgetPinsButton" Content="forget trusted certificates" HorizontalAlignment="Left"
+                    <Button local:Motion.Tilt="True" x:Name="ForgetPinsButton" Content="forget trusted certificates" HorizontalAlignment="Left"
                             Visibility="Collapsed" Click="ForgetPinsButton_Click"/>
                 </StackPanel>
-                <TextBlock Height="48"/>
+                <TextBlock Height="96"/>
             </StackPanel>
         </ScrollViewer>
     </Grid>

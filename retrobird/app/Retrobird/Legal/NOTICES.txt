@@ -1,0 +1,21 @@
+Mozilla's NSS and NSPR
+
+Retrobird's mail code is its own, but it runs on two libraries made by Mozilla, the same ones Firefox and Thunderbird use:
+
+NSPR (Netscape Portable Runtime): networking and threads.
+
+NSS (Network Security Services): TLS encryption and certificate checking, including NSS's built-in list of trusted root certificates (nssckbi).
+
+Both are licensed under the Mozilla Public License, version 2.0 (MPL 2.0). Its full text follows below and is also at https://mozilla.org/MPL/2.0/.
+
+Source code
+
+Retrobird uses NSS 3.90 and NSPR as included in UXP, whose source is public at https://repo.palemoon.org/MoonchildProductions/UXP (folders security/nss and nsprpub). The code is unchanged. Two build files were changed so they build for the phone's ARM processor (nsprpub's moz.build and NSS's freebl.gyp); those changes are included with Retrobird as Legal\uxp-nss-nspr-changes.patch and are reproduced at the end of this page.
+
+Other licenses inside NSS
+
+SQLite, part of NSS's certificate database code, is in the public domain. NSS's verified cryptographic code from the HACL* project is under the MIT license; its notice is in the NSS source.
+
+Trademarks
+
+Retrobird is an independent project, not made, endorsed or supported by Mozilla. Mozilla, Firefox and Thunderbird are trademarks of the Mozilla Foundation.

@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
     xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    xmlns:local="clr-namespace:Retrobird"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
     Foreground="{StaticResource PhoneForegroundBrush}"
@@ -38,7 +39,7 @@
         </StackPanel>
 
         <StackPanel Grid.Row="1" Margin="12,0,12,0">
-            <Button x:Name="ImagesButton" Content="show pictures" HorizontalAlignment="Left" Visibility="Collapsed"
+            <Button local:Motion.Tilt="True" x:Name="ImagesButton" Content="show pictures" HorizontalAlignment="Left" Visibility="Collapsed"
                     Click="ImagesButton_Click" FontSize="{StaticResource PhoneFontSizeSmall}"/>
             <ScrollViewer x:Name="AttachmentsScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
                           Visibility="Collapsed">
@@ -50,7 +51,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Button Click="Attachment_Click" Tag="{Binding}" FontSize="{StaticResource PhoneFontSizeSmall}">
+                            <Button local:Motion.Tilt="True" Click="Attachment_Click" Tag="{Binding}" FontSize="{StaticResource PhoneFontSizeSmall}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xE16C;" FontFamily="Segoe UI Symbol" Margin="0,0,8,0"/>
                                     <TextBlock Text="{Binding Label}" MaxWidth="320" TextTrimming="WordEllipsis"/>

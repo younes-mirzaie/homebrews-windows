@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
     xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    xmlns:local="clr-namespace:Retrobird"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
     Foreground="{StaticResource PhoneForegroundBrush}"
@@ -18,14 +19,14 @@
         <StackPanel Grid.Row="0" Margin="12,8,12,8">
             <TextBlock Text="RETROBIRD" Style="{StaticResource PhoneTextNormalStyle}" Margin="12,0"/>
             <TextBlock Text="accounts" Margin="9,-7,12,0"
-                       FontSize="{StaticResource PhoneFontSizeExtraExtraLarge}" FontFamily="{StaticResource PhoneFontFamilySemiLight}"/>
+                       Style="{StaticResource PhoneTextTitle1Style}"/>
         </StackPanel>
         <ScrollViewer Grid.Row="1" Margin="12,0,12,0">
             <StackPanel>
                 <ItemsControl x:Name="Items">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Grid Margin="12,4,0,12" Background="Transparent" Tap="Account_Tap" Tag="{Binding}">
+                            <Grid Margin="12,4,0,12" Background="Transparent" Tap="Account_Tap" Tag="{Binding}" local:Motion.Tilt="True">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
@@ -36,20 +37,23 @@
                                     <TextBlock Text="{Binding SubText}" TextWrapping="Wrap" MaxHeight="60"
                                                Foreground="{StaticResource PhoneSubtleBrush}" FontSize="{StaticResource PhoneFontSizeSmall}"/>
                                 </StackPanel>
-                                <Button Grid.Column="1" Content="edit" Tap="Edit_Tap" Tag="{Binding}" VerticalAlignment="Center"/>
+                                <Button local:Motion.Tilt="True" Grid.Column="1" Content="edit" Tap="Edit_Tap" Tag="{Binding}" VerticalAlignment="Center"/>
                             </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <Button Content="add account" HorizontalAlignment="Left" Click="Add_Click"/>
+                <Button local:Motion.Tilt="True" Content="add account" HorizontalAlignment="Left" Click="Add_Click"/>
 
                 <TextBlock Text="settings" Margin="12,24,12,0" FontSize="{StaticResource PhoneFontSizeLarge}"
                            FontFamily="{StaticResource PhoneFontFamilySemiLight}"/>
                 <TextBlock Text="check the inbox in the background" Style="{StaticResource PhoneTextSubtleStyle}" Margin="12,8,12,0"/>
-                <Button x:Name="SyncButton" HorizontalAlignment="Left" Click="SyncButton_Click"/>
+                <Button local:Motion.Tilt="True" x:Name="SyncButton" HorizontalAlignment="Left" Click="SyncButton_Click"/>
                 <CheckBox x:Name="ImagesBox" Content="show pictures from the web in mail" Checked="ImagesBox_Changed" Unchecked="ImagesBox_Changed"/>
-                <TextBlock x:Name="AboutText" TextWrapping="Wrap" Margin="12,24,12,24"
+                <TextBlock x:Name="AboutText" TextWrapping="Wrap" Margin="12,24,12,0"
                            Foreground="{StaticResource PhoneSubtleBrush}" FontSize="{StaticResource PhoneFontSizeSmall}"/>
+                <TextBlock TextWrapping="Wrap" Margin="12,12,12,0" Foreground="{StaticResource PhoneSubtleBrush}" FontSize="{StaticResource PhoneFontSizeSmall}"
+                           Text="Retrobird is built on Mozilla's NSPR and NSS libraries (the networking and encryption Firefox uses), used under the Mozilla Public License 2.0. Retrobird is an independent project, not made, endorsed or supported by Mozilla."/>
+                <Button local:Motion.Tilt="True" Content="licenses and source code" HorizontalAlignment="Left" Margin="0,4,0,24" Click="LicensesButton_Click"/>
             </StackPanel>
         </ScrollViewer>
     </Grid>

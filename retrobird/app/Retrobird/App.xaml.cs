@@ -30,6 +30,13 @@ namespace Retrobird
 
             RootFrame = new PhoneApplicationFrame();
             RootFrame.Navigated += CompleteInit;
+            // Metro: pages turnstile in, going forward and coming back
+            RootFrame.Navigated += (s, e) =>
+            {
+                var page = e.Content as System.Windows.Controls.Page;
+                if (page != null && (e.NavigationMode == NavigationMode.New || e.NavigationMode == NavigationMode.Back))
+                    Motion.TurnstileIn(page);
+            };
             RootFrame.NavigationFailed += (s, e) =>
             {
                 e.Handled = true;

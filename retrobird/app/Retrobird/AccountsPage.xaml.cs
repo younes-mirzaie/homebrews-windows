@@ -17,14 +17,6 @@ namespace Retrobird
         public AccountsPage()
         {
             InitializeComponent();
-            ApplicationBar = new ApplicationBar { Mode = ApplicationBarMode.Minimized };
-            Ui.Menu(ApplicationBar, "restart the mail helper", async (s, e) =>
-            {
-                try { await AppState.Client.QuitAsync(); } catch { }
-                AppState.Client.Close();
-                await System.Threading.Tasks.Task.Delay(1500);
-                await Refresh();
-            });
         }
 
         protected override async void OnNavigatedTo(NavigationEventArgs e)
@@ -49,6 +41,11 @@ namespace Retrobird
                                  "\nMail is kept in the app's own storage. Everything runs inside the app.";
             }
             catch (Exception ex) { AboutText.Text = Ui.Describe(ex); }
+        }
+
+        void LicensesButton_Click(object sender, RoutedEventArgs e)
+        {
+            NavigationService.Navigate(new Uri("/LicensePage.xaml", UriKind.Relative));
         }
 
         static string AppVersion()

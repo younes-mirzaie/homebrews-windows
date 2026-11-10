@@ -50,6 +50,8 @@
     <Compile Include="ComposePage.xaml.cs"><DependentUpon>ComposePage.xaml</DependentUpon></Compile>
     <Compile Include="FoldersPage.xaml.cs"><DependentUpon>FoldersPage.xaml</DependentUpon></Compile>
     <Compile Include="AccountsPage.xaml.cs"><DependentUpon>AccountsPage.xaml</DependentUpon></Compile>
+    <Compile Include="Motion.cs" />
+    <Compile Include="LicensePage.xaml.cs"><DependentUpon>LicensePage.xaml</DependentUpon></Compile>
     <Compile Include="AccountEditPage.xaml.cs"><DependentUpon>AccountEditPage.xaml</DependentUpon></Compile>
     <Compile Include="Ui.cs" />
     <Compile Include="Core\AppState.cs" />
@@ -67,6 +69,7 @@
     <Page Include="ComposePage.xaml"><SubType>Designer</SubType><Generator>MSBuild:Compile</Generator></Page>
     <Page Include="FoldersPage.xaml"><SubType>Designer</SubType><Generator>MSBuild:Compile</Generator></Page>
     <Page Include="AccountsPage.xaml"><SubType>Designer</SubType><Generator>MSBuild:Compile</Generator></Page>
+    <Page Include="LicensePage.xaml"><SubType>Designer</SubType><Generator>MSBuild:Compile</Generator></Page>
     <Page Include="AccountEditPage.xaml"><SubType>Designer</SubType><Generator>MSBuild:Compile</Generator></Page>
   </ItemGroup>
   <ItemGroup>
@@ -74,6 +77,10 @@
     <None Include="Properties\AppManifest.xml" />
     <None Include="Properties\WMAppManifest.xml"><SubType>Designer</SubType></None>
     <Content Include="Assets\**\*.png" />
+    <!-- shown on the licenses page: credit and MPL 2.0 text for Mozilla's NSPR/NSS -->
+    <Content Include="Legal\NOTICES.txt" />
+    <Content Include="Legal\MPL-2.0.txt" />
+    <Content Include="Legal\uxp-nss-nspr-changes.patch" />
     <!-- the in-app mail engine (rbmail.dll) and its NSS/NSPR DLLs, put in Helper\ by ..\..\build.ps1 and packaged
          at the root, where the app's DllImport (rbmail.dll) and Windows' DLL search find them -->
     <Content Include="Helper\rbmail.dll">

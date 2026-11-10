@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
     xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    xmlns:local="clr-namespace:Retrobird"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
     Foreground="{StaticResource PhoneForegroundBrush}"
@@ -31,6 +32,7 @@
                 <TextBlock Text="subject" Style="{StaticResource PhoneTextSubtleStyle}"/>
                 <TextBox x:Name="SubjectBox" InputScope="Chat"/>
                 <TextBox x:Name="BodyBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="300" InputScope="Chat"/>
+                <TextBlock Height="96"/>
             </StackPanel>
         </ScrollViewer>
     </Grid>

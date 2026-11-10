@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
     xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    xmlns:local="clr-namespace:Retrobird"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
     Foreground="{StaticResource PhoneForegroundBrush}"
@@ -22,7 +23,7 @@
             <TextBlock x:Name="AccountText" Text="RETROBIRD" Style="{StaticResource PhoneTextNormalStyle}" Margin="12,0"
                        Tap="AccountText_Tap"/>
             <TextBlock x:Name="FolderText" Text="inbox" Tap="FolderText_Tap" TextTrimming="WordEllipsis"
-                       FontSize="{StaticResource PhoneFontSizeExtraExtraLarge}" FontFamily="{StaticResource PhoneFontFamilySemiLight}"
+                       Style="{StaticResource PhoneTextTitle1Style}"
                        Margin="9,-7,12,0"/>
         </StackPanel>
 
@@ -33,15 +34,15 @@
         <StackPanel x:Name="EmptyPanel" Grid.Row="2" Margin="24,24,24,0" Visibility="Collapsed">
             <TextBlock x:Name="EmptyText" TextWrapping="Wrap" FontSize="{StaticResource PhoneFontSizeMediumLarge}"
                        Text="Add a mail account to get started. Retrobird works with any IMAP mail service."/>
-            <Button x:Name="AddButton" Content="add account" HorizontalAlignment="Left" Margin="-12,12,0,0" Click="AddButton_Click"/>
-            <Button x:Name="RetryButton" Content="try again" HorizontalAlignment="Left" Margin="-12,12,0,0" Click="RetryButton_Click"
+            <Button local:Motion.Tilt="True" x:Name="AddButton" Content="add account" HorizontalAlignment="Left" Margin="-12,12,0,0" Click="AddButton_Click"/>
+            <Button local:Motion.Tilt="True" x:Name="RetryButton" Content="try again" HorizontalAlignment="Left" Margin="-12,12,0,0" Click="RetryButton_Click"
                     Visibility="Collapsed"/>
         </StackPanel>
 
         <phone:LongListSelector x:Name="Items" Grid.Row="2" Margin="12,0,0,0" SelectionChanged="Items_SelectionChanged">
             <phone:LongListSelector.ItemTemplate>
                 <DataTemplate>
-                    <Grid Margin="0,2,12,16" Background="Transparent">
+                    <Grid Margin="0,2,12,16" Background="Transparent" local:Motion.Tilt="True">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="6"/>
                             <ColumnDefinition Width="*"/>
@@ -72,8 +73,12 @@
                 </DataTemplate>
             </phone:LongListSelector.ItemTemplate>
             <phone:LongListSelector.ListFooter>
-                <Button x:Name="MoreButton" Content="load older messages" HorizontalAlignment="Left" Margin="-12,0,0,24"
-                        Click="MoreButton_Click" Visibility="Collapsed"/>
+                <StackPanel>
+                    <Button local:Motion.Tilt="True" x:Name="MoreButton" Content="load older messages" HorizontalAlignment="Left" Margin="-12,0,0,0"
+                            Click="MoreButton_Click" Visibility="Collapsed"/>
+                    <!-- room so the app bar never covers the last message -->
+                    <Rectangle Height="96"/>
+                </StackPanel>
             </phone:LongListSelector.ListFooter>
         </phone:LongListSelector>
     </Grid>

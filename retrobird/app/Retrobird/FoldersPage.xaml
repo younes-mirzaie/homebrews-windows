@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
     xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    xmlns:local="clr-namespace:Retrobird"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
     Foreground="{StaticResource PhoneForegroundBrush}"
@@ -19,7 +20,7 @@
         <StackPanel Grid.Row="0" Margin="12,8,12,8">
             <TextBlock x:Name="AccountText" Text="RETROBIRD" Style="{StaticResource PhoneTextNormalStyle}" Margin="12,0"/>
             <TextBlock x:Name="TitleText" Text="folders" Margin="9,-7,12,0"
-                       FontSize="{StaticResource PhoneFontSizeExtraExtraLarge}" FontFamily="{StaticResource PhoneFontFamilySemiLight}"/>
+                       Style="{StaticResource PhoneTextTitle1Style}"/>
         </StackPanel>
         <TextBlock x:Name="StatusText" Grid.Row="1" Margin="24,0,24,8" TextWrapping="Wrap" Visibility="Collapsed"
                    Foreground="{StaticResource PhoneSubtleBrush}" FontSize="{StaticResource PhoneFontSizeSmall}"/>
@@ -31,7 +32,7 @@
             </ListBox.ItemContainerStyle>
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <Grid Margin="12,4,12,8" Opacity="{Binding ItemOpacity}">
+                    <Grid Margin="12,4,12,8" Opacity="{Binding ItemOpacity}" Background="Transparent" local:Motion.Tilt="True">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
