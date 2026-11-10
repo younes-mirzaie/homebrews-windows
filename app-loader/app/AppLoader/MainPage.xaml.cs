@@ -55,6 +55,7 @@ namespace AppLoader
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
+            Turnstile.In(Pivots, e.NavigationMode == NavigationMode.Back);
             // Also on every return to the app: an install started earlier may have finished (or
             // still be running) while the app was away, or App Loader was updating itself
             var job = InstallJob.Load();
@@ -260,6 +261,8 @@ namespace AppLoader
             return "installed " + x.InstalledVersion;
         }
 
+        bool _leaving;
+
         void CatalogList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             var list = (ListBox)sender;
@@ -271,7 +274,10 @@ namespace AppLoader
                 MessageBox.Show("An install is still running. Try again once it's done.", "busy", MessageBoxButton.OK);
                 return;
             }
-            NavigationService.Navigate(new Uri("/CatalogPage.xaml?id=" + Uri.EscapeDataString(row.Entry.App.Id), UriKind.Relative));
+            var uri = new Uri("/CatalogPage.xaml?id=" + Uri.EscapeDataString(row.Entry.App.Id), UriKind.Relative);
+            if (_leaving) return;
+            _leaving = true;
+            Turnstile.Out(Pivots, false, () => { _leaving = false; NavigationService.Navigate(uri); });
         }
 
         void Refresh_Click(object sender, EventArgs e)

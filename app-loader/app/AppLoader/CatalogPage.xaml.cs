@@ -34,6 +34,7 @@ namespace AppLoader
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
+            Turnstile.In(LayoutRoot, e.NavigationMode == NavigationMode.Back);
             string id;
             NavigationContext.QueryString.TryGetValue("id", out id);
             var idx = CatalogService.Current ?? CatalogService.LoadCached();
@@ -95,6 +96,24 @@ namespace AppLoader
                 Detail = (string.IsNullOrEmpty(r.Notes) ? "" : r.Notes + "\n") +
                          MainPage.Size(r.Size) + (string.IsNullOrEmpty(r.Added) ? "" : " · " + r.Added),
             }).ToList();
+        }
+
+        bool _leaving;
+
+        /// <summary>Back to the list with the turnstile, like the system pages.</summary>
+        void Leave()
+        {
+            if (_leaving || !NavigationService.CanGoBack) return;
+            _leaving = true;
+            Turnstile.Out(LayoutRoot, true, () => NavigationService.GoBack());
+        }
+
+        protected override void OnBackKeyPress(System.ComponentModel.CancelEventArgs e)
+        {
+            base.OnBackKeyPress(e);
+            if (e.Cancel || !NavigationService.CanGoBack) return;
+            e.Cancel = true;
+            Leave();
         }
 
         void Busy(string text)
@@ -160,7 +179,7 @@ namespace AppLoader
                     MessageBox.Show(AppInfo.Name + " is updating itself, so it will close in a moment. Open it again " +
                                     "afterwards to see how it went.", "updating " + AppInfo.Name, MessageBoxButton.OK);
                 // the main page picks the running install up and shows the result
-                if (NavigationService.CanGoBack) NavigationService.GoBack();
+                Leave();
             }
             catch (Exception ex)
             {

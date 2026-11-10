@@ -4,6 +4,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
     xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    xmlns:core="clr-namespace:AppLoader.Core"
+    core:Tilt.IsEnabled="True"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
     Foreground="{StaticResource PhoneForegroundBrush}"
@@ -14,7 +16,7 @@
         <shell:ProgressIndicator x:Name="Progress" IsIndeterminate="True" IsVisible="False" />
     </shell:SystemTray.ProgressIndicator>
 
-    <phone:Pivot x:Name="Pivots" Title="APP LOADER">
+    <phone:Pivot x:Name="Pivots" Title="UNESBREWS">
         <phone:PivotItem Header="catalog">
             <Grid>
                 <Grid.RowDefinitions>
@@ -23,10 +25,10 @@
                 </Grid.RowDefinitions>
                 <TextBlock x:Name="CatalogNote" TextWrapping="Wrap" Margin="12,0,12,12"
                            Style="{StaticResource PhoneTextSubtleStyle}" Text="Loading the catalog..." />
-                <ListBox x:Name="CatalogList" Grid.Row="1" SelectionChanged="CatalogList_SelectionChanged">
+                <ListBox x:Name="CatalogList" Grid.Row="1" Padding="0,0,0,96" SelectionChanged="CatalogList_SelectionChanged">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Grid Margin="12,0,0,20">
+                            <Grid Margin="12,0,0,24">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
@@ -61,10 +63,10 @@
                 </Grid.RowDefinitions>
                 <TextBlock x:Name="UpdatesNote" TextWrapping="Wrap" Margin="12,0,12,12"
                            Style="{StaticResource PhoneTextSubtleStyle}" Text="" />
-                <ListBox x:Name="UpdatesList" Grid.Row="1" SelectionChanged="CatalogList_SelectionChanged">
+                <ListBox x:Name="UpdatesList" Grid.Row="1" Padding="0,0,0,96" SelectionChanged="CatalogList_SelectionChanged">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Grid Margin="12,0,0,20">
+                            <Grid Margin="12,0,0,24">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
@@ -98,10 +100,10 @@
                 <TextBlock x:Name="PackagesNote" TextWrapping="Wrap" Margin="12,0,12,12"
                            Style="{StaticResource PhoneTextSubtleStyle}"
                            Text="Looking in Downloads and Documents for .xap and .appx files..." />
-                <ListBox x:Name="PackagesList" Grid.Row="1" SelectionChanged="PackagesList_SelectionChanged">
+                <ListBox x:Name="PackagesList" Grid.Row="1" Padding="0,0,0,96" SelectionChanged="PackagesList_SelectionChanged">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Margin="12,0,0,20">
+                            <StackPanel Margin="12,0,0,24">
                                 <TextBlock Text="{Binding Name}" Style="{StaticResource PhoneTextLargeStyle}"
                                            Margin="0" TextTrimming="WordEllipsis" />
                                 <TextBlock Text="{Binding Detail}" Style="{StaticResource PhoneTextSubtleStyle}"
@@ -121,10 +123,10 @@
                 </Grid.RowDefinitions>
                 <TextBlock x:Name="InstalledNote" TextWrapping="Wrap" Margin="12,0,12,12"
                            Style="{StaticResource PhoneTextSubtleStyle}" Text="" />
-                <ListBox x:Name="InstalledList" Grid.Row="1">
+                <ListBox x:Name="InstalledList" Grid.Row="1" Padding="0,0,0,96">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Margin="12,0,0,20">
+                            <StackPanel Margin="12,0,0,24">
                                 <TextBlock Text="{Binding Title}" Style="{StaticResource PhoneTextLargeStyle}"
                                            Margin="0" TextTrimming="WordEllipsis" />
                                 <TextBlock Text="{Binding Detail}" Style="{StaticResource PhoneTextSubtleStyle}"
@@ -138,8 +140,8 @@
 
         <phone:PivotItem x:Name="LogPivot" Header="log">
             <ScrollViewer>
-                <TextBlock x:Name="LogText" TextWrapping="Wrap" Margin="12,0,12,24"
-                           FontFamily="Courier New" FontSize="16"
+                <TextBlock x:Name="LogText" TextWrapping="Wrap" Margin="12,0,12,96"
+                           Style="{StaticResource PhoneTextSubtleStyle}" FontSize="{StaticResource PhoneFontSizeSmall}"
                            Text="" />
             </ScrollViewer>
         </phone:PivotItem>

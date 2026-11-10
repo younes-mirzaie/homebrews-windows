@@ -52,6 +52,7 @@
     <Compile Include="..\..\catalog\client\*.cs"><Link>Catalog\%(Filename)%(Extension)</Link></Compile>
     <Compile Include="Core\Friendly.cs" />
     <Compile Include="Core\LineSocket.cs" />
+    <Compile Include="Core\Motion.cs" />
     <Compile Include="Core\PackageInfo.cs" />
     <Compile Include="Core\PackageInstaller.cs" />
     <Compile Include="Core\Phone.cs" />

@@ -81,8 +81,7 @@ namespace AppLoader.Core
             string what = job.Title + " " + job.Version;
             string code = th.PacManCode ?? HResult(th.Output);
             string why = Reason(code, job);
-            return (job.IsUpdate ? "Couldn't update " : "Couldn't install ") + what + ". " + why +
-                   (code != null ? "\n\n(error " + code + ")" : "");
+            return (job.IsUpdate ? "Couldn't update " : "Couldn't install ") + what + ". " + why;   // the code itself is in the log
         }
 
         static string Reason(string code, InstallJob job)

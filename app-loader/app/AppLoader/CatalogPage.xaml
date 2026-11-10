@@ -4,6 +4,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
     xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    xmlns:core="clr-namespace:AppLoader.Core"
+    core:Tilt.IsEnabled="True"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
     Foreground="{StaticResource PhoneForegroundBrush}"
@@ -14,7 +16,7 @@
         <shell:ProgressIndicator x:Name="Progress" IsIndeterminate="True" IsVisible="False" />
     </shell:SystemTray.ProgressIndicator>
 
-    <Grid Background="Transparent">
+    <Grid x:Name="LayoutRoot" Background="Transparent">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -51,7 +53,7 @@
                 <ItemsControl x:Name="Versions">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Margin="12,0,12,18" Tap="Version_Tap" Background="Transparent">
+                            <StackPanel Margin="12,0,12,24" Tap="Version_Tap" Background="Transparent" core:Tilt.IsTarget="True">
                                 <TextBlock Text="{Binding Title}" Style="{StaticResource PhoneTextLargeStyle}" Margin="0" />
                                 <TextBlock Text="{Binding Detail}" Style="{StaticResource PhoneTextSubtleStyle}" Margin="0" TextWrapping="Wrap" />
                             </StackPanel>
