@@ -64,11 +64,26 @@ namespace Retrobird.Core
                 }
                 catch (Exception e)
                 {
-                    // the DLL didn't load or an entry point is missing (a broken install)
-                    return "Retrobird's mail engine (rbmail.dll) couldn't start: " + e.GetType().Name + ": " + e.Message +
-                           "\n\nReinstalling Retrobird should fix this.";
+                    // rbmail.dll or one of the DLLs it needs didn't load: a bug in this build, not
+                    // something the user can fix. Keep the details for the developer.
+                    WriteLog("engine failed to load: " + e);
+                    return "Retrobird's mail engine couldn't load on this phone (" + e.GetType().Name + "). " +
+                           "This is a bug in this version of Retrobird, not something wrong with your phone or account. " +
+                           "Please report it; an update will fix it.";
                 }
             }, TaskCreationOptions.LongRunning);
+        }
+
+        /// <summary>App-side notes for the developer, next to the engine's own log.</summary>
+        static void WriteLog(string line)
+        {
+            try
+            {
+                Directory.CreateDirectory(DataDir);
+                File.AppendAllText(Path.Combine(DataDir, "app.log"),
+                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " " + line + "\r\n");
+            }
+            catch { }
         }
 
         /// <summary>Whether our engine answers on the port.</summary>

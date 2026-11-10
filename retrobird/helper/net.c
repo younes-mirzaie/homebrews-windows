@@ -199,14 +199,41 @@ static int resolve(const char *host, int port, PRNetAddr *out, int max, char *er
         struct addrinfo hints, *res = NULL, *p;
         int rc;
 #ifdef _WIN32
-        static int wsa;
-        if (!wsa) { WSADATA d; wsa = WSAStartup(MAKEWORD(2, 2), &d) == 0 ? 1 : -1; }
+        /* Looked up at run time: a static import of getaddrinfo from ws2_32 stopped rbmail.dll
+           from loading at all inside the phone app (0.1.3 to 0.1.8), so a missing function
+           now only skips this method. */
+        typedef int(WSAAPI *wsastartup_t)(WORD, LPWSADATA);
+        typedef int(WSAAPI *gai_t)(PCSTR, PCSTR, const ADDRINFOA *, PADDRINFOA *);
+        typedef void(WSAAPI *fai_t)(PADDRINFOA);
+        typedef int(WSAAPI *wsaerr_t)(void);
+        static int loaded;
+        static gai_t gai;
+        static fai_t fai;
+        static wsaerr_t wsaerr;
+        if (!loaded) {
+            HMODULE m = LoadLibraryExW(L"WS2_32.DLL", NULL, 0);
+            wsastartup_t start = m ? (wsastartup_t)GetProcAddress(m, "WSAStartup") : NULL;
+            WSADATA d;
+            loaded = 1;
+            if (start && start(MAKEWORD(2, 2), &d) == 0) {
+                gai = (gai_t)GetProcAddress(m, "getaddrinfo");
+                fai = (fai_t)GetProcAddress(m, "freeaddrinfo");
+                wsaerr = (wsaerr_t)GetProcAddress(m, "WSAGetLastError");
+            }
+            if (!gai || !fai) gai = NULL;
+        }
+#define getaddrinfo gai
+#define freeaddrinfo fai
 #endif
         memset(&hints, 0, sizeof(hints));
         hints.ai_family = AF_UNSPEC;
         hints.ai_socktype = SOCK_STREAM;
         hints.ai_protocol = IPPROTO_TCP;
+#ifdef _WIN32
+        rc = gai ? getaddrinfo(host, NULL, &hints, &res) : -1;
+#else
         rc = getaddrinfo(host, NULL, &hints, &res);
+#endif
         for (p = rc == 0 ? res : NULL; p && n < max; p = p->ai_next) {
             if (p->ai_family == AF_INET) {
                 const struct sockaddr_in *sin = (const struct sockaddr_in *)p->ai_addr;
@@ -221,7 +248,10 @@ static int resolve(const char *host, int port, PRNetAddr *out, int max, char *er
         if (res) freeaddrinfo(res);
         if (n) return n;
 #ifdef _WIN32
-        snprintf(why, sizeof(why), "getaddrinfo %d", rc ? WSAGetLastError() : 0);
+#undef getaddrinfo
+#undef freeaddrinfo
+        if (!gai) snprintf(why, sizeof(why), "getaddrinfo unavailable");
+        else snprintf(why, sizeof(why), "getaddrinfo %d", rc && wsaerr ? wsaerr() : rc);
 #else
         snprintf(why, sizeof(why), "getaddrinfo: %s", rc ? gai_strerror(rc) : "no addresses");
 #endif

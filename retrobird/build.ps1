@@ -68,6 +68,14 @@ $objs = $sources | ForEach-Object { "$obj\$_.obj" }
 & { $ErrorActionPreference = "Continue"
     & "$Llvm\lld-link.exe" @lflags @objs "/out:$obj\rbmail.dll" 2>&1 | ForEach-Object { "$_" } }
 if ($LASTEXITCODE -ne 0) { throw "rbmail.dll link failed" }
+# The app can't load a DLL whose imports the phone doesn't offer it (0.1.3-0.1.8 failed so, with a
+# static ws2_32 import): list what rbmail.dll imports and refuse ws2_32, which net.c looks up at run time.
+$readobj = "$Llvm\llvm-readobj.exe"
+if (Test-Path $readobj) {
+    $imports = & $readobj --coff-imports "$obj\rbmail.dll" | Select-String "Name: " | ForEach-Object { $_.Line.Trim() }
+    Write-Host ("rbmail.dll imports: " + (($imports | Where-Object { $_ -match "\.dll" -or $_ -match "\.DLL" }) -join ", "))
+    if ($imports -match "(?i)ws2_32") { throw "rbmail.dll imports ws2_32 directly; the app couldn't load it" }
+}
 
 $helperDir = "$here\app\Retrobird\Helper"
 New-Item -ItemType Directory -Force $helperDir | Out-Null

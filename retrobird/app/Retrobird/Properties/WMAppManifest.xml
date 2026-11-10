@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Deployment xmlns="http://schemas.microsoft.com/windowsphone/2014/deployment" AppPlatformVersion="8.1">
   <DefaultLanguage xmlns="" code="en-US" />
-  <App xmlns="" ProductID="{c3aee8d4-1737-44dd-9024-374293813696}" Title="Retrobird" RuntimeType="Silverlight" Version="0.1.8.0" Genre="apps.normal" Author="Retrofox" Description="IMAP/SMTP mail" Publisher="Retrofox" PublisherID="{e1e99522-17c9-4cc7-a879-b7ccf6aecc53}">
+  <App xmlns="" ProductID="{c3aee8d4-1737-44dd-9024-374293813696}" Title="Retrobird" RuntimeType="Silverlight" Version="0.1.9.0" Genre="apps.normal" Author="Retrofox" Description="IMAP/SMTP mail" Publisher="Retrofox" PublisherID="{e1e99522-17c9-4cc7-a879-b7ccf6aecc53}">
     <IconPath IsRelative="true" IsResource="false">Assets\ApplicationIcon.png</IconPath>
     <Capabilities>
       <Capability Name="ID_CAP_NETWORKING" />
