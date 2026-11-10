@@ -1,5 +1,5 @@
 // A small async TCP client for Windows Phone Silverlight 8.1 (System.Net.Sockets only offers
-// SocketAsyncEventArgs there). Used for rbmaild (127.0.0.1:8096) and CMD Injector's shell (9999).
+// SocketAsyncEventArgs there). Used for the in-app mail engine on 127.0.0.1:8097.
 // Taken from File Explorer (RetroFiles).
 using System;
 using System.Collections.Generic;

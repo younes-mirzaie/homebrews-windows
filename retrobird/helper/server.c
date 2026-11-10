@@ -1076,69 +1076,14 @@ static void exe_dir(char *buf, size_t len)
 #endif
 }
 
-#ifdef _WIN32
-/* Started from CMD Injector's telnet shell, the helper would share that session's console and
-   job and die with it (or fail to start with 0xC0000142, as rfxdev saw). So the first instance
-   starts a copy of itself detached from both and exits; the copy gets --fg. CreateProcessW and
-   GetCommandLineW are looked up at run time because the phone's import libs may lack them. */
-typedef BOOL(WINAPI *CreateProcessW_t)(LPCWSTR, LPWSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES,
-                                       BOOL, DWORD, LPVOID, LPCWSTR, LPSTARTUPINFOW, LPPROCESS_INFORMATION);
-typedef LPWSTR(WINAPI *GetCommandLineW_t)(void);
-
-static FARPROC find_proc(const char *name)
-{
-    static const wchar_t *dlls[] = { L"KERNELBASE.DLL", L"KERNEL32LEGACY.DLL", L"KERNEL32.DLL" };
-    for (int i = 0; i < (int)(sizeof(dlls) / sizeof(dlls[0])); i++) {
-        HMODULE m = LoadLibraryExW(dlls[i], NULL, 0);
-        FARPROC p = m ? GetProcAddress(m, name) : NULL;
-        if (p) return p;
-    }
-    return NULL;
-}
-
-/* 1: a detached copy is running, this process should exit. 0: run here. */
-static int detach_self(void)
-{
-    static const DWORD modes[] = { DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_BREAKAWAY_FROM_JOB,
-                                   DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP, CREATE_NO_WINDOW };
-    CreateProcessW_t create = (CreateProcessW_t)find_proc("CreateProcessW");
-    GetCommandLineW_t getcl = (GetCommandLineW_t)find_proc("GetCommandLineW");
-    const wchar_t *cl = getcl ? getcl() : NULL;
-    wchar_t exe[MAX_PATH], *line;
-    size_t n;
-    if (!create || !cl || !GetModuleFileNameW(NULL, exe, MAX_PATH)) return 0;
-    n = wcslen(cl) + 8;
-    line = calloc(n, sizeof(wchar_t));
-    for (int i = 0; i < (int)(sizeof(modes) / sizeof(modes[0])); i++) {
-        STARTUPINFOW si;
-        PROCESS_INFORMATION pi;
-        memset(&si, 0, sizeof(si));
-        si.cb = sizeof(si);
-        swprintf(line, n, L"%ls --fg", cl);   /* CreateProcessW may write to the buffer */
-        if (create(exe, line, NULL, NULL, FALSE, modes[i], NULL, NULL, &si, &pi)) {
-            printf("rbmaild started (pid %lu)\n", (unsigned long)pi.dwProcessId);
-            fflush(stdout);
-            CloseHandle(pi.hThread);
-            CloseHandle(pi.hProcess);
-            free(line);
-            return 1;
-        }
-        printf("rbmaild: detach mode %d failed (%lu)\n", i, (unsigned long)GetLastError());
-    }
-    free(line);
-    return 0;
-}
-#endif
-
-/* The exe's main, or (built with -DRB_DLL as rbmail.dll) RetrobirdMain, which the app calls on a
-   thread of its own: the helper then runs inside the app's process, with no shell and no detach. */
-static int rb_main(int argc, char **argv, int fg)
+/* RetrobirdMain (built with -DRB_DLL as rbmail.dll), which the app calls on a thread of its own so
+   the engine runs inside the app's process; or main, for the Linux test build. */
+static int rb_main(int argc, char **argv)
 {
     int port = RB_DEFAULT_PORT;
     char dir[512], data[600], roots[600];
     PRNetAddr addr;
     PRSocketOptionData opt;
-    (void)fg;
     exe_dir(dir, sizeof(dir));
 #ifdef _WIN32
     snprintf(data, sizeof(data), "%s\\data", dir);
@@ -1154,10 +1099,9 @@ static int rb_main(int argc, char **argv, int fg)
         else if (!strcmp(argv[i], "--roots") && i + 1 < argc) snprintf(roots, sizeof(roots), "%s", argv[++i]);
         else if (!strcmp(argv[i], "--sync-minutes") && i + 1 < argc) g_sync_minutes = atoi(argv[++i]);
         else if (!strcmp(argv[i], "--debug")) rb_debug = 1;
-        else if (!strcmp(argv[i], "--fg")) fg = 1;
         else {
             fprintf(stderr, "usage: rbmaild --token KEY [--port %d] [--data DIR] [--roots nssckbi] "
-                            "[--sync-minutes 15] [--debug] [--fg]\n", RB_DEFAULT_PORT);
+                            "[--sync-minutes 15] [--debug]\n", RB_DEFAULT_PORT);
             return 2;
         }
     }
@@ -1165,9 +1109,6 @@ static int rb_main(int argc, char **argv, int fg)
         fprintf(stderr, "rbmaild: --token with at least 8 characters is required\n");
         return 2;
     }
-#ifdef _WIN32
-    if (!fg && detach_self()) return 0;
-#endif
     if (net_init(roots) != 0) return 1;
     g_lock = PR_NewLock();
     store_init(data, g_token);
@@ -1214,7 +1155,7 @@ static int rb_main(int argc, char **argv, int fg)
 #ifdef _WIN32
 __declspec(dllexport)
 #endif
-int RetrobirdMain(int argc, char **argv) { return rb_main(argc, argv, 1); }
+int RetrobirdMain(int argc, char **argv) { return rb_main(argc, argv); }
 #else
-int main(int argc, char **argv) { return rb_main(argc, argv, 0); }
+int main(int argc, char **argv) { return rb_main(argc, argv); }
 #endif

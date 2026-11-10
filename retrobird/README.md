@@ -1,7 +1,7 @@
 # Retrobird
 
-A Thunderbird-style mail client for Windows Phone 8.1 (made for an interop-unlocked Lumia 820
-with CMD Injector). Works with any IMAP/SMTP mail service, runs entirely on the phone, modern TLS.
+A Thunderbird-style mail client for Windows Phone 8.1 (made on a Lumia 820). Works with any
+IMAP/SMTP mail service, runs entirely inside the app, modern TLS.
 
 - Several accounts; settings filled in from the address for common providers (Gmail, Yahoo,
   iCloud, GMX, WEB.DE, Fastmail, Yandex, Zoho) or guessed, editable by hand.
@@ -20,16 +20,11 @@ password), sending attachments, push (IDLE), search, signatures.
 ## How it works
 
 The mail engine is C code on NSPR/NSS (WP 8.1's own networking has no modern TLS). It is built
-twice from the same sources:
-
-- **rbmail.dll**, packaged with the app. The app loads it and runs `RetrobirdMain` on a thread of
-  its own, the way Retrofox runs Gecko inside its app. The app talks to it over loopback
-  (127.0.0.1:8097) inside its own process, with a random key. Mail cache, settings and the log
-  live in the app's own folder (`LocalState\data`). No CMD Injector, no SYSTEM process, nothing
-  that outlives the app. The only network traffic is to your mail servers.
-- **rbmaild.exe**, a fallback used only if the DLL can't load: started as SYSTEM through CMD
-  Injector's shell (via a small start script in the app's folder), listening on 127.0.0.1:8096,
-  with its data in `C:\Data\SharedData\Retrobird`.
+as **rbmail.dll** and packaged with the app. The app loads it and runs `RetrobirdMain` on a thread of
+its own, the way Retrofox runs Gecko inside its app. The app talks to it over loopback
+(127.0.0.1:8097) inside its own process, with a random key. Mail cache, settings and the log
+live in the app's own folder (`LocalState\data`). No CMD Injector, no SYSTEM process, nothing
+that outlives the app. The only network traffic is to your mail servers.
 
 Passwords are stored encrypted (AES-256-GCM) with a key derived from the app's key, which is kept
 in the app's settings. New mail is checked every N minutes while the app is open.
@@ -48,7 +43,7 @@ See [PROTOCOL.md](PROTOCOL.md).
 
 ## Building (Windows)
 
-`.\build.ps1` builds rbmail.dll and rbmaild.exe with the retrofox ARM toolchain and NSS build (`C:\rfx\obj-nss`,
+`.\build.ps1` builds rbmail.dll with the retrofox ARM toolchain and NSS build (`C:\rfx\obj-nss`,
 see retrofox notes/step2-nss.md), copies it with `nssckbi.dll` and the NSPR DLLs into
 `app\Retrobird\Helper`, builds the app with VS 2015 (MSBuild 14) and installs it on the
 USB-connected phone. `-NoDeploy` builds only; the .xap can also go through the rfxdev portal.

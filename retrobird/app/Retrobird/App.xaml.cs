@@ -24,9 +24,8 @@ namespace Retrobird
             System.Threading.Thread.CurrentThread.CurrentCulture = us;
             System.Threading.Thread.CurrentThread.CurrentUICulture = us;
             InitializeComponent();
-            // the mail helper runs inside the app (rbmail.dll); the separate rbmaild.exe started
-            // through CMD Injector is only a fallback for when the DLL can't load
-            AppState.Client = new MailClient(HelperLauncher.Token, InAppHelper.Port);
+            // the mail engine runs inside the app (rbmail.dll)
+            AppState.Client = new MailClient(InAppHelper.Token, InAppHelper.Port);
             AppState.Client.StartHelper = () => InAppHelper.EnsureRunningAsync(AppState.Client);
 
             RootFrame = new PhoneApplicationFrame();

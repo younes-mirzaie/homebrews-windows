@@ -1,10 +1,13 @@
-// Runs the mail helper inside the app: rbmail.dll (the same C code as rbmaild.exe) is loaded from
-// the package and RetrobirdMain runs on a thread of its own, serving the app over loopback inside
-// this process. No CMD Injector, no SYSTEM process, and the data stays in the app's own folder.
-// If the DLL can't be loaded, the app falls back to the separate rbmaild.exe (HelperLauncher).
+// Runs the mail engine inside the app: rbmail.dll (helper/*.c on NSPR/NSS) is loaded from the
+// package and RetrobirdMain runs on a thread of its own, serving the app over loopback inside this
+// process. Nothing runs outside the app: no CMD Injector, no SYSTEM process, no shared folder.
+// Mail, settings and the log live in the app's own folder (LocalState\data).
 using System;
 using System.IO;
+using System.IO.IsolatedStorage;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.Storage;
@@ -13,24 +16,43 @@ namespace Retrobird.Core
 {
     public static class InAppHelper
     {
-        /// <summary>Not the separate helper's 8096, so a leftover one can't answer instead.</summary>
         public const int Port = 8097;
 
         [DllImport("rbmail.dll", CallingConvention = CallingConvention.Cdecl)]
         static extern int RetrobirdMain(int argc,
             [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.LPStr)] string[] argv);
 
-        static Task<string> _ended;    // completes with why the helper stopped (null: never started)
-        static bool _failed;           // the DLL couldn't run here: use the separate helper
+        static Task<string> _ended;    // completes with why the engine stopped
 
         public static string DataDir { get { return Path.Combine(ApplicationData.Current.LocalFolder.Path, "data"); } }
+
+        /// <summary>The key the engine only answers to; also seals the stored passwords.</summary>
+        public static string Token
+        {
+            get
+            {
+                var settings = IsolatedStorageSettings.ApplicationSettings;
+                string t;
+                if (!settings.TryGetValue("token", out t) || string.IsNullOrEmpty(t))
+                {
+                    var bytes = new byte[16];
+                    new RNGCryptoServiceProvider().GetBytes(bytes);
+                    var sb = new StringBuilder();
+                    foreach (var b in bytes) sb.Append(b.ToString("x2"));
+                    t = sb.ToString();
+                    settings["token"] = t;
+                    settings.Save();
+                }
+                return t;
+            }
+        }
 
         static void Start()
         {
             string pkg = Package.Current.InstalledLocation.Path;
             string[] args =
             {
-                "rbmail", "--token", HelperLauncher.Token, "--port", Port.ToString(),
+                "rbmail", "--token", Token, "--port", Port.ToString(),
                 "--data", DataDir, "--roots", Path.Combine(pkg, "nssckbi.dll")
             };
             _ended = Task.Factory.StartNew(() =>
@@ -38,37 +60,42 @@ namespace Retrobird.Core
                 try
                 {
                     int code = RetrobirdMain(args.Length, args);
-                    return "the mail helper stopped (" + code + "); see " + Path.Combine(DataDir, "rbmaild.log");
+                    return "The mail engine stopped (code " + code + "). Details are in " + Path.Combine(DataDir, "rbmaild.log") + ".";
                 }
                 catch (Exception e)
                 {
-                    // the DLL didn't load, an entry point is missing, or P/Invoke isn't allowed
-                    _failed = true;
-                    return "rbmail.dll couldn't run inside the app: " + e.GetType().Name + ": " + e.Message;
+                    // the DLL didn't load or an entry point is missing (a broken install)
+                    return "Retrobird's mail engine (rbmail.dll) couldn't start: " + e.GetType().Name + ": " + e.Message +
+                           "\n\nReinstalling Retrobird should fix this.";
                 }
             }, TaskCreationOptions.LongRunning);
         }
 
-        /// <summary>StartHelper for MailClient: null once a helper answers, else a message.</summary>
+        /// <summary>Whether our engine answers on the port.</summary>
+        static async Task<bool> Answers()
+        {
+            var s = await LineSocket.ConnectAsync(MailClient.Host, Port, 1500);
+            if (s == null) return false;
+            using (s)
+            {
+                await s.SendAsync("AUTH\t" + Token + "\n");
+                var r = await s.ReadLineAsync();
+                return r != null && r.StartsWith("OK\t");
+            }
+        }
+
+        /// <summary>StartHelper for MailClient: null once the engine answers, else a message.</summary>
         public static async Task<string> EnsureRunningAsync(MailClient client)
         {
-            if (!_failed)
+            if (_ended == null || _ended.IsCompleted) Start();
+            // up to 10 s: the first start sets up NSS and the cache
+            for (int i = 0; i < 40; i++)
             {
-                if (_ended == null || _ended.IsCompleted) Start();
-                // up to 10 s: the first start sets up NSS and the cache
-                for (int i = 0; i < 40; i++)
-                {
-                    if (_ended.IsCompleted) break;
-                    if (await HelperLauncher.Probe(Port) == "") { client.Port = Port; return null; }
-                    await Task.Delay(250);
-                }
-                if (!_failed)
-                    return _ended.IsCompleted ? _ended.Result : "The mail helper inside the app didn't answer on 127.0.0.1:" + Port + ".";
+                if (_ended.IsCompleted) return _ended.Result;
+                if (await Answers()) return null;
+                await Task.Delay(250);
             }
-            // fallback: the separate helper through CMD Injector
-            client.Port = MailClient.DefaultPort;
-            var msg = await HelperLauncher.EnsureRunningAsync(MailClient.DefaultPort, _ => { });
-            return msg == null ? null : _ended.Result + "\n\nThe fallback also failed: " + msg;
+            return "Retrobird's mail engine didn't answer. Close the app and open it again.";
         }
     }
 }

@@ -53,7 +53,6 @@
     <Compile Include="AccountEditPage.xaml.cs"><DependentUpon>AccountEditPage.xaml</DependentUpon></Compile>
     <Compile Include="Ui.cs" />
     <Compile Include="Core\AppState.cs" />
-    <Compile Include="Core\HelperLauncher.cs" />
     <Compile Include="Core\InAppHelper.cs" />
     <Compile Include="Core\LineSocket.cs" />
     <Compile Include="Core\MailClient.cs" />
@@ -75,13 +74,10 @@
     <None Include="Properties\AppManifest.xml" />
     <None Include="Properties\WMAppManifest.xml"><SubType>Designer</SubType></None>
     <Content Include="Assets\**\*.png" />
-    <!-- the native mail helper and its NSS/NSPR DLLs, put in Helper\ by ..\..\build.ps1 and packaged
+    <!-- the in-app mail engine (rbmail.dll) and its NSS/NSPR DLLs, put in Helper\ by ..\..\build.ps1 and packaged
          at the root, where the app's DllImport (rbmail.dll) and Windows' DLL search find them -->
     <Content Include="Helper\rbmail.dll">
       <Link>rbmail.dll</Link>
-    </Content>
-    <Content Include="Helper\rbmaild.exe">
-      <Link>rbmaild.exe</Link>
     </Content>
     <Content Include="Helper\nssckbi.dll">
       <Link>nssckbi.dll</Link>

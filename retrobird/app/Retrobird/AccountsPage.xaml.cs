@@ -45,10 +45,16 @@ namespace Retrobird
                 Items.ItemsSource = null;
                 Items.ItemsSource = AppState.Accounts;
                 var v = await AppState.Client.PingAsync();
-                AboutText.Text = "Retrobird 0.1 · mail helper " + v + " on 127.0.0.1:" + AppState.Client.Port +
-                                 "\nMail is kept in " + HelperLauncher.HelperDir + "\\data. Everything runs on the phone.";
+                AboutText.Text = "Retrobird " + AppVersion() + " · mail engine " + v +
+                                 "\nMail is kept in the app's own storage. Everything runs inside the app.";
             }
             catch (Exception ex) { AboutText.Text = Ui.Describe(ex); }
+        }
+
+        static string AppVersion()
+        {
+            var v = Windows.ApplicationModel.Package.Current.Id.Version;
+            return v.Major + "." + v.Minor + "." + v.Build;
         }
 
         void ShowInterval()

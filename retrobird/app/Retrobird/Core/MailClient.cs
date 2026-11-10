@@ -11,7 +11,7 @@ namespace Retrobird.Core
     public sealed class MailClient
     {
         public const string Host = "127.0.0.1";
-        public const int DefaultPort = 8096;
+        public const int DefaultPort = 8097;
 
         readonly string _token;
         int _port;
