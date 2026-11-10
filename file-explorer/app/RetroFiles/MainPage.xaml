@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
     xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    xmlns:core="clr-namespace:RetroFiles.Core"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
     Foreground="{StaticResource PhoneForegroundBrush}"
@@ -17,11 +18,15 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Margin="12,8,12,0">
-            <TextBlock Text="FILE EXPLORER" Style="{StaticResource PhoneTextNormalStyle}" Margin="12,0"/>
-            <TextBlock x:Name="PathText" Text="places" Tap="PathText_Tap" TextWrapping="Wrap"
-                       FontSize="{StaticResource PhoneFontSizeLarge}" FontFamily="{StaticResource PhoneFontFamilySemiLight}"
-                       Margin="12,0,12,4"/>
+        <!-- app title in caps, then the folder's name as a big light page title and its full path
+             (tap either to type a path) -->
+        <StackPanel Grid.Row="0" Margin="12,17,0,12">
+            <TextBlock Text="FILE EXPLORER" Style="{StaticResource PhoneTextNormalStyle}"/>
+            <TextBlock x:Name="PageTitle" Text="places" Tap="PathText_Tap" TextTrimming="WordEllipsis"
+                       FontSize="{StaticResource PhoneFontSizeExtraLarge}" FontFamily="{StaticResource PhoneFontFamilySemiLight}"
+                       Margin="9,-4,12,0"/>
+            <TextBlock x:Name="PathText" Text="" Tap="PathText_Tap" TextWrapping="Wrap" Visibility="Collapsed"
+                       Style="{StaticResource PhoneTextSubtleStyle}"/>
             <TextBox x:Name="PathBox" Visibility="Collapsed" InputScope="Url" KeyUp="PathBox_KeyUp" LostFocus="PathBox_LostFocus"/>
         </StackPanel>
 
@@ -30,12 +35,12 @@
             <TextBlock x:Name="StatusText" TextWrapping="Wrap" Foreground="{StaticResource PhoneSubtleBrush}"/>
             <ProgressBar x:Name="Busy" IsIndeterminate="False" Visibility="Collapsed"/>
             <StackPanel Orientation="Horizontal">
-                <Button x:Name="RetryButton" Content="start helper" Click="RetryButton_Click" Visibility="Collapsed"/>
-                <Button x:Name="CancelButton" Content="cancel" Click="CancelButton_Click" Visibility="Collapsed"/>
+                <Button x:Name="RetryButton" Content="start helper" Click="RetryButton_Click" Visibility="Collapsed" Margin="-12,0,0,0"/>
+                <Button x:Name="CancelButton" Content="cancel" Click="CancelButton_Click" Visibility="Collapsed" Margin="-12,0,0,0"/>
             </StackPanel>
         </StackPanel>
 
-        <ListBox x:Name="Items" Grid.Row="2" Margin="12,0,12,0" SelectionMode="Single"
+        <ListBox x:Name="Items" Grid.Row="2" Margin="0" SelectionMode="Single"
                  SelectionChanged="Items_SelectionChanged">
             <ListBox.ItemContainerStyle>
                 <Style TargetType="ListBoxItem">
@@ -44,15 +49,25 @@
             </ListBox.ItemContainerStyle>
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <Grid Margin="12,6,0,6" Opacity="{Binding ItemOpacity}" Hold="Item_Hold" Background="Transparent">
+                    <Grid Margin="12,6,12,6" Opacity="{Binding ItemOpacity}" Hold="Item_Hold" Background="Transparent" core:Metro.Tilt="True">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="56"/>
+                            <ColumnDefinition Width="60"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="{Binding Glyph}" FontFamily="Segoe UI Symbol" FontSize="36" VerticalAlignment="Center"/>
+                        <!-- one-color icons drawn in the theme's foreground -->
+                        <Grid Width="36" Height="36" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <Path Visibility="{Binding PlaceIcon}" Stroke="{StaticResource PhoneForegroundBrush}" StrokeThickness="2"
+                                  Data="M2,11 L34,11 L34,27 L2,27 Z M27,19 L29,19"/>
+                            <Path Visibility="{Binding FolderIcon}" Stroke="{StaticResource PhoneForegroundBrush}" StrokeThickness="2"
+                                  Data="M2,6 L13,6 L17,10 L34,10 L34,31 L2,31 Z"/>
+                            <Path Visibility="{Binding LinkIcon}" Stroke="{StaticResource PhoneForegroundBrush}" StrokeThickness="2"
+                                  Data="M9,26 L18,17 M12,17 L18,17 L18,23"/>
+                            <Path Visibility="{Binding FileIcon}" Stroke="{StaticResource PhoneForegroundBrush}" StrokeThickness="2"
+                                  Data="M7,2 L22,2 L30,10 L30,34 L7,34 Z M22,2 L22,10 L30,10"/>
+                        </Grid>
                         <StackPanel Grid.Column="1">
                             <TextBlock Text="{Binding Name}" FontSize="{StaticResource PhoneFontSizeMediumLarge}" TextTrimming="WordEllipsis"/>
-                            <TextBlock Text="{Binding SubText}" Foreground="{StaticResource PhoneSubtleBrush}" FontSize="{StaticResource PhoneFontSizeSmall}"/>
+                            <TextBlock Text="{Binding SubText}" Foreground="{StaticResource PhoneSubtleBrush}" FontSize="{StaticResource PhoneFontSizeNormal}" TextTrimming="WordEllipsis"/>
                         </StackPanel>
                     </Grid>
                 </DataTemplate>

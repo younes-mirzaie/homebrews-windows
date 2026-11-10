@@ -57,6 +57,7 @@ namespace RetroFiles
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
+            Metro.TurnstileIn(LayoutRoot);
             if (e.NavigationMode == NavigationMode.New)
             {
                 await StartHelperAsync();
@@ -160,8 +161,15 @@ namespace RetroFiles
                 if (id != _loadId) return;
                 ShowError(e);
             }
-            PathText.Text = _path ?? "places";
+            ShowTitle();
             BuildAppBar();
+        }
+
+        void ShowTitle()
+        {
+            PageTitle.Text = _path == null ? "places" : (_path.TrimEnd('\\').Length <= 2 ? _path.TrimEnd('\\') : FsItem.NameOf(_path));
+            PathText.Text = _path ?? "";
+            if (PathBox.Visibility != Visibility.Visible) PathText.Visibility = _path == null ? Visibility.Collapsed : Visibility.Visible;
         }
 
         async Task<List<FsItem>> LoadPlacesAsync()
@@ -264,6 +272,7 @@ namespace RetroFiles
             PathBox.Text = _path ?? @"C:\";
             PathBox.Visibility = Visibility.Visible;
             PathText.Visibility = Visibility.Collapsed;
+            PageTitle.Visibility = Visibility.Collapsed;
             PathBox.Focus();
             PathBox.SelectAll();
         }
@@ -271,7 +280,8 @@ namespace RetroFiles
         void HidePathBox()
         {
             PathBox.Visibility = Visibility.Collapsed;
-            PathText.Visibility = Visibility.Visible;
+            PageTitle.Visibility = Visibility.Visible;
+            ShowTitle();
         }
 
         async void PathBox_KeyUp(object sender, KeyEventArgs e)
@@ -356,7 +366,7 @@ namespace RetroFiles
                 bar.Buttons.Add(WebButton());
                 bar.MenuItems.Add(Menu("go to path...", (s, e) => PathText_Tap(null, null)));
                 bar.MenuItems.Add(Menu("new web password", NewWebPassword_Click));
-                if (Bookmarks.Count > 0) bar.MenuItems.Add(Menu("clear my bookmarks", (s, e) => { SaveBookmarks(new List<string>()); var _ = LoadAsync(null); }));
+                if (Bookmarks.Count > 0) bar.MenuItems.Add(Menu("clear favorites", (s, e) => { SaveBookmarks(new List<string>()); var _ = LoadAsync(null); }));
                 bar.MenuItems.Add(Menu("restart helper", RestartHelper_Click));
                 bar.MenuItems.Add(Menu("about", About_Click));
             }
@@ -369,13 +379,11 @@ namespace RetroFiles
                 bar.Buttons.Add(WebButton());
                 bar.MenuItems.Add(Menu("refresh", async (s, e) => await LoadAsync(_path, keepScroll: true)));
                 bar.MenuItems.Add(Menu("new text file", NewFile_Click));
-                bar.MenuItems.Add(Menu("go to path...", (s, e) => PathText_Tap(null, null)));
                 bar.MenuItems.Add(Menu("places", async (s, e) => await LoadAsync(null)));
-                bar.MenuItems.Add(Menu(Bookmarks.Contains(_path) ? "remove bookmark" : "bookmark this folder", Bookmark_Click));
+                bar.MenuItems.Add(Menu(Bookmarks.Contains(_path) ? "remove from favorites" : "add to favorites", Bookmark_Click));
                 bar.MenuItems.Add(Menu("sort: " + (_sort == SortBy.Name ? "name" : _sort == SortBy.Size ? "size" : "date") + " (change)", Sort_Click));
                 bar.MenuItems.Add(Menu(_showHidden ? "hide hidden/system items" : "show hidden/system items", Hidden_Click));
                 bar.MenuItems.Add(Menu("folder properties", (s, e) => { AppState.PropertiesPath = _path; NavigationService.Navigate(new Uri("/PropertiesPage.xaml", UriKind.Relative)); }));
-                if (AppState.Clipboard.Count > 0) bar.MenuItems.Add(Menu("clear clipboard", (s, e) => { AppState.Clipboard.Clear(); BuildAppBar(); }));
             }
             ApplicationBar = bar;
         }
@@ -503,7 +511,7 @@ namespace RetroFiles
                             "It listens on 127.0.0.1:" + RfxClient.Port + " only and needs this app's key.\n\n" +
                             "Helper: " + (_helperReady ? "running, version " + Client.ServerVersion : "not running") +
                             "\nHelper folder: " + HelperLauncher.HelperDir +
-                            "\n\nTips: tap the path to type one; press and hold an item to select.", "About File Explorer", MessageBoxButton.OK);
+                            "\n\nTips: tap the folder name to type a path; press and hold an item to select.", "About File Explorer", MessageBoxButton.OK);
         }
 
         // ---------- file operations ----------

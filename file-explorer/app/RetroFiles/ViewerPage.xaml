@@ -9,18 +9,20 @@
     Foreground="{StaticResource PhoneForegroundBrush}"
     SupportedOrientations="PortraitOrLandscape" Orientation="Portrait"
     shell:SystemTray.IsVisible="True">
-    <Grid>
+    <Grid x:Name="LayoutRoot">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <StackPanel Margin="24,8,24,8">
-            <TextBlock x:Name="TitleText" Style="{StaticResource PhoneTextNormalStyle}" Margin="0" TextTrimming="WordEllipsis"/>
+        <StackPanel Margin="24,17,24,12">
+            <TextBlock Text="FILE EXPLORER" Style="{StaticResource PhoneTextNormalStyle}" Margin="0"/>
+            <TextBlock x:Name="TitleText" FontSize="{StaticResource PhoneFontSizeExtraLarge}" FontFamily="{StaticResource PhoneFontFamilySemiLight}"
+                       Margin="-3,-4,0,0" TextTrimming="WordEllipsis"/>
             <TextBlock x:Name="InfoText" Foreground="{StaticResource PhoneSubtleBrush}" TextWrapping="Wrap" FontSize="{StaticResource PhoneFontSizeSmall}"/>
             <ProgressBar x:Name="Busy" IsIndeterminate="True" Visibility="Collapsed"/>
         </StackPanel>
         <!-- text and hex are line lists: a single huge TextBlock would be cut off at 2048 px -->
-        <ListBox x:Name="Lines" Grid.Row="1" Margin="12,0,0,0" SelectionChanged="Lines_SelectionChanged">
+        <ListBox x:Name="Lines" Grid.Row="1" Margin="24,0,0,0" SelectionChanged="Lines_SelectionChanged">
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <TextBlock Text="{Binding}" FontFamily="Courier New" FontSize="18" Margin="0,1"/>

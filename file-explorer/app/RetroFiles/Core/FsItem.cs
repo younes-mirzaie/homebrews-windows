@@ -28,15 +28,11 @@ namespace RetroFiles.Core
         public bool IsFolder { get { return (Attributes & FileAttr.Directory) != 0; } }
         public bool IsLink { get { return (Attributes & FileAttr.ReparsePoint) != 0; } }
 
-        public string Glyph
-        {
-            get
-            {
-                if (IsPlace) return "\U0001F4BE";            // floppy disk: drives and places
-                if (IsFolder) return IsLink ? "\U0001F517" : "\U0001F4C1";
-                return "\U0001F4C4";
-            }
-        }
+        // which one-color icon the list draws (drives and places, link, folder, file)
+        public Visibility PlaceIcon { get { return IsPlace ? Visibility.Visible : Visibility.Collapsed; } }
+        public Visibility FolderIcon { get { return !IsPlace && IsFolder ? Visibility.Visible : Visibility.Collapsed; } }
+        public Visibility LinkIcon { get { return !IsPlace && IsFolder && IsLink ? Visibility.Visible : Visibility.Collapsed; } }
+        public Visibility FileIcon { get { return !IsPlace && !IsFolder ? Visibility.Visible : Visibility.Collapsed; } }
 
         public string SubText
         {

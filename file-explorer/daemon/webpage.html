@@ -3,22 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lumia files</title>
+<title>File Explorer</title>
 <style>
-:root { --bg:#fff; --fg:#1a1a1a; --sub:#666; --line:#e4e4e4; --acc:#1b5e20; --hi:#eef6ee; --err:#b00020; }
-@media (prefers-color-scheme: dark) { :root { --bg:#141414; --fg:#eee; --sub:#999; --line:#2c2c2c; --acc:#66bb6a; --hi:#1d2a1d; --err:#ff6b6b; } }
-* { box-sizing: border-box; }
-body { margin:0; font:15px/1.4 "Segoe UI", system-ui, sans-serif; background:var(--bg); color:var(--fg); }
-header { position:sticky; top:0; background:var(--bg); border-bottom:1px solid var(--line); padding:10px 16px; z-index:2; }
-h1 { font-size:15px; margin:0 0 6px; color:var(--acc); font-weight:600; letter-spacing:.04em; }
-#crumbs { font-size:18px; word-break:break-all; }
+:root { --bg:#fff; --fg:rgba(0,0,0,.87); --sub:rgba(0,0,0,.45); --line:rgba(0,0,0,.27); --acc:#1BA1E2; --hi:rgba(27,161,226,.15); --err:#E51400; --chrome:#DDD; }
+@media (prefers-color-scheme: dark) { :root { --bg:#000; --fg:#fff; --sub:rgba(255,255,255,.6); --line:rgba(255,255,255,.4); --acc:#1BA1E2; --hi:rgba(27,161,226,.3); --err:#ff5a4a; --chrome:#1F1F1F; } }
+* { box-sizing: border-box; border-radius: 0; }
+body { margin:0; font:15px/1.4 "Segoe WP", "Segoe UI", "Selawik", "Open Sans", sans-serif; background:var(--bg); color:var(--fg); }
+header { position:sticky; top:0; background:var(--bg); padding:12px 24px; z-index:2; }
+h1 { font-size:15px; margin:0 0 6px; font-weight:600; letter-spacing:.02em; }
+#crumbs { font-size:32px; font-weight:300; line-height:1.2; word-break:break-all; }
 #crumbs a { color:var(--fg); text-decoration:none; } #crumbs a:hover { text-decoration:underline; }
-.bar { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
-button, .btn { font:inherit; padding:5px 12px; border:1px solid var(--line); background:var(--bg); color:var(--fg); border-radius:4px; cursor:pointer; }
+.bar { display:flex; flex-wrap:wrap; gap:12px; margin-top:12px; }
+button, .btn { font:inherit; font-weight:600; padding:4px 12px; border:2px solid var(--fg); background:transparent; color:var(--fg); cursor:pointer; transition:transform 100ms cubic-bezier(.1,.9,.2,1); }
+button:active:not(:disabled), .btn:active { background:var(--acc); border-color:var(--acc); color:#fff; transform:scale(.97); }
 button:hover:not(:disabled), .btn:hover { border-color:var(--acc); }
 button:disabled { opacity:.4; cursor:default; }
 button.danger { color:var(--err); }
-main { padding:0 16px 40px; }
+main { padding:0 24px 48px; }
 table { width:100%; border-collapse:collapse; }
 td, th { padding:7px 6px; border-bottom:1px solid var(--line); text-align:left; vertical-align:middle; }
 th { color:var(--sub); font-weight:normal; font-size:13px; cursor:pointer; user-select:none; }
@@ -28,32 +29,32 @@ td.s, td.m, th.s, th.m { color:var(--sub); white-space:nowrap; font-size:13px; }
 td.s, th.s { text-align:right; }
 .dim { opacity:.6; }
 .ico { width:22px; text-align:center; }
-#drop { position:fixed; inset:0; background:rgba(27,94,32,.15); border:3px dashed var(--acc); display:none; align-items:center; justify-content:center; font-size:22px; z-index:5; }
+#drop { position:fixed; inset:0; background:rgba(27,161,226,.15); border:3px dashed var(--acc); display:none; align-items:center; justify-content:center; font-size:22px; z-index:5; }
 #status { margin:10px 0; color:var(--sub); min-height:1.4em; white-space:pre-wrap; }
 #status.err { color:var(--err); }
 progress { width:100%; }
-@media (max-width:600px) { td.m, th.m { display:none; } }
+@media (max-width:600px) { td.m, th.m { display:none; } header { padding:12px 12px; } main { padding:0 12px 48px; } }
 </style>
 </head>
 <body>
 <header>
-  <h1>LUMIA FILES</h1>
+  <h1>FILE EXPLORER</h1>
   <div id="crumbs"></div>
   <div class="bar">
-    <button id="up">Up</button>
-    <label class="btn">Upload<input id="file" type="file" multiple hidden></label>
-    <button id="mkdir">New folder</button>
-    <button id="rename" disabled>Rename</button>
-    <button id="copy" disabled>Copy to...</button>
-    <button id="move" disabled>Move to...</button>
-    <button id="del" class="danger" disabled>Delete</button>
-    <button id="refresh">Refresh</button>
+    <button id="up">up</button>
+    <label class="btn">upload<input id="file" type="file" multiple hidden></label>
+    <button id="mkdir">new folder</button>
+    <button id="rename" disabled>rename</button>
+    <button id="copy" disabled>copy to...</button>
+    <button id="move" disabled>move to...</button>
+    <button id="del" class="danger" disabled>delete</button>
+    <button id="refresh">refresh</button>
   </div>
 </header>
 <main>
   <div id="status"></div>
   <table>
-    <thead><tr><th class="ico"><input type="checkbox" id="all"></th><th data-k="n">Name</th><th class="s" data-k="s">Size</th><th class="m" data-k="m">Modified</th></tr></thead>
+    <thead><tr><th class="ico"><input type="checkbox" id="all"></th><th data-k="n">name</th><th class="s" data-k="s">size</th><th class="m" data-k="m">modified</th></tr></thead>
     <tbody id="rows"></tbody>
   </table>
 </main>
@@ -94,7 +95,7 @@ async function go(p) {
 
 function render() {
   const c = $("crumbs"); c.innerHTML = "";
-  const home = document.createElement("a"); home.href = "#"; home.textContent = "phone"; home.onclick = e => { e.preventDefault(); go(null); }; c.append(home);
+  const home = document.createElement("a"); home.href = "#"; home.textContent = "places"; home.onclick = e => { e.preventDefault(); go(null); }; c.append(home);
   if (path) {
     const parts = path.replace(/\\+$/, "").split("\\"); let acc = "";
     parts.forEach((part, i) => {
@@ -111,7 +112,7 @@ function render() {
     const cb = path === null ? "" : '<input type="checkbox">';
     tr.innerHTML = '<td class="ico">' + cb + '</td><td class="n"></td><td class="s"></td><td class="m"></td>';
     const a = document.createElement("a");
-    a.textContent = (dir ? "\uD83D\uDCC1 " : "\uD83D\uDCC4 ") + it.n + (it.label ? "  \u2014 " + it.label : "");
+    a.textContent = it.n + (dir && !it.n.endsWith("\\") ? "\\" : "") + (it.label ? "  \u00b7 " + it.label : "");
     if (dir) { a.href = "#"; a.onclick = e => { e.preventDefault(); go(full); }; }
     else { a.href = "/dl" + q(full); }
     tr.children[1].append(a);

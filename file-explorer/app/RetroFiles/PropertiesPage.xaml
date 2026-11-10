@@ -9,19 +9,19 @@
     Foreground="{StaticResource PhoneForegroundBrush}"
     SupportedOrientations="PortraitOrLandscape" Orientation="Portrait"
     shell:SystemTray.IsVisible="True">
-    <ScrollViewer>
-        <StackPanel Margin="24,8,24,24">
-            <TextBlock Text="PROPERTIES" Style="{StaticResource PhoneTextNormalStyle}" Margin="0"/>
-            <TextBlock x:Name="NameText" FontSize="{StaticResource PhoneFontSizeExtraLarge}" FontFamily="{StaticResource PhoneFontFamilySemiLight}" TextWrapping="Wrap"/>
+    <ScrollViewer x:Name="LayoutRoot">
+        <StackPanel Margin="24,17,24,24">
+            <TextBlock Text="FILE EXPLORER" Style="{StaticResource PhoneTextNormalStyle}" Margin="0"/>
+            <TextBlock Text="properties" FontSize="{StaticResource PhoneFontSizeExtraExtraLarge}" FontFamily="{StaticResource PhoneFontFamilySemiLight}" Margin="-3,-8,0,12"/>
+            <TextBlock x:Name="NameText" FontSize="{StaticResource PhoneFontSizeLarge}" FontFamily="{StaticResource PhoneFontFamilySemiLight}" TextWrapping="Wrap"/>
             <TextBlock x:Name="InfoText" TextWrapping="Wrap" Margin="0,12,0,12" Foreground="{StaticResource PhoneSubtleBrush}"/>
-            <TextBlock Text="attributes" Style="{StaticResource PhoneTextLargeStyle}" Margin="0,12,0,0"/>
-            <CheckBox x:Name="ReadOnlyBox" Content="read-only"/>
-            <CheckBox x:Name="HiddenBox" Content="hidden"/>
-            <CheckBox x:Name="SystemBox" Content="system"/>
-            <CheckBox x:Name="ArchiveBox" Content="archive"/>
+            <TextBlock Text="attributes" FontSize="{StaticResource PhoneFontSizeLarge}" FontFamily="{StaticResource PhoneFontFamilySemiLight}" Margin="0,12,0,0"/>
+            <!-- changes apply as soon as a box is toggled -->
+            <CheckBox x:Name="ReadOnlyBox" Content="read-only" Margin="-12,0,0,0" Click="Attr_Click"/>
+            <CheckBox x:Name="HiddenBox" Content="hidden" Margin="-12,0,0,0" Click="Attr_Click"/>
+            <CheckBox x:Name="SystemBox" Content="system" Margin="-12,0,0,0" Click="Attr_Click"/>
+            <CheckBox x:Name="ArchiveBox" Content="archive" Margin="-12,0,0,0" Click="Attr_Click"/>
             <TextBlock x:Name="OtherAttrs" TextWrapping="Wrap" Foreground="{StaticResource PhoneSubtleBrush}"/>
-            <Button x:Name="ApplyButton" Content="apply attributes" Click="Apply_Click" HorizontalAlignment="Left"/>
-            <Button x:Name="SizeButton" Content="calculate folder size" Click="Size_Click" HorizontalAlignment="Left" Visibility="Collapsed"/>
             <TextBlock x:Name="StatusText" TextWrapping="Wrap" Margin="0,12,0,0"/>
         </StackPanel>
     </ScrollViewer>

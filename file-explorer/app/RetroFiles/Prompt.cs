@@ -16,13 +16,22 @@ namespace RetroFiles
             var popup = new Popup();
             var bar = page.ApplicationBar;
             var box = new TextBox { Text = initial ?? "", InputScope = new InputScope { Names = { new InputScopeName { NameValue = InputScopeNameValue.Text } } } };
-            var ok = new Button { Content = "ok", Width = 200 };
-            var cancel = new Button { Content = "cancel", Width = 200 };
-            var buttons = new StackPanel { Orientation = Orientation.Horizontal };
+            // two buttons split the width, like a message box
+            var ok = new Button { Content = "ok" };
+            var cancel = new Button { Content = "cancel" };
+            var buttons = new Grid();
+            buttons.ColumnDefinitions.Add(new ColumnDefinition());
+            buttons.ColumnDefinitions.Add(new ColumnDefinition());
+            Grid.SetColumn(cancel, 1);
             buttons.Children.Add(ok);
             buttons.Children.Add(cancel);
-            var panel = new StackPanel { Margin = new Thickness(12, 40, 12, 12) };
-            panel.Children.Add(new TextBlock { Text = title, FontSize = 32, Margin = new Thickness(12, 0, 12, 12) });
+            var panel = new StackPanel { Margin = new Thickness(12, 32, 12, 12) };
+            panel.Children.Add(new TextBlock
+            {
+                Text = title, Margin = new Thickness(12, 0, 12, 12),
+                FontSize = (double)Application.Current.Resources["PhoneFontSizeLarge"],
+                FontFamily = (FontFamily)Application.Current.Resources["PhoneFontFamilySemiBold"]
+            });
             panel.Children.Add(box);
             panel.Children.Add(buttons);
             var root = new Border
@@ -48,6 +57,7 @@ namespace RetroFiles
             page.BackKeyPress += back;
             if (bar != null) bar.IsVisible = false;
             popup.IsOpen = true;
+            RetroFiles.Core.Metro.SwivelIn(root);
             box.Focus();
             // select the name without its extension, like Explorer
             int dot = box.Text.LastIndexOf('.');

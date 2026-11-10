@@ -42,9 +42,10 @@ namespace RetroFiles
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
+            Metro.TurnstileIn(LayoutRoot);
             if (e.NavigationMode == NavigationMode.Back && _data != null) return;
             _path = AppState.ViewerPath;
-            TitleText.Text = FsItem.NameOf(_path).ToUpperInvariant();
+            TitleText.Text = FsItem.NameOf(_path);
             string ext = System.IO.Path.GetExtension(_path).ToLowerInvariant();
             try
             {

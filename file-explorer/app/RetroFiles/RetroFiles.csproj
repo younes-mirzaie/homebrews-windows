@@ -53,6 +53,7 @@
     <Compile Include="Core\FsItem.cs" />
     <Compile Include="Core\HelperLauncher.cs" />
     <Compile Include="Core\LineSocket.cs" />
+    <Compile Include="Core\Metro.cs" />
     <Compile Include="Core\RfxClient.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

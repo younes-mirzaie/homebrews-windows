@@ -121,7 +121,7 @@ check('web needs password', st == 401)
 st, _ = web('/', pw='wrong')
 check('web rejects wrong password', st == 401)
 st, body = web('/')
-check('web page served', st == 200 and b'LUMIA FILES' in body)
+check('web page served', st == 200 and b'FILE EXPLORER' in body)
 wd = work + '\\w'
 st, _ = web('/api/mkdir?p=' + quote(wd), 'POST', b'')
 check('web mkdir', st == 200)

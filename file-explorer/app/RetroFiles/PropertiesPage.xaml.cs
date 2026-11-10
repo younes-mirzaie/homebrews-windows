@@ -4,6 +4,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
+using Microsoft.Phone.Shell;
 using RetroFiles.Core;
 
 namespace RetroFiles
@@ -18,6 +19,7 @@ namespace RetroFiles
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
+            Metro.TurnstileIn(LayoutRoot);
             _path = AppState.PropertiesPath;
             NameText.Text = FsItem.NameOf(_path);
             try
@@ -49,10 +51,20 @@ namespace RetroFiles
             if ((_stat.Attributes & FileAttr.Offline) != 0) other.Add("offline");
             if ((_stat.Attributes & FileAttr.NotContentIndexed) != 0) other.Add("not indexed");
             OtherAttrs.Text = other.Count > 0 ? "also: " + string.Join(", ", other) + "  (0x" + ((uint)_stat.Attributes).ToString("x") + ")" : "";
-            SizeButton.Visibility = folder ? Visibility.Visible : Visibility.Collapsed;
+            BuildAppBar(folder);
         }
 
-        async void Apply_Click(object sender, RoutedEventArgs e)
+        void BuildAppBar(bool folder)
+        {
+            if (!folder) { ApplicationBar = null; return; }
+            var bar = new ApplicationBar { Mode = ApplicationBarMode.Minimized };
+            var size = new ApplicationBarMenuItem("calculate folder size");
+            size.Click += Size_Click;
+            bar.MenuItems.Add(size);
+            ApplicationBar = bar;
+        }
+
+        async void Attr_Click(object sender, RoutedEventArgs e)
         {
             if (_stat == null) return;
             var a = _stat.Attributes & ~(FileAttr.ReadOnly | FileAttr.Hidden | FileAttr.System | FileAttr.Archive | FileAttr.Directory);
@@ -62,7 +74,10 @@ namespace RetroFiles
             if (ArchiveBox.IsChecked == true) a |= FileAttr.Archive;
             if (AppState.IsSystemArea(_path) &&
                 MessageBox.Show("This is a system area. Changing attributes here can break things. Continue?", "System area", MessageBoxButton.OKCancel) != MessageBoxResult.OK)
+            {
+                Show();   // put the box back
                 return;
+            }
             try
             {
                 await AppState.Client.SetAttributesAsync(_path, a);
@@ -71,12 +86,15 @@ namespace RetroFiles
                 StatusText.Text = "attributes saved";
                 AppState.FolderChanged = true;
             }
-            catch (Exception ex) { StatusText.Text = ex.Message; }
+            catch (Exception ex) { Show(); StatusText.Text = ex.Message; }
         }
 
-        async void Size_Click(object sender, RoutedEventArgs e)
+        bool _measuring;
+
+        async void Size_Click(object sender, EventArgs e)
         {
-            SizeButton.IsEnabled = false;
+            if (_measuring) return;
+            _measuring = true;
             StatusText.Text = "measuring...";
             try
             {
@@ -85,7 +103,7 @@ namespace RetroFiles
                 StatusText.Text = "contents: " + FsItem.FormatSize(b) + " (" + b.ToString("N0") + " bytes), " + r[2] + " files, " + r[3] + " folders";
             }
             catch (Exception ex) { StatusText.Text = ex.Message; }
-            SizeButton.IsEnabled = true;
+            _measuring = false;
         }
     }
 }
