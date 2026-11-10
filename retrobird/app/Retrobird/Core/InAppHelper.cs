@@ -80,8 +80,11 @@ namespace Retrobird.Core
             try
             {
                 Directory.CreateDirectory(DataDir);
-                File.AppendAllText(Path.Combine(DataDir, "app.log"),
-                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " " + line + "\r\n");
+                // (WP 8.1 Silverlight has no File.AppendAllText)
+                using (var fs = new FileStream(Path.Combine(DataDir, "app.log"), FileMode.Append,
+                                               FileAccess.Write, FileShare.ReadWrite))
+                using (var w = new StreamWriter(fs, new UTF8Encoding(false)))
+                    w.Write(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " " + line + "\r\n");
             }
             catch { }
         }
