@@ -100,7 +100,7 @@ namespace Retrobird.Core
             if (f[0] == "OK") return f;
             if (f[0] == "ERR")
             {
-                var e = new MailException(F(f, 1), F(f, 2).Length > 0 ? F(f, 2) : "the mail helper reported an error");
+                var e = new MailException(F(f, 1), F(f, 2).Length > 0 ? F(f, 2) : "the mail engine couldn't finish that");
                 if (e.Code == "CERT") { e.Fingerprint = F(f, 3); e.Side = F(f, 4); }
                 throw e;
             }

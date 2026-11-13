@@ -20,6 +20,8 @@ namespace Retrobird.Core
         /// <summary>Where the app password is made, opened from the account page.</summary>
         public string AppPasswordUrl;
 
+        /// <summary>The name, for binding (bindings need a property).</summary>
+        public string Title { get { return Name; } }
         /// <summary>Shown under the name in the list.</summary>
         public string Hint { get { return Works ? string.Join(", ", Domains) : "not supported yet"; } }
         public double ItemOpacity { get { return Works ? 1.0 : 0.5; } }

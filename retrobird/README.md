@@ -37,7 +37,7 @@ See [PROTOCOL.md](PROTOCOL.md).
 |---|---|
 | `helper/` | rbmaild: `imap.c`, `smtp.c`, `mime.c`, `codec.c` (charsets, HTML sanitizer), `net.c` (NSS TLS, pinning, secrets), `store.c` (cache), `server.c` |
 | `helper/test/` | `mimetest.c` (62 unit checks), `test_rbmaild.py` (82 checks against Dovecot and a fake SMTP server), `run-tests.sh` |
-| `app/Retrobird/` | Silverlight 8.1 app; `Core/` holds the protocol client and models, testable on Mono |
+| `app/Retrobird/` | Windows Phone 8.1 app (WinRT XAML, like Retrofox: Silverlight apps can't load native DLLs); `Core/` holds the protocol client and models, testable on Mono |
 | `app/tests/ClientTest.cs` | 20 checks of the C# client against a live helper; `InProcessTest.cs` runs them with the helper loaded as a library in the same process |
 | `app/art/`, `app/tools/render-art.js` | Younes's Retrobird art (SVG) and the script that renders the tile, icon, store logo and splash PNGs; `make-icons.py` draws the app bar icons |
 
@@ -46,7 +46,7 @@ See [PROTOCOL.md](PROTOCOL.md).
 `.\build.ps1` builds rbmail.dll with the retrofox ARM toolchain and NSS build (`C:\rfx\obj-nss`,
 see retrofox notes/step2-nss.md), copies it with `nssckbi.dll` and the NSPR DLLs into
 `app\Retrobird\Helper`, builds the app with VS 2015 (MSBuild 14) and installs it on the
-USB-connected phone. `-NoDeploy` builds only; the .xap can also go through the rfxdev portal.
+USB-connected phone. `-NoDeploy` builds only; the .appx can also go through the rfxdev portal or Unesbrews.
 
 ## Testing without a phone (Linux)
 

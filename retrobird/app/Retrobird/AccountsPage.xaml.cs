@@ -1,15 +1,15 @@
-// Accounts (tap one to show its mail, "edit" to change it) and the app settings.
+// Settings: the accounts (tap one to show its mail, "edit" to change it), how often to check for
+// mail, pictures, and about. Settings apply at once.
 using System;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Navigation;
-using Microsoft.Phone.Controls;
-using Microsoft.Phone.Shell;
+using System.Threading.Tasks;
 using Retrobird.Core;
+using Windows.UI.Xaml;
+using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Navigation;
 
 namespace Retrobird
 {
-    public partial class AccountsPage : PhoneApplicationPage
+    public sealed partial class AccountsPage : RbPage
     {
         static readonly int[] Intervals = { 5, 15, 30, 60, 0 };
         bool _init;
@@ -23,13 +23,13 @@ namespace Retrobird
         {
             base.OnNavigatedTo(e);
             _init = true;
-            ImagesBox.IsChecked = AppState.LoadImages;
+            ImagesSwitch.IsOn = AppState.LoadImages;
             _init = false;
             ShowInterval();
             await Refresh();
         }
 
-        async System.Threading.Tasks.Task Refresh()
+        async Task Refresh()
         {
             try
             {
@@ -38,15 +38,12 @@ namespace Retrobird
                 Items.ItemsSource = AppState.Accounts;
                 var v = await AppState.Client.PingAsync();
                 AboutText.Text = "Retrobird " + AppVersion() + " · mail engine " + v +
-                                 "\nMail is kept in the app's own storage. Everything runs inside the app.";
+                                 "\nYour mail is kept in Retrobird's own storage, and everything runs inside the app.";
             }
             catch (Exception ex) { AboutText.Text = Ui.Describe(ex); }
         }
 
-        void LicensesButton_Click(object sender, RoutedEventArgs e)
-        {
-            NavigationService.Navigate(new Uri("/LicensePage.xaml", UriKind.Relative));
-        }
+        void LicensesButton_Click(object sender, RoutedEventArgs e) { Go("/LicensePage.xaml"); }
 
         static string AppVersion()
         {
@@ -57,7 +54,7 @@ namespace Retrobird
         void ShowInterval()
         {
             int m = AppState.SyncMinutes;
-            SyncButton.Content = m == 0 ? "off" : m < 60 ? "every " + m + " minutes" : "every hour";
+            SyncButton.Content = m == 0 ? "only when I ask" : m < 60 ? "every " + m + " minutes" : "every hour";
         }
 
         async void SyncButton_Click(object sender, RoutedEventArgs e)
@@ -66,32 +63,28 @@ namespace Retrobird
             AppState.SyncMinutes = Intervals[(i + 1) % Intervals.Length];
             ShowInterval();
             try { await AppState.Client.SetSyncMinutesAsync(AppState.SyncMinutes); }
-            catch (Exception ex) { Ui.Error(ex); }
+            catch (Exception ex) { await Ui.ErrorAsync(ex); }
         }
 
-        void ImagesBox_Changed(object sender, RoutedEventArgs e)
+        void ImagesSwitch_Toggled(object sender, RoutedEventArgs e)
         {
-            if (!_init) AppState.LoadImages = ImagesBox.IsChecked == true;
+            if (!_init) AppState.LoadImages = ImagesSwitch.IsOn;
         }
 
-        void Account_Tap(object sender, System.Windows.Input.GestureEventArgs e)
+        void Items_ItemClick(object sender, ItemClickEventArgs e)
         {
-            var a = (sender as FrameworkElement).Tag as AccountInfo;
+            var a = e.ClickedItem as AccountInfo;
             if (a == null) return;
             if (a.Id != AppState.CurrentAccountId) AppState.SelectAccount(a);
-            if (NavigationService.CanGoBack) NavigationService.GoBack();
+            GoBack();
         }
 
-        void Edit_Tap(object sender, System.Windows.Input.GestureEventArgs e)
+        void Edit_Click(object sender, RoutedEventArgs e)
         {
-            e.Handled = true;   // not a tap on the account row
             var a = (sender as FrameworkElement).Tag as AccountInfo;
-            if (a != null) NavigationService.Navigate(new Uri("/AccountEditPage.xaml?id=" + a.Id, UriKind.Relative));
+            if (a != null) Go("/AccountEditPage.xaml?id=" + Uri.EscapeDataString(a.Id));
         }
 
-        void Add_Click(object sender, RoutedEventArgs e)
-        {
-            NavigationService.Navigate(new Uri("/ProviderPage.xaml", UriKind.Relative));
-        }
+        void Add_Click(object sender, RoutedEventArgs e) { Go("/ProviderPage.xaml"); }
     }
 }

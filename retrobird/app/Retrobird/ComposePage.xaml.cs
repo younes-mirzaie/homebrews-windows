@@ -1,26 +1,24 @@
 // Writing a message: new, reply, reply all or forward (AppState.PendingDraft fills it in).
 using System;
-using System.ComponentModel;
-using System.Windows;
-using System.Windows.Navigation;
-using Microsoft.Phone.Controls;
-using Microsoft.Phone.Shell;
+using System.Threading.Tasks;
 using Retrobird.Core;
+using Windows.UI.Xaml;
+using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Navigation;
 
 namespace Retrobird
 {
-    public partial class ComposePage : PhoneApplicationPage
+    public sealed partial class ComposePage : RbPage
     {
         Draft _draft;
         bool _sending, _sent;
-        ApplicationBarIconButton _send;
+        AppBarButton _send;
 
         public ComposePage()
         {
             InitializeComponent();
-            ApplicationBar = new ApplicationBar();
-            _send = Ui.Button(ApplicationBar, "send", "send", async (s, e) => await Send());
-            Ui.Button(ApplicationBar, "cc", "cc/bcc", (s, e) => CcPanel.Visibility = Visibility.Visible);
+            _send = Ui.Button(this, Symbol.Send, "send", async (s, e) => await Send());
+            Ui.Button(this, Symbol.People, "cc/bcc", (s, e) => CcPanel.Visibility = Visibility.Visible);
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -37,39 +35,52 @@ namespace Retrobird
             if (CcBox.Text.Length > 0 || BccBox.Text.Length > 0) CcPanel.Visibility = Visibility.Visible;
             SubjectBox.Text = _draft.Subject ?? "";
             BodyBox.Text = _draft.Body ?? "";
-            Dispatcher.BeginInvoke(() =>
+            Loaded += (s, a) =>
             {
-                if (ToBox.Text.Length == 0) ToBox.Focus();
-                else { BodyBox.Focus(); BodyBox.Select(0, 0); }   // replies: type above the quote
-            });
+                if (ToBox.Text.Length == 0) ToBox.Focus(FocusState.Programmatic);
+                else { BodyBox.Focus(FocusState.Programmatic); BodyBox.Select(0, 0); }   // replies: type above the quote
+            };
         }
+
+        // the text box keeps line breaks as \r
+        static string N(string s) { return (s ?? "").Replace("\r\n", "\n").Replace('\r', '\n'); }
 
         bool Changed
         {
             get
             {
-                return ToBox.Text != (_draft.To ?? "") || CcBox.Text != (_draft.Cc ?? "") || BccBox.Text != (_draft.Bcc ?? "") ||
-                       SubjectBox.Text != (_draft.Subject ?? "") || BodyBox.Text != (_draft.Body ?? "");
+                return N(ToBox.Text) != N(_draft.To) || N(CcBox.Text) != N(_draft.Cc) || N(BccBox.Text) != N(_draft.Bcc) ||
+                       N(SubjectBox.Text) != N(_draft.Subject) || N(BodyBox.Text) != N(_draft.Body);
             }
         }
 
-        protected override void OnBackKeyPress(CancelEventArgs e)
+        public override bool HandleBack()
         {
-            base.OnBackKeyPress(e);
-            if (_sending) { e.Cancel = true; return; }
-            if (!_sent && Changed && !Ui.Confirm("Discard this message?", "new message")) e.Cancel = true;
+            if (_sending) return true;
+            if (_sent || !Changed) return false;
+            AskDiscard();
+            return true;
         }
 
-        async System.Threading.Tasks.Task Send()
+        async void AskDiscard()
+        {
+            if (await Ui.ConfirmAsync("Discard this message?", "new message"))
+            {
+                _sent = true;   // nothing left to keep
+                GoBack();
+            }
+        }
+
+        async Task Send()
         {
             var acct = AppState.CurrentAccount;
             if (acct == null || _sending) return;
             if (ToBox.Text.Trim().Length == 0 && CcBox.Text.Trim().Length == 0 && BccBox.Text.Trim().Length == 0)
             {
-                MessageBox.Show("Add at least one recipient.", "new message", MessageBoxButton.OK);
+                await Ui.AlertAsync("Add at least one person to send it to.", "new message");
                 return;
             }
-            if (SubjectBox.Text.Trim().Length == 0 && !Ui.Confirm("Send without a subject?", "new message")) return;
+            if (SubjectBox.Text.Trim().Length == 0 && !await Ui.ConfirmAsync("Send without a subject?", "new message")) return;
             var d = new Draft
             {
                 To = ToBox.Text, Cc = CcBox.Text, Bcc = BccBox.Text, Subject = SubjectBox.Text,
@@ -79,21 +90,21 @@ namespace Retrobird
             };
             _sending = true;
             _send.IsEnabled = false;
-            Ui.Busy(this, "sending");
+            Busy("sending");
             try
             {
                 var warning = await AppState.Client.SendAsync(acct.Id, d);
                 _sent = true;
                 AppState.ListDirty = true;
-                if (!string.IsNullOrEmpty(warning)) MessageBox.Show(warning, "sent", MessageBoxButton.OK);
-                if (NavigationService.CanGoBack) NavigationService.GoBack();
+                if (!string.IsNullOrEmpty(warning)) await Ui.AlertAsync(warning, "sent");
+                GoBack();
             }
-            catch (Exception ex) { Ui.Error(ex, "not sent"); }
+            catch (Exception ex) { await Ui.ErrorAsync(ex, "not sent"); }
             finally
             {
                 _sending = false;
                 _send.IsEnabled = true;
-                Ui.Busy(this, null);
+                Busy(null);
             }
         }
     }

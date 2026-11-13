@@ -3,8 +3,9 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-#if WINDOWS_PHONE
-using System.Windows;
+#if WINDOWS_PHONE_APP
+using Windows.UI.Text;
+using Windows.UI.Xaml;
 #endif
 
 namespace Retrobird.Core
@@ -70,7 +71,7 @@ namespace Retrobird.Core
         {
             get { return _flags; }
             set { _flags = value ?? ""; Changed("Flags"); Changed("IsUnread"); Changed("Glyphs");
-#if WINDOWS_PHONE
+#if WINDOWS_PHONE_APP
                   Changed("UnreadVisibility"); Changed("SenderWeight");
 #endif
             }
@@ -95,7 +96,7 @@ namespace Retrobird.Core
                 return s.TrimEnd();
             }
         }
-#if WINDOWS_PHONE
+#if WINDOWS_PHONE_APP
         public Visibility UnreadVisibility { get { return IsUnread ? Visibility.Visible : Visibility.Collapsed; } }
         public FontWeight SenderWeight { get { return IsUnread ? FontWeights.SemiBold : FontWeights.Normal; } }
 #endif

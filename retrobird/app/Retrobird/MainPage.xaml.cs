@@ -4,16 +4,17 @@ using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Navigation;
-using Microsoft.Phone.Controls;
-using Microsoft.Phone.Shell;
 using Retrobird.Core;
+using Windows.Data.Xml.Dom;
+using Windows.UI.Notifications;
+using Windows.UI.Xaml;
+using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Input;
+using Windows.UI.Xaml.Navigation;
 
 namespace Retrobird
 {
-    public partial class MainPage : PhoneApplicationPage
+    public sealed partial class MainPage : RbPage
     {
         const int PageSize = 50;
         static bool _settingsSent;
@@ -26,14 +27,11 @@ namespace Retrobird
         {
             InitializeComponent();
             Items.ItemsSource = _items;
-            ApplicationBar = new ApplicationBar();
-            Ui.Button(ApplicationBar, "add", "new", (s, e) => Compose());
-            Ui.Button(ApplicationBar, "refresh", "check", async (s, e) => await SyncNow(true));
-            Ui.Button(ApplicationBar, "folder", "folders", (s, e) => Go("/FoldersPage.xaml"));
-            Ui.Menu(ApplicationBar, "accounts and settings", (s, e) => Go("/AccountsPage.xaml"));
+            Ui.Button(this, Symbol.Add, "new", (s, e) => Compose());
+            Ui.Button(this, Symbol.Refresh, "check", async (s, e) => await SyncNow(true));
+            Ui.Button(this, Symbol.Folder, "folders", (s, e) => Go("/FoldersPage.xaml"));
+            Ui.Menu(this, "settings", (s, e) => Go("/AccountsPage.xaml"));
         }
-
-        void Go(string page) { NavigationService.Navigate(new Uri(page, UriKind.Relative)); }
 
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
@@ -62,7 +60,7 @@ namespace Retrobird
         {
             if (_busy) return;
             _busy = true;
-            Ui.Busy(this, "starting");
+            Busy("starting");
             try
             {
                 await AppState.Client.EnsureAsync();
@@ -77,12 +75,12 @@ namespace Retrobird
             catch (Exception ex)
             {
                 _busy = false;
-                Ui.Busy(this, null);
+                Busy(null);
                 ShowEmpty(Ui.Describe(ex), true);
                 return;
             }
             _busy = false;
-            Ui.Busy(this, null);
+            Busy(null);
             var acct = AppState.CurrentAccount;
             if (acct == null)
             {
@@ -92,7 +90,7 @@ namespace Retrobird
             if (AppState.CurrentAccountId != acct.Id) AppState.SelectAccount(acct);
             EmptyPanel.Visibility = Visibility.Collapsed;
             Items.Visibility = Visibility.Visible;
-            ApplicationBar.IsVisible = true;
+            BottomAppBar.Visibility = Visibility.Visible;
             AccountText.Text = "RETROBIRD · " + acct.Title.ToUpperInvariant();
             FolderText.Text = AppState.CurrentFolderLabel;
             _listKey = acct.Id + "/" + AppState.CurrentFolder;
@@ -108,7 +106,7 @@ namespace Retrobird
             AddButton.Visibility = retry ? Visibility.Collapsed : Visibility.Visible;
             RetryButton.Visibility = retry ? Visibility.Visible : Visibility.Collapsed;
             Items.Visibility = Visibility.Collapsed;
-            ApplicationBar.IsVisible = !retry;
+            BottomAppBar.Visibility = retry ? Visibility.Collapsed : Visibility.Visible;
             AccountText.Text = "RETROBIRD";
             FolderText.Text = "welcome";
         }
@@ -145,7 +143,7 @@ namespace Retrobird
             var acct = AppState.CurrentAccount;
             if (acct == null || _busy) return;
             _busy = true;
-            Ui.Busy(this, "checking for mail");
+            Busy("checking for mail");
             try
             {
                 var r = await AppState.Client.SyncAsync(acct.Id, AppState.CurrentFolder);
@@ -160,18 +158,22 @@ namespace Retrobird
             finally
             {
                 _busy = false;
-                Ui.Busy(this, null);
+                Busy(null);
             }
         }
 
+        /// <summary>The unread count on the tile (the system draws it in the accent color).</summary>
         static void UpdateTile(int unread)
         {
             try
             {
-                var tile = ShellTile.ActiveTiles.FirstOrDefault();
-                if (tile != null) tile.Update(new FlipTileData { Count = unread });
+                var updater = BadgeUpdateManager.CreateBadgeUpdaterForApplication();
+                if (unread <= 0) { updater.Clear(); return; }
+                var xml = BadgeUpdateManager.GetTemplateContent(BadgeTemplateType.BadgeNumber);
+                ((XmlElement)xml.SelectSingleNode("/badge")).SetAttribute("value", Math.Min(unread, 99).ToString());
+                updater.Update(new BadgeNotification(xml));
             }
-            catch { }
+            catch (Exception) { }
         }
 
         async void MoreButton_Click(object sender, RoutedEventArgs e)
@@ -180,30 +182,29 @@ namespace Retrobird
             if (acct == null || _busy) return;
             _shown += PageSize;
             _busy = true;
-            Ui.Busy(this, "loading older messages");
+            Busy("loading older messages");
             try
             {
                 var list = await AppState.Client.ListAsync(acct.Id, AppState.CurrentFolder, 0, 0);
                 if (list.Cached < _shown) await AppState.Client.MoreAsync(acct.Id, AppState.CurrentFolder, _shown - list.Cached);
             }
             catch (Exception ex) { Status(Ui.Describe(ex)); }
-            finally { _busy = false; Ui.Busy(this, null); }
+            finally { _busy = false; Busy(null); }
             await LoadFromCache();
         }
 
-        void Items_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        void Items_ItemClick(object sender, ItemClickEventArgs e)
         {
-            var m = Items.SelectedItem as MessageSummary;
+            var m = e.ClickedItem as MessageSummary;
             if (m == null) return;
-            Items.SelectedItem = null;
             if (AppState.CurrentFolderRole == "drafts")
             {
                 // drafts open as a new message with the draft's text
                 OpenDraft(m);
                 return;
             }
-            if (m.IsUnread) m.Flags += "S";   // the helper marks it read when it opens
-            Go("/MessagePage.xaml?uid=" + m.Uid + "&f=" + m.Flags);
+            if (m.IsUnread) m.Flags += "S";   // the engine marks it read when it opens
+            Go("/MessagePage.xaml?uid=" + m.Uid + "&f=" + Uri.EscapeDataString(m.Flags));
         }
 
         async void OpenDraft(MessageSummary m)
@@ -211,13 +212,13 @@ namespace Retrobird
             var acct = AppState.CurrentAccount;
             try
             {
-                Ui.Busy(this, "opening draft");
+                Busy("opening draft");
                 var v = await AppState.Client.GetMessageAsync(acct.Id, AppState.CurrentFolder, m.Uid, false);
                 AppState.PendingDraft = new Draft { To = v.To ?? "", Cc = v.Cc ?? "", Subject = v.Subject ?? "", Body = v.Text ?? "" };
                 Go("/ComposePage.xaml");
             }
-            catch (Exception ex) { Ui.Error(ex); }
-            finally { Ui.Busy(this, null); }
+            catch (Exception ex) { var unused = Ui.ErrorAsync(ex); }
+            finally { Busy(null); }
         }
 
         void Compose()
@@ -227,14 +228,14 @@ namespace Retrobird
             Go("/ComposePage.xaml");
         }
 
-        void FolderText_Tap(object sender, System.Windows.Input.GestureEventArgs e)
+        void FolderText_Tapped(object sender, TappedRoutedEventArgs e)
         {
             if (AppState.CurrentAccount != null) Go("/FoldersPage.xaml");
         }
 
-        void AccountText_Tap(object sender, System.Windows.Input.GestureEventArgs e) { Go("/AccountsPage.xaml"); }
+        void AccountText_Tapped(object sender, TappedRoutedEventArgs e) { Go("/AccountsPage.xaml"); }
 
-        void StatusText_Tap(object sender, System.Windows.Input.GestureEventArgs e)
+        void StatusText_Tapped(object sender, TappedRoutedEventArgs e)
         {
             var acct = AppState.CurrentAccount;
             if (acct != null && !acct.HasPassword) Go("/AccountEditPage.xaml?id=" + acct.Id);

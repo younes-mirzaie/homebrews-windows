@@ -2,15 +2,14 @@
 // for "move to..." instead of switching the list.
 using System;
 using System.Linq;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Navigation;
-using Microsoft.Phone.Controls;
 using Retrobird.Core;
+using Windows.UI.Xaml;
+using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Navigation;
 
 namespace Retrobird
 {
-    public partial class FoldersPage : PhoneApplicationPage
+    public sealed partial class FoldersPage : RbPage
     {
         bool _pick, _loaded;
 
@@ -22,19 +21,19 @@ namespace Retrobird
             if (_loaded) return;
             _loaded = true;
             string p;
-            _pick = NavigationContext.QueryString.TryGetValue("pick", out p) && p == "1";
+            _pick = Query.TryGetValue("pick", out p) && p == "1";
             var acct = AppState.CurrentAccount;
             if (acct == null) return;
             AccountText.Text = "RETROBIRD · " + acct.Title.ToUpperInvariant();
             TitleText.Text = _pick ? "move to" : "folders";
-            Ui.Busy(this, "getting folders");
+            Busy("getting folders");
             try
             {
                 var list = await AppState.Client.GetFoldersAsync(acct.Id);
                 Items.ItemsSource = _pick ? list.Folders.Where(f => !f.NoSelect && f.Name != AppState.CurrentFolder).ToList() : list.Folders;
                 if (!list.Online)
                 {
-                    StatusText.Text = "Offline: " + list.Error;
+                    StatusText.Text = "Can't reach the server, so these are the folders saved on the phone. " + list.Error;
                     StatusText.Visibility = Visibility.Visible;
                 }
             }
@@ -43,15 +42,13 @@ namespace Retrobird
                 StatusText.Text = Ui.Describe(ex);
                 StatusText.Visibility = Visibility.Visible;
             }
-            finally { Ui.Busy(this, null); }
+            finally { Busy(null); }
         }
 
-        void Items_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        void Items_ItemClick(object sender, ItemClickEventArgs e)
         {
-            var f = Items.SelectedItem as FolderInfo;
-            if (f == null) return;
-            Items.SelectedItem = null;
-            if (f.NoSelect) return;
+            var f = e.ClickedItem as FolderInfo;
+            if (f == null || f.NoSelect) return;
             if (_pick) AppState.PickedFolder = f;
             else
             {
@@ -59,7 +56,7 @@ namespace Retrobird
                 AppState.CurrentFolderLabel = f.Label.Trim();
                 AppState.CurrentFolderRole = f.Role;
             }
-            if (NavigationService.CanGoBack) NavigationService.GoBack();
+            GoBack();
         }
     }
 }

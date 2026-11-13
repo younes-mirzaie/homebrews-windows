@@ -1,48 +1,46 @@
-// First step of adding an account: pick a known mail service (its servers are filled in) or
-// "other". The account page then only asks for the address and an app password.
+// First step of adding an account: choose a known mail service (its servers are filled in) or
+// "other mail service". The account page then only asks for the address and an app password.
 using System;
-using System.Windows;
-using System.Windows.Input;
-using Microsoft.Phone.Controls;
+using System.Collections.Generic;
 using Retrobird.Core;
+using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Navigation;
 
 namespace Retrobird
 {
-    public partial class ProviderPage : PhoneApplicationPage
+    public sealed partial class ProviderPage : RbPage
     {
+        static readonly Provider Other = new Provider { Name = "other mail service", Domains = new[] { "any service with IMAP and SMTP" } };
+
         public ProviderPage()
         {
             InitializeComponent();
-            Items.ItemsSource = Provider.All;
+            var list = new List<Provider>(Provider.All);
+            list.Add(Other);
+            Items.ItemsSource = list;
         }
 
-        void Provider_Tap(object sender, GestureEventArgs e)
+        async void Items_ItemClick(object sender, ItemClickEventArgs e)
         {
-            var p = (sender as FrameworkElement).Tag as Provider;
+            var p = e.ClickedItem as Provider;
             if (p == null) return;
+            if (p == Other) { Go("/AccountEditPage.xaml"); return; }
             if (!p.Works)
             {
-                MessageBox.Show(p.Note, p.Name, MessageBoxButton.OK);
+                await Ui.AlertAsync(p.Note, p.Name);
                 return;
             }
-            Open("/AccountEditPage.xaml?provider=" + Uri.EscapeDataString(p.Name));
+            Go("/AccountEditPage.xaml?provider=" + Uri.EscapeDataString(p.Name));
         }
 
-        void Other_Tap(object sender, GestureEventArgs e) { Open("/AccountEditPage.xaml"); }
-
-        void Open(string uri)
-        {
-            NavigationService.Navigate(new Uri(uri, UriKind.Relative));
-        }
-
-        protected override void OnNavigatedTo(System.Windows.Navigation.NavigationEventArgs e)
+        protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
             // once the account is saved, the edit page goes back here: skip this page too
-            if (e.NavigationMode == System.Windows.Navigation.NavigationMode.Back && AppState.AccountAdded)
+            if (e.NavigationMode == NavigationMode.Back && AppState.AccountAdded)
             {
                 AppState.AccountAdded = false;
-                if (NavigationService.CanGoBack) NavigationService.GoBack();
+                var unused = Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, GoBack);
             }
         }
     }

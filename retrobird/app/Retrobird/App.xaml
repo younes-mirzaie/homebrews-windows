@@ -1,10 +1,69 @@
 <Application
     x:Class="Retrobird.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone">
-    <Application.Resources></Application.Resources>
-    <Application.ApplicationLifetimeObjects>
-        <shell:PhoneApplicationService/>
-    </Application.ApplicationLifetimeObjects>
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Metro on Windows Phone 8.1 (WinRT): sizes are view pixels, the Silverlight value x 0.8
+         (metro-ui-design skill, "Units"). The stock styles and controls carry tilt and the
+         turnstile; these only add what they don't have. -->
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Default">
+                    <SolidColorBrush x:Key="RbSubtleBrush" Color="#99FFFFFF"/>
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="RbSubtleBrush" Color="#99000000"/>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <!-- page header, as the Windows Phone 8.1 page template and the system apps lay it out -->
+            <Style x:Key="RbHeaderPanel" TargetType="StackPanel">
+                <Setter Property="Margin" Value="19,0,0,0"/>
+            </Style>
+            <Style x:Key="RbAppTitle" TargetType="TextBlock" BasedOn="{StaticResource TitleTextBlockStyle}">
+                <Setter Property="Margin" Value="0,12,0,0"/>
+            </Style>
+            <Style x:Key="RbPageTitle" TargetType="TextBlock" BasedOn="{StaticResource HeaderTextBlockStyle}">
+                <Setter Property="Margin" Value="0,-6.5,0,26.5"/>
+                <Setter Property="CharacterSpacing" Value="{ThemeResource PivotHeaderItemCharacterSpacing}"/>
+                <Setter Property="TextWrapping" Value="NoWrap"/>
+                <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            </Style>
+
+            <!-- Silverlight ramp x 0.8: Small 14.93, Normal 16, Medium 18.13, MediumLarge 20.27,
+                 Large 25.6, ExtraLarge 34.13 -->
+            <Style x:Key="RbBody" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="16"/>
+                <Setter Property="TextWrapping" Value="Wrap"/>
+            </Style>
+            <Style x:Key="RbSubtle" TargetType="TextBlock" BasedOn="{StaticResource RbBody}">
+                <Setter Property="Foreground" Value="{ThemeResource RbSubtleBrush}"/>
+            </Style>
+            <Style x:Key="RbSmall" TargetType="TextBlock" BasedOn="{StaticResource RbSubtle}">
+                <Setter Property="FontSize" Value="14.93"/>
+            </Style>
+            <Style x:Key="RbSection" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="25.6"/>
+                <Setter Property="FontWeight" Value="SemiLight"/>
+                <Setter Property="Margin" Value="0,19,0,0"/>
+            </Style>
+            <Style x:Key="RbItemTitle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="25.6"/>
+                <Setter Property="FontWeight" Value="SemiLight"/>
+                <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            </Style>
+            <Style x:Key="RbItemTitleLarge" TargetType="TextBlock" BasedOn="{StaticResource RbItemTitle}">
+                <Setter Property="FontSize" Value="34.13"/>
+            </Style>
+            <Style x:Key="RbButton" TargetType="Button">
+                <Setter Property="HorizontalAlignment" Value="Left"/>
+            </Style>
+
+            <!-- list rows stretch so a count or a button can sit at the right edge; the stock
+                 container keeps the tilt -->
+            <Style x:Key="RbStretchItem" TargetType="ListViewItem">
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
 </Application>

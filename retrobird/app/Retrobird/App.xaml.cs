@@ -1,56 +1,65 @@
+// Retrobird for Windows Phone 8.1 (WinRT app). Starts the in-app mail engine on demand, keeps
+// the back key going back one page, and shows any stray failure in plain words.
 using System;
-using System.Windows;
-using System.Windows.Navigation;
-using Microsoft.Phone.Controls;
 using Retrobird.Core;
+using Windows.ApplicationModel;
+using Windows.ApplicationModel.Activation;
+using Windows.Phone.UI.Input;
+using Windows.UI.Xaml;
+using Windows.UI.Xaml.Controls;
 
 namespace Retrobird
 {
-    public partial class App : Application
+    public sealed partial class App : Application
     {
-        public static PhoneApplicationFrame RootFrame { get; private set; }
+        public static Frame RootFrame { get; private set; }
 
         public App()
         {
+            InitializeComponent();
             UnhandledException += (s, e) =>
             {
-                // keep the app alive on a stray async failure; show what happened
+                // keep the app alive on a stray async failure; say what happened
                 e.Handled = true;
-                var msg = e.ExceptionObject.Message;
-                Deployment.Current.Dispatcher.BeginInvoke(() => MessageBox.Show(msg, "Retrobird error", MessageBoxButton.OK));
+                InAppHelper.Log("unhandled: " + e.Exception);
+                var unused = Ui.AlertAsync(e.Message, "Retrobird");
             };
-            // US English throughout (dates, numbers, built-in control text), whatever the phone's region
-            var us = new System.Globalization.CultureInfo("en-US");
-            System.Threading.Thread.CurrentThread.CurrentCulture = us;
-            System.Threading.Thread.CurrentThread.CurrentUICulture = us;
-            InitializeComponent();
             // the mail engine runs inside the app (rbmail.dll)
             AppState.Client = new MailClient(InAppHelper.Token, InAppHelper.Port);
             AppState.Client.StartHelper = () => InAppHelper.EnsureRunningAsync(AppState.Client);
-
-            RootFrame = new PhoneApplicationFrame();
-            RootFrame.Navigated += CompleteInit;
-            // Metro: pages turnstile in, going forward and coming back
-            RootFrame.Navigated += (s, e) =>
-            {
-                var page = e.Content as System.Windows.Controls.Page;
-                if (page != null && (e.NavigationMode == NavigationMode.New || e.NavigationMode == NavigationMode.Back))
-                    Motion.TurnstileIn(page);
-            };
-            RootFrame.NavigationFailed += (s, e) =>
-            {
-                e.Handled = true;
-                var msg = e.Exception != null ? e.Exception.Message : "unknown error";
-                Deployment.Current.Dispatcher.BeginInvoke(() => MessageBox.Show("Couldn't open " + e.Uri + ":\n" + msg, "Retrobird error", MessageBoxButton.OK));
-            };
-            // the helper connection doesn't survive being suspended
-            Microsoft.Phone.Shell.PhoneApplicationService.Current.Deactivated += (s, e) => AppState.Client.Close();
+            // the engine connection doesn't survive being suspended; it reconnects on the next call
+            Suspending += (s, e) => AppState.Client.Close();
+            HardwareButtons.BackPressed += OnBackPressed;
         }
 
-        void CompleteInit(object sender, NavigationEventArgs e)
+        protected override void OnLaunched(LaunchActivatedEventArgs e)
         {
-            if (RootVisual != RootFrame) RootVisual = RootFrame;
-            RootFrame.Navigated -= CompleteInit;
+            RootFrame = Window.Current.Content as Frame;
+            if (RootFrame == null)
+            {
+                // the stock frame brings the phone's turnstile page transition
+                RootFrame = new Frame { Language = "en-US" };
+                Window.Current.Content = RootFrame;
+            }
+            if (RootFrame.Content == null) RootFrame.Navigate(typeof(MainPage));
+            Window.Current.Activate();
+        }
+
+        // Back goes back one page; from the first page it leaves the app (the system does that
+        // when we don't handle it). A page can take it first, e.g. to ask before discarding.
+        void OnBackPressed(object sender, BackPressedEventArgs e)
+        {
+            var page = RootFrame == null ? null : RootFrame.Content as RbPage;
+            if (page != null && page.HandleBack())
+            {
+                e.Handled = true;
+                return;
+            }
+            if (RootFrame != null && RootFrame.CanGoBack)
+            {
+                e.Handled = true;
+                RootFrame.GoBack();
+            }
         }
     }
 }

@@ -1,14 +1,13 @@
 # Builds Retrobird: the mail engine (helper\*.c on NSPR/NSS, ARM, as rbmail.dll, which runs
-# inside the app) and the WP 8.1
-# Silverlight app, then installs the app on the USB-connected Lumia.
-#   .\build.ps1               helper + app + install on the phone (phone must be unlocked)
-#   .\build.ps1 -NoDeploy     build only (Retrobird_Release_AnyCPU.xap)
-#   .\build.ps1 -Emulator     install on the WP 8.1 emulator instead (helper won't run there)
+# inside the app) and the Windows Phone 8.1 (WinRT XAML) app, then installs the app on the
+# USB-connected Lumia.
+#   .\build.ps1               engine + app + install on the phone (phone must be unlocked)
+#   .\build.ps1 -NoDeploy     build only (Retrobird_<version>_ARM.appx)
 # Needs the retrofox phone toolchain and its NSS build (retrofox notes/step2-nss.md):
 #   C:\rfx\sdk, C:\rfx\uxp (NSS headers), C:\rfx\obj-js (NSPR), C:\rfx\obj-nss (static NSS libs,
 #   nssckbi.dll, targets.json). It never rebuilds those, so it is safe next to a Gecko build.
 # The rfxdev portal (http://<phone>:8082) can install the .xap over Wi-Fi instead of USB.
-param([switch]$NoDeploy, [switch]$Emulator, [string]$Configuration = "Release")
+param([switch]$NoDeploy, [string]$Configuration = "Release")
 $ErrorActionPreference = "Stop"
 $here = $PSScriptRoot
 $Llvm = "C:\Program Files\LLVM\bin"
@@ -88,11 +87,12 @@ Write-Host "rbmail.dll built" -ForegroundColor Green
 $msbuild = "$pf86\MSBuild\14.0\Bin\MSBuild.exe"
 if (-not (Test-Path $msbuild)) { throw "MSBuild 14 not found. Install VS 2015 first." }
 Write-Host "Building the app..." -ForegroundColor Cyan
-& $msbuild "$here\app\Retrobird.sln" "/p:Configuration=$Configuration" "/p:Platform=Any CPU" /p:VisualStudioVersion=14.0 /m /v:minimal
+& $msbuild "$here\app\Retrobird.sln" "/p:Configuration=$Configuration" "/p:Platform=ARM" /p:VisualStudioVersion=14.0 /m /v:minimal
 if ($LASTEXITCODE -ne 0) { throw "App build failed." }
-$xap = Get-ChildItem "$here\app\Retrobird\Bin" -Recurse -Filter *.xap | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-if (-not $xap) { throw "No .xap produced." }
-Write-Host "Package: $($xap.FullName)" -ForegroundColor Green
+$appx = Get-ChildItem "$here\app\Retrobird" -Recurse -Filter *.appx | Where-Object { $_.FullName -match "_ARM" } |
+        Sort-Object LastWriteTime -Descending | Select-Object -First 1
+if (-not $appx) { throw "No .appx produced." }
+Write-Host "Package: $($appx.FullName)" -ForegroundColor Green
 if ($NoDeploy) { return }
 
 $deploy = "$pf86\Microsoft SDKs\Windows Phone\v8.1\Tools\AppDeploy\AppDeployCmd.exe"
@@ -100,5 +100,4 @@ if (-not (Test-Path $deploy)) {
     $found = Get-ChildItem "$pf86\Microsoft SDKs\Windows Phone" -Recurse -Filter AppDeployCmd.exe -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($found) { $deploy = $found.FullName } else { throw "AppDeployCmd.exe not found." }
 }
-$target = if ($Emulator) { "xd" } else { "de" }
-& $deploy /installlaunch $xap.FullName /targetdevice:$target
+& $deploy /installlaunch $appx.FullName /targetdevice:de

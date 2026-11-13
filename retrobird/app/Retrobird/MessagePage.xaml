@@ -1,69 +1,53 @@
-<phone:PhoneApplicationPage
+<local:RbPage
     x:Class="Retrobird.MessagePage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
-    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
-    xmlns:local="clr-namespace:Retrobird"
-    FontFamily="{StaticResource PhoneFontFamilyNormal}"
-    FontSize="{StaticResource PhoneFontSizeNormal}"
-    Foreground="{StaticResource PhoneForegroundBrush}"
-    SupportedOrientations="PortraitOrLandscape" Orientation="Portrait"
-    shell:SystemTray.IsVisible="True">
+    xmlns:local="using:Retrobird">
 
-    <Grid x:Name="LayoutRoot" Background="Transparent">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Margin="24,4,24,4">
-            <TextBlock x:Name="SubjectText" TextWrapping="Wrap" MaxHeight="120"
-                       FontSize="{StaticResource PhoneFontSizeLarge}" FontFamily="{StaticResource PhoneFontFamilySemiLight}"/>
-            <Grid Tap="Header_Tap" Background="Transparent">
+        <StackPanel Margin="19,12,19,4">
+            <TextBlock x:Name="SubjectText" Style="{StaticResource RbItemTitle}" TextWrapping="Wrap" MaxHeight="96"/>
+            <!-- tap the sender line for all recipients -->
+            <Grid Tapped="Header_Tapped" Background="Transparent">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock x:Name="FromText" Foreground="{StaticResource PhoneAccentBrush}" TextTrimming="WordEllipsis"
-                           FontSize="{StaticResource PhoneFontSizeMedium}"/>
-                <TextBlock x:Name="DateText" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Bottom"
-                           Foreground="{StaticResource PhoneSubtleBrush}" FontSize="{StaticResource PhoneFontSizeSmall}"/>
+                <TextBlock x:Name="FromText" Foreground="{ThemeResource PhoneAccentBrush}" TextTrimming="CharacterEllipsis"
+                           FontSize="18.13"/>
+                <TextBlock x:Name="DateText" Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Bottom"
+                           Style="{StaticResource RbSmall}" TextWrapping="NoWrap"/>
             </Grid>
-            <!-- tap the sender line for all recipients -->
-            <TextBlock x:Name="DetailsText" TextWrapping="Wrap" Visibility="Collapsed" Margin="0,4,0,0"
-                       Foreground="{StaticResource PhoneSubtleBrush}" FontSize="{StaticResource PhoneFontSizeSmall}"/>
-            <TextBlock x:Name="ErrorText" TextWrapping="Wrap" Visibility="Collapsed" Margin="0,8,0,0"
-                       Foreground="{StaticResource PhoneSubtleBrush}"/>
+            <TextBlock x:Name="DetailsText" Visibility="Collapsed" Margin="0,4,0,0" Style="{StaticResource RbSmall}"/>
+            <TextBlock x:Name="ErrorText" Visibility="Collapsed" Margin="0,8,0,0" Style="{StaticResource RbSubtle}"/>
         </StackPanel>
 
-        <StackPanel Grid.Row="1" Margin="12,0,12,0">
-            <Button local:Motion.Tilt="True" x:Name="ImagesButton" Content="show pictures" HorizontalAlignment="Left" Visibility="Collapsed"
-                    Click="ImagesButton_Click" FontSize="{StaticResource PhoneFontSizeSmall}"/>
-            <ScrollViewer x:Name="AttachmentsScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
-                          Visibility="Collapsed">
-                <ItemsControl x:Name="Attachments">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Orientation="Horizontal"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Button local:Motion.Tilt="True" Click="Attachment_Click" Tag="{Binding}" FontSize="{StaticResource PhoneFontSizeSmall}">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE16C;" FontFamily="Segoe UI Symbol" Margin="0,0,8,0"/>
-                                    <TextBlock Text="{Binding Label}" MaxWidth="320" TextTrimming="WordEllipsis"/>
-                                </StackPanel>
-                            </Button>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
+        <StackPanel Grid.Row="1" Margin="19,0,19,0">
+            <Button x:Name="ImagesButton" Content="show pictures" Style="{StaticResource RbButton}" Visibility="Collapsed"
+                    Click="ImagesButton_Click"/>
+            <!-- attachments as a short list: no sideways scrolling on the page -->
+            <ListView x:Name="Attachments" Visibility="Collapsed" SelectionMode="None" IsItemClickEnabled="True"
+                      ItemClick="Attachments_ItemClick" MaxHeight="130">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal" Margin="0,2,0,6">
+                            <TextBlock Text="&#xE16C;" FontFamily="Segoe UI Symbol" FontSize="18.13" Margin="0,0,8,0"
+                                       Foreground="{ThemeResource PhoneAccentBrush}"/>
+                            <TextBlock Text="{Binding Label}" FontSize="18.13" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
         </StackPanel>
 
-        <phone:WebBrowser x:Name="Body" Grid.Row="2" IsScriptEnabled="False" Opacity="0"
-                          Navigating="Body_Navigating" LoadCompleted="Body_LoadCompleted" Loaded="Body_Loaded"/>
+        <!-- the mail engine has already removed scripts and blocked remote pictures from the HTML -->
+        <WebView x:Name="Body" Grid.Row="2" Opacity="0"
+                 NavigationStarting="Body_NavigationStarting" NavigationCompleted="Body_NavigationCompleted"/>
     </Grid>
-</phone:PhoneApplicationPage>
+</local:RbPage>

@@ -4,16 +4,15 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Navigation;
-using Microsoft.Phone.Controls;
-using Microsoft.Phone.Shell;
+using System.Threading.Tasks;
 using Retrobird.Core;
+using Windows.UI.Xaml;
+using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Navigation;
 
 namespace Retrobird
 {
-    public partial class AccountEditPage : PhoneApplicationPage
+    public sealed partial class AccountEditPage : RbPage
     {
         static readonly string[] Secs = { "tls", "starttls", "plain" };
         string _id;
@@ -21,13 +20,14 @@ namespace Retrobird
         bool _manual, _filling, _saving, _loaded;
         Provider _provider;
         Provider _chosen;   // picked on the provider page: its servers apply whatever the domain
-        ApplicationBarIconButton _save;
+        AppBarButton _save;
 
         public AccountEditPage()
         {
             InitializeComponent();
-            ApplicationBar = new ApplicationBar();
-            _save = Ui.Button(ApplicationBar, "check", "save", async (s, e) => await Save());
+            foreach (var box in new[] { ImapSecBox, SmtpSecBox })
+                foreach (var sec in Secs) box.Items.Add(SecLabel(sec));
+            _save = Ui.Button(this, Symbol.Accept, "save", async (s, e) => await Save());
             ShowSec();
         }
 
@@ -37,13 +37,13 @@ namespace Retrobird
             if (_loaded) return;
             _loaded = true;
             string chosen;
-            if (NavigationContext.QueryString.TryGetValue("provider", out chosen)) _chosen = Provider.ByName(chosen);
-            if (!NavigationContext.QueryString.TryGetValue("id", out _id))
+            if (Query.TryGetValue("provider", out chosen)) _chosen = Provider.ByName(chosen);
+            if (!Query.TryGetValue("id", out _id))
             {
                 _id = null;
                 if (_chosen != null)
                 {
-                    PassLabel.Text = "app password";
+                    PassBox.Header = "app password";
                     _provider = _chosen;
                     ShowProvider(_chosen);
                 }
@@ -51,8 +51,8 @@ namespace Retrobird
             }
             TitleText.Text = "edit account";
             PassHint.Visibility = Visibility.Visible;
-            Ui.Menu(ApplicationBar, "delete this account", async (s, ev) => await Delete());
-            Ui.Busy(this, "loading");
+            Ui.Menu(this, "delete account", async (s, ev) => await Delete());
+            Busy("loading");
             try
             {
                 var d = await AppState.Client.GetAccountAsync(_id);
@@ -71,15 +71,15 @@ namespace Retrobird
                 _imapPin = g("imap_pin");
                 _smtpPin = g("smtp_pin");
                 SaveSentBox.IsChecked = g("save_sent") != "0";
-                if (g("has_pass") != "1") PassHint.Text = "the saved password can't be used any more: enter it again";
+                if (g("has_pass") != "1") PassHint.Text = "The saved password can't be used any more. Enter it again.";
                 _filling = false;
                 _provider = Provider.ForEmail(EmailBox.Text);
                 ShowProvider(_provider);
                 ShowSec();
                 ShowPins();
             }
-            catch (Exception ex) { Ui.Error(ex); }
-            finally { Ui.Busy(this, null); }
+            catch (Exception ex) { await Ui.ErrorAsync(ex); }
+            finally { Busy(null); }
         }
 
         void ShowProvider(Provider p)
@@ -92,10 +92,10 @@ namespace Retrobird
             AppPasswordButton.Visibility = known && !string.IsNullOrEmpty(p.AppPasswordUrl) ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        void AppPasswordButton_Click(object sender, RoutedEventArgs e)
+        async void AppPasswordButton_Click(object sender, RoutedEventArgs e)
         {
             if (_provider == null || string.IsNullOrEmpty(_provider.AppPasswordUrl)) return;
-            new Microsoft.Phone.Tasks.WebBrowserTask { Uri = new Uri(_provider.AppPasswordUrl) }.Show();
+            await Windows.System.Launcher.LaunchUriAsync(new Uri(_provider.AppPasswordUrl));
         }
 
         void EmailBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -133,29 +133,34 @@ namespace Retrobird
 
         void ShowSec()
         {
-            ImapSecButton.Content = SecLabel(_imapSec);
-            SmtpSecButton.Content = SecLabel(_smtpSec);
+            _filling = true;
+            ImapSecBox.SelectedIndex = Math.Max(0, Array.IndexOf(Secs, _imapSec));
+            SmtpSecBox.SelectedIndex = Math.Max(0, Array.IndexOf(Secs, _smtpSec));
+            _filling = false;
         }
 
-        static string Next(string s) { return Secs[(Array.IndexOf(Secs, s) + 1) % Secs.Length]; }
-
-        void ImapSecButton_Click(object sender, RoutedEventArgs e)
+        void Sec_Changed(object sender, SelectionChangedEventArgs e)
         {
+            if (_filling) return;
+            var box = (ComboBox)sender;
+            if (box.SelectedIndex < 0) return;
+            var sec = Secs[box.SelectedIndex];
             _manual = true;
-            _imapSec = Next(_imapSec);
+            _filling = true;
             // follow the usual port unless one was typed
-            if (ImapPortBox.Text == "993" || ImapPortBox.Text == "143" || ImapPortBox.Text == "")
-                ImapPortBox.Text = _imapSec == "tls" ? "993" : "143";
-            ShowSec();
-        }
-
-        void SmtpSecButton_Click(object sender, RoutedEventArgs e)
-        {
-            _manual = true;
-            _smtpSec = Next(_smtpSec);
-            if (SmtpPortBox.Text == "465" || SmtpPortBox.Text == "587" || SmtpPortBox.Text == "25" || SmtpPortBox.Text == "")
-                SmtpPortBox.Text = _smtpSec == "tls" ? "465" : "587";
-            ShowSec();
+            if (box == ImapSecBox)
+            {
+                _imapSec = sec;
+                if (ImapPortBox.Text == "993" || ImapPortBox.Text == "143" || ImapPortBox.Text == "")
+                    ImapPortBox.Text = sec == "tls" ? "993" : "143";
+            }
+            else
+            {
+                _smtpSec = sec;
+                if (SmtpPortBox.Text == "465" || SmtpPortBox.Text == "587" || SmtpPortBox.Text == "25" || SmtpPortBox.Text == "")
+                    SmtpPortBox.Text = sec == "tls" ? "465" : "587";
+            }
+            _filling = false;
         }
 
         void AdvancedButton_Click(object sender, RoutedEventArgs e)
@@ -213,26 +218,26 @@ namespace Retrobird
             };
         }
 
-        async System.Threading.Tasks.Task Save()
+        async Task Save()
         {
             if (_saving) return;
             var email = EmailBox.Text.Trim();
             if (email.IndexOf('@') <= 0)
             {
-                MessageBox.Show("Enter your email address.", "account", MessageBoxButton.OK);
+                await Ui.AlertAsync("Enter your email address. It looks like this: name@example.com", "account");
                 return;
             }
             if (_id == null && PassBox.Password.Length == 0)
             {
-                MessageBox.Show("Enter the password (or the app password your mail service gave you).", "account", MessageBoxButton.OK);
+                await Ui.AlertAsync("Enter the app password your mail service gave you (or your password).", "account");
                 return;
             }
             if ((_imapSec == "plain" || _smtpSec == "plain") &&
-                !Ui.Confirm("Without encryption your password and mail travel readable by anyone on the network. Continue?", "no security"))
+                !await Ui.ConfirmAsync("Without encryption, your password and mail can be read by anyone on the network. Continue?", "no security"))
                 return;
             _saving = true;
             _save.IsEnabled = false;
-            Ui.Busy(this, "signing in");
+            Busy("signing in");
             try
             {
                 for (int attempt = 0; attempt < 3; attempt++)
@@ -247,14 +252,14 @@ namespace Retrobird
                             foreach (var a in AppState.Accounts) if (a.Id == id) AppState.SelectAccount(a);
                         }
                         AppState.ListDirty = true;
-                        if (NavigationService.CanGoBack) NavigationService.GoBack();
+                        GoBack();
                         return;
                     }
                     catch (MailException ex)
                     {
                         if (ex.Code != "CERT" || string.IsNullOrEmpty(ex.Fingerprint)) throw;
                         var which = ex.Side == "smtp" ? "outgoing (SMTP)" : "incoming (IMAP)";
-                        if (!Ui.Confirm("The " + which + " server's certificate can't be verified: " + ex.Message +
+                        if (!await Ui.ConfirmAsync("The " + which + " server's certificate can't be verified: " + ex.Message +
                                         "\n\nIf this is your own or your provider's server and you expect this, you can trust exactly this certificate:\n" +
                                         Pretty(ex.Fingerprint), "certificate"))
                             return;
@@ -268,29 +273,29 @@ namespace Retrobird
             {
                 var msg = Ui.Describe(ex);
                 if (_provider != null && !string.IsNullOrEmpty(_provider.Note)) msg += "\n\n" + _provider.Note;
-                MessageBox.Show(msg, "couldn't sign in", MessageBoxButton.OK);
+                await Ui.AlertAsync(msg, "couldn't sign in");
                 AdvancedPanel.Visibility = Visibility.Visible;
             }
             finally
             {
                 _saving = false;
                 _save.IsEnabled = true;
-                Ui.Busy(this, null);
+                Busy(null);
             }
         }
 
-        async System.Threading.Tasks.Task Delete()
+        async Task Delete()
         {
             if (_id == null) return;
-            if (!Ui.Confirm("Remove " + EmailBox.Text + " from this phone? Mail on the server stays.", "delete account")) return;
+            if (!await Ui.ConfirmAsync("Remove " + EmailBox.Text + " from this phone? Your mail stays on the server.", "delete account")) return;
             try
             {
                 await AppState.Client.DeleteAccountAsync(_id);
                 AppState.Accounts = await AppState.Client.GetAccountsAsync();
                 if (AppState.CurrentAccountId == _id) AppState.SelectAccount(AppState.Accounts.Count > 0 ? AppState.Accounts[0] : null);
-                if (NavigationService.CanGoBack) NavigationService.GoBack();
+                GoBack();
             }
-            catch (Exception ex) { Ui.Error(ex); }
+            catch (Exception ex) { await Ui.ErrorAsync(ex); }
         }
     }
 }

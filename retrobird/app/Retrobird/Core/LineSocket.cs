@@ -1,18 +1,29 @@
-// A small async TCP client for Windows Phone Silverlight 8.1 (System.Net.Sockets only offers
-// SocketAsyncEventArgs there). Used for the in-app mail engine on 127.0.0.1:8097.
-// Taken from File Explorer (RetroFiles).
+// A small async line-oriented TCP client for the in-app mail engine on 127.0.0.1:8097.
+// On the phone (WinRT 8.1, NETFX_CORE) it runs on a StreamSocket; elsewhere (the Mono tests) on
+// System.Net.Sockets.
 using System;
 using System.Collections.Generic;
-using System.Net;
-using System.Net.Sockets;
+using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+#if NETFX_CORE
+using Windows.Networking;
+using Windows.Networking.Sockets;
+#else
+using System.Net.Sockets;
+#endif
 
 namespace Retrobird.Core
 {
     public sealed class LineSocket : IDisposable
     {
-        readonly Socket _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+#if NETFX_CORE
+        readonly StreamSocket _socket = new StreamSocket();
+#else
+        readonly TcpClient _socket = new TcpClient();
+#endif
+        Stream _in, _out;
         readonly byte[] _buf = new byte[64 * 1024];
         int _start, _end;   // unread bytes in _buf
         bool _closed;
@@ -23,17 +34,27 @@ namespace Retrobird.Core
         public static async Task<LineSocket> ConnectAsync(string host, int port, int timeoutMs)
         {
             var s = new LineSocket();
-            var args = new SocketAsyncEventArgs { RemoteEndPoint = new DnsEndPoint(host, port) };
-            var tcs = new TaskCompletionSource<SocketError>();
-            args.Completed += (o, e) => tcs.TrySetResult(e.SocketError);
-            if (!s._socket.ConnectAsync(args)) tcs.TrySetResult(args.SocketError);
-            var done = await Task.WhenAny(tcs.Task, Task.Delay(timeoutMs));
-            if (done != tcs.Task || tcs.Task.Result != SocketError.Success)
+            try
+            {
+#if NETFX_CORE
+                s._socket.Control.NoDelay = true;
+                var cts = new CancellationTokenSource(timeoutMs);
+                await s._socket.ConnectAsync(new HostName(host), port.ToString()).AsTask(cts.Token);
+                s._in = s._socket.InputStream.AsStreamForRead(0);
+                s._out = s._socket.OutputStream.AsStreamForWrite(0);
+#else
+                var connect = s._socket.ConnectAsync(host, port);
+                if (await Task.WhenAny(connect, Task.Delay(timeoutMs)) != connect) throw new TimeoutException();
+                await connect;
+                s._in = s._out = s._socket.GetStream();
+#endif
+                return s;
+            }
+            catch (Exception)
             {
                 s.Dispose();
                 return null;
             }
-            return s;
         }
 
         public Task SendAsync(string text) { return SendAsync(Encoding.UTF8.GetBytes(text)); }
@@ -41,16 +62,15 @@ namespace Retrobird.Core
         public async Task SendAsync(byte[] data, int offset = 0, int count = -1)
         {
             if (count < 0) count = data.Length - offset;
-            while (count > 0)
+            try
             {
-                var args = new SocketAsyncEventArgs();
-                args.SetBuffer(data, offset, count);
-                var tcs = new TaskCompletionSource<int>();
-                args.Completed += (o, e) => tcs.TrySetResult(e.SocketError == SocketError.Success ? e.BytesTransferred : -1);
-                if (!_socket.SendAsync(args)) tcs.TrySetResult(args.SocketError == SocketError.Success ? args.BytesTransferred : -1);
-                int n = await tcs.Task;
-                if (n <= 0) { _closed = true; throw new MailException("NET", "connection to the mail helper was lost"); }
-                offset += n; count -= n;
+                await _out.WriteAsync(data, offset, count);
+                await _out.FlushAsync();
+            }
+            catch (Exception)
+            {
+                _closed = true;
+                throw new MailException("NET", "the connection to the mail engine was lost");
             }
         }
 
@@ -62,12 +82,9 @@ namespace Retrobird.Core
                 _end -= _start; _start = 0;
             }
             if (_end == _buf.Length) return false;
-            var args = new SocketAsyncEventArgs();
-            args.SetBuffer(_buf, _end, _buf.Length - _end);
-            var tcs = new TaskCompletionSource<int>();
-            args.Completed += (o, e) => tcs.TrySetResult(e.SocketError == SocketError.Success ? e.BytesTransferred : -1);
-            if (!_socket.ReceiveAsync(args)) tcs.TrySetResult(args.SocketError == SocketError.Success ? args.BytesTransferred : -1);
-            int n = await tcs.Task;
+            int n;
+            try { n = await _in.ReadAsync(_buf, _end, _buf.Length - _end); }
+            catch (Exception) { n = -1; }
             if (n <= 0) { _closed = true; return false; }
             _end += n;
             return true;
@@ -119,7 +136,7 @@ namespace Retrobird.Core
             int got = 0;
             while (got < count)
             {
-                if (_end == _start && !await FillAsync()) throw new MailException("NET", "connection to the mail helper was lost");
+                if (_end == _start && !await FillAsync()) throw new MailException("NET", "the connection to the mail engine was lost");
                 int n = Math.Min(count - got, _end - _start);
                 Buffer.BlockCopy(_buf, _start, result, got, n);
                 _start += n; got += n;
@@ -130,8 +147,7 @@ namespace Retrobird.Core
         public void Dispose()
         {
             _closed = true;
-            try { _socket.Shutdown(SocketShutdown.Both); } catch { }
-            try { _socket.Close(); } catch { }
+            try { _socket.Dispose(); } catch { }
         }
     }
 

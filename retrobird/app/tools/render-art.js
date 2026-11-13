@@ -12,16 +12,14 @@ const out = path.join(__dirname, '..', 'Retrobird', 'Assets');
 const BLUE = 'rgb(64,170,227)';
 const svg = name => 'data:image/svg+xml;base64,' + fs.readFileSync(path.join(art, name)).toString('base64');
 
+// Windows Phone 8.1 (WinRT) assets at scale-240, the largest the phone uses; it scales down.
 const jobs = [
   // [file, width, height, svg, background]
-  ['ApplicationIcon.png', 100, 100, 'retrobird-tile.svg', null],
-  ['Tiles/FlipCycleTileSmall.png', 159, 159, 'retrobird-tile.svg', null],
-  ['Tiles/FlipCycleTileMedium.png', 336, 336, 'retrobird-tile.svg', null],
-  ['Square150x150Logo.png', 150, 150, 'retrobird-tile.svg', null],
-  ['Square71x71Logo.png', 71, 71, 'retrobird-tile.svg', null],
-  ['Square44x44Logo.png', 44, 44, 'retrobird-tile.svg', null],
-  ['StoreLogo.png', 50, 50, 'retrobird-store.svg', null],
-  ['SplashScreen.png', 480, 800, 'retrobird-store.svg', BLUE],
+  ['Square150x150Logo.scale-240.png', 360, 360, 'retrobird-tile.svg', null],
+  ['Square71x71Logo.scale-240.png', 170, 170, 'retrobird-tile.svg', null],
+  ['Square44x44Logo.scale-240.png', 106, 106, 'retrobird-tile.svg', null],
+  ['StoreLogo.scale-240.png', 120, 120, 'retrobird-store.svg', null],
+  ['SplashScreen.scale-240.png', 1152, 1920, 'retrobird-store.svg', BLUE],
 ];
 
 (async () => {

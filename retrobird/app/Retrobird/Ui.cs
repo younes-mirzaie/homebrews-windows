@@ -1,42 +1,44 @@
-// Small UI helpers shared by the pages: app bar buttons, the progress indicator, error text.
+// Small UI helpers shared by the pages: app bar commands, message boxes, error text.
 using System;
-using System.Windows;
-using Microsoft.Phone.Controls;
-using Microsoft.Phone.Shell;
+using System.Threading;
+using System.Threading.Tasks;
 using Retrobird.Core;
+using Windows.UI.Popups;
+using Windows.UI.Xaml;
+using Windows.UI.Xaml.Controls;
 
 namespace Retrobird
 {
     public static class Ui
     {
-        public static ApplicationBarIconButton Button(IApplicationBar bar, string icon, string text, EventHandler click)
+        /// <summary>The page's app bar, made on first use (system chrome color, opacity 1).</summary>
+        public static CommandBar Bar(Page page)
         {
-            var b = new ApplicationBarIconButton(new Uri("/Assets/AppBar/" + icon + ".png", UriKind.Relative)) { Text = text };
+            var bar = page.BottomAppBar as CommandBar;
+            if (bar == null)
+            {
+                bar = new CommandBar();
+                page.BottomAppBar = bar;
+            }
+            return bar;
+        }
+
+        /// <summary>An icon button (at most four per page; label lowercase).</summary>
+        public static AppBarButton Button(Page page, Symbol icon, string label, RoutedEventHandler click)
+        {
+            var b = new AppBarButton { Icon = new SymbolIcon(icon), Label = label };
             b.Click += click;
-            bar.Buttons.Add(b);
+            Bar(page).PrimaryCommands.Add(b);
             return b;
         }
 
-        public static ApplicationBarMenuItem Menu(IApplicationBar bar, string text, EventHandler click)
+        /// <summary>A menu item (at most five per page, 14 to 20 characters).</summary>
+        public static AppBarButton Menu(Page page, string label, RoutedEventHandler click)
         {
-            var m = new ApplicationBarMenuItem(text);
+            var m = new AppBarButton { Label = label };
             m.Click += click;
-            bar.MenuItems.Add(m);
+            Bar(page).SecondaryCommands.Add(m);
             return m;
-        }
-
-        /// <summary>Shows or hides the system tray progress bar with a short text.</summary>
-        public static void Busy(PhoneApplicationPage page, string text)
-        {
-            var pi = SystemTray.GetProgressIndicator(page);
-            if (pi == null)
-            {
-                pi = new ProgressIndicator();
-                SystemTray.SetProgressIndicator(page, pi);
-            }
-            pi.IsIndeterminate = text != null;
-            pi.IsVisible = text != null;
-            pi.Text = text ?? "";
         }
 
         public static string Describe(Exception e)
@@ -45,20 +47,37 @@ namespace Retrobird
             if (m == null) return e.Message;
             switch (m.Code)
             {
-                case "AUTH": return "Login failed: " + m.Message;
+                case "AUTH": return "Couldn't sign in: " + m.Message;
                 case "NET": return "Can't connect: " + m.Message;
                 default: return m.Message;
             }
         }
 
-        public static void Error(Exception e, string title = "Retrobird")
+        // only one message box can be open at a time
+        static readonly SemaphoreSlim _dialog = new SemaphoreSlim(1);
+
+        static async Task<bool> ShowAsync(string text, string title, string ok, string cancel)
         {
-            MessageBox.Show(Describe(e), title, MessageBoxButton.OK);
+            await _dialog.WaitAsync();
+            try
+            {
+                var d = new MessageDialog(text ?? "", title ?? "");
+                var yes = new UICommand(ok);
+                d.Commands.Add(yes);
+                if (cancel != null) d.Commands.Add(new UICommand(cancel));
+                d.DefaultCommandIndex = 0;
+                d.CancelCommandIndex = (uint)(cancel != null ? 1 : 0);
+                var r = await d.ShowAsync();
+                return r == yes;
+            }
+            catch (Exception) { return false; }
+            finally { _dialog.Release(); }
         }
 
-        public static bool Confirm(string text, string title)
-        {
-            return MessageBox.Show(text, title, MessageBoxButton.OKCancel) == MessageBoxResult.OK;
-        }
+        public static Task AlertAsync(string text, string title) { return ShowAsync(text, title, "ok", null); }
+
+        public static Task<bool> ConfirmAsync(string text, string title) { return ShowAsync(text, title, "ok", "cancel"); }
+
+        public static Task ErrorAsync(Exception e, string title = "Retrobird") { return AlertAsync(Describe(e), title); }
     }
 }

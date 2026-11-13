@@ -1,43 +1,41 @@
-// One message: headers, attachments, and the body in a script-free WebBrowser. Remote pictures
+// One message: headers, attachments, and the body in a web view (the engine strips scripts). Remote pictures
 // stay blocked until asked for. Reply, reply all, forward, delete, move, flag.
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
-using System.Windows.Navigation;
-using Microsoft.Phone.Controls;
-using Microsoft.Phone.Shell;
-using Microsoft.Phone.Tasks;
+using System.Threading.Tasks;
 using Retrobird.Core;
 using Windows.Storage;
+using Windows.UI;
+using Windows.UI.Xaml;
+using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Input;
+using Windows.UI.Xaml.Media;
+using Windows.UI.Xaml.Navigation;
 
 namespace Retrobird
 {
-    public partial class MessagePage : PhoneApplicationPage
+    public sealed partial class MessagePage : RbPage
     {
         uint _uid;
         MessageView _view;
-        bool _plain, _images, _loaded, _flagged;
-        string _pendingHtml;
-        ApplicationBarMenuItem _imagesItem, _plainItem, _flagItem;
+        bool _plain, _images, _flagged;
+        AppBarButton _imagesItem, _plainItem, _flagItem;
 
         public MessagePage()
         {
             InitializeComponent();
-            ApplicationBar = new ApplicationBar();
-            Ui.Button(ApplicationBar, "reply", "reply", (s, e) => Reply(false));
-            Ui.Button(ApplicationBar, "replyall", "reply all", (s, e) => Reply(true));
-            Ui.Button(ApplicationBar, "forward", "forward", (s, e) => Forward());
-            Ui.Button(ApplicationBar, "delete", "delete", (s, e) => Delete());
-            Ui.Menu(ApplicationBar, "mark as unread", (s, e) => MarkUnread());
-            _flagItem = Ui.Menu(ApplicationBar, "flag", (s, e) => ToggleFlag());
-            Ui.Menu(ApplicationBar, "move to...", (s, e) => NavigationService.Navigate(new Uri("/FoldersPage.xaml?pick=1", UriKind.Relative)));
-            _plainItem = Ui.Menu(ApplicationBar, "show as plain text", (s, e) => { _plain = !_plain; Render(); });
-            _imagesItem = Ui.Menu(ApplicationBar, "show pictures", (s, e) => LoadImages());
+            Ui.Button(this, Symbol.MailReply, "reply", (s, e) => Reply(false));
+            Ui.Button(this, Symbol.MailReplyAll, "reply all", (s, e) => Reply(true));
+            Ui.Button(this, Symbol.MailForward, "forward", (s, e) => Forward());
+            Ui.Button(this, Symbol.Delete, "delete", (s, e) => Delete());
+            Ui.Menu(this, "mark as unread", (s, e) => MarkUnread());
+            _flagItem = Ui.Menu(this, "flag", (s, e) => ToggleFlag());
+            Ui.Menu(this, "move to...", (s, e) => Go("/FoldersPage.xaml?pick=1"));
+            _plainItem = Ui.Menu(this, "show as plain text", (s, e) => { _plain = !_plain; Render(); });
+            _imagesItem = Ui.Menu(this, "show pictures", (s, e) => LoadImages());
         }
 
         static string Acct { get { return AppState.CurrentAccountId; } }
@@ -46,26 +44,26 @@ namespace Retrobird
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
+            string uid;
+            if (!Query.TryGetValue("uid", out uid) || !uint.TryParse(uid, out _uid)) return;
             if (AppState.PickedFolder != null)
             {
+                // back from "move to...": move it and go back to the list
                 var dest = AppState.PickedFolder;
                 AppState.PickedFolder = null;
                 await MoveTo(dest);
                 return;
             }
-            if (_view != null) return;
-            string uid;
-            if (!NavigationContext.QueryString.TryGetValue("uid", out uid) || !uint.TryParse(uid, out _uid)) return;
             string flags;
-            if (NavigationContext.QueryString.TryGetValue("f", out flags)) _flagged = flags.IndexOf('F') >= 0;
-            _flagItem.Text = _flagged ? "unflag" : "flag";
+            if (Query.TryGetValue("f", out flags)) _flagged = flags.IndexOf('F') >= 0;
+            _flagItem.Label = _flagged ? "unflag" : "flag";
             _images = AppState.LoadImages;
             await Load();
         }
 
-        async System.Threading.Tasks.Task Load()
+        async Task Load()
         {
-            Ui.Busy(this, "opening");
+            Busy("opening");
             try
             {
                 _view = await AppState.Client.GetMessageAsync(Acct, Folder, _uid, _images);
@@ -75,10 +73,10 @@ namespace Retrobird
             {
                 ErrorText.Text = Ui.Describe(ex);
                 ErrorText.Visibility = Visibility.Visible;
-                Ui.Busy(this, null);
+                Busy(null);
                 return;
             }
-            Ui.Busy(this, null);
+            Busy(null);
             SubjectText.Text = string.IsNullOrEmpty(_view.Subject) ? "(no subject)" : _view.Subject;
             FromText.Text = Address.NameOf(_view.From ?? "");
             DateText.Text = Format.ShortDate(_view.Date);
@@ -91,7 +89,7 @@ namespace Retrobird
             DetailsText.Text = d.ToString();
             var atts = _view.Attachments.Where(a => !a.Inline).ToList();
             Attachments.ItemsSource = atts;
-            AttachmentsScroll.Visibility = atts.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            Attachments.Visibility = atts.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
             ImagesButton.Visibility = _view.Blocked ? Visibility.Visible : Visibility.Collapsed;
             _imagesItem.IsEnabled = _view.Blocked;
             _plainItem.IsEnabled = !string.IsNullOrEmpty(_view.Text);
@@ -100,15 +98,21 @@ namespace Retrobird
 
         // ---------------- body ----------------
 
-        static bool DarkTheme
+        static bool DarkTheme { get { return Application.Current.RequestedTheme == ApplicationTheme.Dark; } }
+
+        static Color Accent
         {
-            get { return (Visibility)Application.Current.Resources["PhoneDarkThemeVisibility"] == Visibility.Visible; }
+            get
+            {
+                var b = Application.Current.Resources["PhoneAccentBrush"] as SolidColorBrush;
+                return b != null ? b.Color : Color.FromArgb(255, 0x1B, 0xA1, 0xE2);
+            }
         }
 
         static string Css(Color c) { return "#" + c.R.ToString("x2") + c.G.ToString("x2") + c.B.ToString("x2"); }
 
-        /// <summary>WebBrowser.NavigateToString garbles non-ASCII text, so everything above 127
-        /// goes in as a numeric character reference.</summary>
+        /// <summary>Everything above 127 goes in as a numeric character reference, so the text
+        /// survives whatever encoding the web view assumes.</summary>
         static string ToEntities(string s)
         {
             var b = new StringBuilder(s.Length + 64);
@@ -139,10 +143,10 @@ namespace Retrobird
                 content = "<div class=\"rb-plain\">" + HtmlEscape(_view.Text) + "</div>";
                 plainMail = true;
             }
-            _plainItem.Text = _plain ? "show formatted" : "show as plain text";
+            _plainItem.Label = _plain ? "show formatted" : "show as plain text";
             string bg = "#ffffff", fg = "#000000";
             if (plainMail && DarkTheme) { bg = "#000000"; fg = "#ffffff"; }
-            string accent = Css((Color)Application.Current.Resources["PhoneAccentColor"]);
+            string accent = Css(Accent);
             var page = "<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><style>" +
                        "html,body{margin:0;padding:0}" +
                        "body{font-family:'Segoe WP','Segoe UI',sans-serif;font-size:15px;line-height:1.35;word-wrap:break-word;" +
@@ -157,29 +161,17 @@ namespace Retrobird
 
         void Show(string html)
         {
-            if (!_loaded) { _pendingHtml = html; return; }
             Body.Opacity = 0;
             Body.NavigateToString(html);
         }
 
-        void Body_Loaded(object sender, RoutedEventArgs e)
-        {
-            _loaded = true;
-            if (_pendingHtml != null)
-            {
-                var h = _pendingHtml;
-                _pendingHtml = null;
-                Show(h);
-            }
-        }
-
-        void Body_LoadCompleted(object sender, NavigationEventArgs e) { Body.Opacity = 1; }
+        void Body_NavigationCompleted(WebView sender, WebViewNavigationCompletedEventArgs e) { Body.Opacity = 1; }
 
         /// <summary>Links open outside: web pages in the browser, mailto: in a new message.</summary>
-        void Body_Navigating(object sender, NavigatingEventArgs e)
+        async void Body_NavigationStarting(WebView sender, WebViewNavigationStartingEventArgs e)
         {
             var u = e.Uri;
-            if (u == null || !u.IsAbsoluteUri) return;
+            if (u == null || !u.IsAbsoluteUri) return;   // our own NavigateToString
             if (u.Scheme == "about") return;
             e.Cancel = true;
             if (u.Scheme == "mailto")
@@ -187,11 +179,11 @@ namespace Retrobird
                 var to = Uri.UnescapeDataString(u.OriginalString.Substring(7));
                 var q = to.IndexOf('?');
                 AppState.PendingDraft = new Draft { To = q >= 0 ? to.Substring(0, q) : to };
-                NavigationService.Navigate(new Uri("/ComposePage.xaml", UriKind.Relative));
+                Go("/ComposePage.xaml");
                 return;
             }
             if (u.Scheme == "http" || u.Scheme == "https")
-                new WebBrowserTask { Uri = u }.Show();
+                await Windows.System.Launcher.LaunchUriAsync(u);
         }
 
         async void LoadImages()
@@ -205,43 +197,33 @@ namespace Retrobird
 
         void ImagesButton_Click(object sender, RoutedEventArgs e) { LoadImages(); }
 
-        void Header_Tap(object sender, System.Windows.Input.GestureEventArgs e)
+        void Header_Tapped(object sender, TappedRoutedEventArgs e)
         {
             DetailsText.Visibility = DetailsText.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
         }
 
         // ---------------- attachments ----------------
 
-        async void Attachment_Click(object sender, RoutedEventArgs e)
+        async void Attachments_ItemClick(object sender, ItemClickEventArgs e)
         {
-            var a = (sender as Button).Tag as Attachment;
+            var a = e.ClickedItem as Attachment;
             if (a == null) return;
-            string path;
-            Ui.Busy(this, "getting " + a.Name);
+            Busy("getting " + a.Name);
             try
             {
                 var dir = ApplicationData.Current.LocalFolder.Path + "\\Attachments";
-                path = await AppState.Client.SaveAttachmentAsync(Acct, Folder, _uid, a.Index, dir);
+                var path = await AppState.Client.SaveAttachmentAsync(Acct, Folder, _uid, a.Index, dir);
                 var file = await StorageFile.GetFileFromPathAsync(path);
-                Ui.Busy(this, null);
+                Busy(null);
                 if (await Windows.System.Launcher.LaunchFileAsync(file)) return;
             }
             catch (Exception ex)
             {
-                Ui.Busy(this, null);
-                Ui.Error(ex);
+                Busy(null);
+                await Ui.ErrorAsync(ex);
                 return;
             }
-            // nothing on the phone opens it: offer the Documents folder instead
-            if (Ui.Confirm("No app on this phone opens " + a.Name + ". Save it to Documents\\Retrobird instead?", "attachment"))
-            {
-                try
-                {
-                    var saved = await AppState.Client.SaveAttachmentAsync(Acct, Folder, _uid, a.Index, @"C:\Data\Users\Public\Documents\Retrobird");
-                    MessageBox.Show("Saved as " + saved, "attachment", MessageBoxButton.OK);
-                }
-                catch (Exception ex) { Ui.Error(ex); }
-            }
+            await Ui.AlertAsync("No app on this phone opens " + a.Name + ". You can install one from the Store and try again.", "attachment");
         }
 
         // ---------------- actions ----------------
@@ -296,14 +278,14 @@ namespace Retrobird
                 d.Cc = string.Join(", ", cc.ToArray());
             }
             AppState.PendingDraft = d;
-            NavigationService.Navigate(new Uri("/ComposePage.xaml", UriKind.Relative));
+            Go("/ComposePage.xaml");
         }
 
-        void Forward()
+        async void Forward()
         {
             if (_view == null) return;
             if (_view.Attachments.Any(a => !a.Inline))
-                MessageBox.Show("Attachments aren't forwarded yet; only the text goes along.", "forward", MessageBoxButton.OK);
+                await Ui.AlertAsync("Attachments can't be forwarded yet, so only the text goes along.", "forward");
             AppState.PendingDraft = new Draft
             {
                 Subject = Prefixed(_view.Subject, "Fwd:"),
@@ -311,20 +293,20 @@ namespace Retrobird
                        "\nSubject: " + _view.Subject + "\nTo: " + _view.To + (string.IsNullOrEmpty(_view.Cc) ? "" : "\nCc: " + _view.Cc) +
                        "\n\n" + (_view.Text ?? "")
             };
-            NavigationService.Navigate(new Uri("/ComposePage.xaml", UriKind.Relative));
+            Go("/ComposePage.xaml");
         }
 
         async void Delete()
         {
-            Ui.Busy(this, "deleting");
+            Busy("deleting");
             try
             {
                 await AppState.Client.DeleteAsync(Acct, Folder, _uid);
                 AppState.ListDirty = true;
-                if (NavigationService.CanGoBack) NavigationService.GoBack();
+                GoBack();
             }
-            catch (Exception ex) { Ui.Error(ex); }
-            finally { Ui.Busy(this, null); }
+            catch (Exception ex) { await Ui.ErrorAsync(ex); }
+            finally { Busy(null); }
         }
 
         async void MarkUnread()
@@ -333,9 +315,9 @@ namespace Retrobird
             {
                 await AppState.Client.SetFlagAsync(Acct, Folder, _uid, 'S', false);
                 AppState.ListDirty = true;
-                if (NavigationService.CanGoBack) NavigationService.GoBack();
+                GoBack();
             }
-            catch (Exception ex) { Ui.Error(ex); }
+            catch (Exception ex) { await Ui.ErrorAsync(ex); }
         }
 
         async void ToggleFlag()
@@ -344,24 +326,24 @@ namespace Retrobird
             {
                 _flagged = !_flagged;
                 await AppState.Client.SetFlagAsync(Acct, Folder, _uid, 'F', _flagged);
-                _flagItem.Text = _flagged ? "unflag" : "flag";
+                _flagItem.Label = _flagged ? "unflag" : "flag";
                 AppState.ListDirty = true;
             }
-            catch (Exception ex) { _flagged = !_flagged; Ui.Error(ex); }
+            catch (Exception ex) { _flagged = !_flagged; await Ui.ErrorAsync(ex); }
         }
 
-        async System.Threading.Tasks.Task MoveTo(FolderInfo dest)
+        async Task MoveTo(FolderInfo dest)
         {
             if (dest.Name == Folder) return;
-            Ui.Busy(this, "moving to " + dest.Label.Trim());
+            Busy("moving to " + dest.Label.Trim());
             try
             {
                 await AppState.Client.MoveAsync(Acct, Folder, _uid, dest.Name);
                 AppState.ListDirty = true;
-                if (NavigationService.CanGoBack) NavigationService.GoBack();
+                GoBack();
             }
-            catch (Exception ex) { Ui.Error(ex); }
-            finally { Ui.Busy(this, null); }
+            catch (Exception ex) { await Ui.ErrorAsync(ex); }
+            finally { Busy(null); }
         }
     }
 }

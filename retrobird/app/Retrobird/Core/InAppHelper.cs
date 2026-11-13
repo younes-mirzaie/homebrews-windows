@@ -2,14 +2,15 @@
 // package and RetrobirdMain runs on a thread of its own, serving the app over loopback inside this
 // process. Nothing runs outside the app: no CMD Injector, no SYSTEM process, no shared folder.
 // Mail, settings and the log live in the app's own folder (LocalState\data).
+// This needs a WinRT (appx) app: Windows Phone 8.1 Silverlight apps can't DllImport their own DLLs
+// ("DllImport cannot be used on user-defined methods"), which is why Retrobird moved off Silverlight.
 using System;
 using System.IO;
-using System.IO.IsolatedStorage;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
+using Windows.Security.Cryptography;
 using Windows.Storage;
 
 namespace Retrobird.Core
@@ -31,17 +32,13 @@ namespace Retrobird.Core
         {
             get
             {
-                var settings = IsolatedStorageSettings.ApplicationSettings;
-                string t;
-                if (!settings.TryGetValue("token", out t) || string.IsNullOrEmpty(t))
+                var settings = ApplicationData.Current.LocalSettings.Values;
+                object v;
+                var t = settings.TryGetValue("token", out v) ? v as string : null;
+                if (string.IsNullOrEmpty(t))
                 {
-                    var bytes = new byte[16];
-                    new RNGCryptoServiceProvider().GetBytes(bytes);
-                    var sb = new StringBuilder();
-                    foreach (var b in bytes) sb.Append(b.ToString("x2"));
-                    t = sb.ToString();
+                    t = CryptographicBuffer.EncodeToHexString(CryptographicBuffer.GenerateRandom(16));
                     settings["token"] = t;
-                    settings.Save();
                 }
                 return t;
             }
@@ -60,33 +57,29 @@ namespace Retrobird.Core
                 try
                 {
                     int code = RetrobirdMain(args.Length, args);
-                    return "The mail engine stopped (code " + code + "). Details are in " + Path.Combine(DataDir, "rbmaild.log") + ".";
+                    Log("engine stopped with code " + code);
+                    return "Retrobird's mail engine stopped. Close Retrobird and open it again.";
                 }
                 catch (Exception e)
                 {
-                    // rbmail.dll or one of the DLLs it needs didn't load: a bug in this build, not
-                    // something the user can fix. Keep the details for the developer.
-                    WriteLog("engine failed to load: " + e);
-                    return "Retrobird's mail engine couldn't load on this phone (" + e.GetType().Name + "). " +
-                           "This is a bug in this version of Retrobird, not something wrong with your phone or account. " +
-                           "Please report it; an update will fix it.";
+                    // rbmail.dll or a DLL it needs didn't load. Nothing the user can do about it;
+                    // the details are kept for the developer.
+                    Log("engine failed to load: " + e);
+                    return "Retrobird's mail engine couldn't start on this phone, so it can't check or send mail.";
                 }
             }, TaskCreationOptions.LongRunning);
         }
 
-        /// <summary>App-side notes for the developer, next to the engine's own log.</summary>
-        static void WriteLog(string line)
+        /// <summary>App-side notes for the developer (LocalState\data\app.log), next to the engine's own log.</summary>
+        public static async void Log(string line)
         {
             try
             {
-                Directory.CreateDirectory(DataDir);
-                // (WP 8.1 Silverlight has no File.AppendAllText)
-                using (var fs = new FileStream(Path.Combine(DataDir, "app.log"), FileMode.Append,
-                                               FileAccess.Write, FileShare.ReadWrite))
-                using (var w = new StreamWriter(fs, new UTF8Encoding(false)))
-                    w.Write(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " " + line + "\r\n");
+                var dir = await ApplicationData.Current.LocalFolder.CreateFolderAsync("data", CreationCollisionOption.OpenIfExists);
+                var f = await dir.CreateFileAsync("app.log", CreationCollisionOption.OpenIfExists);
+                await FileIO.AppendTextAsync(f, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " " + line + "\r\n");
             }
-            catch { }
+            catch (Exception) { }
         }
 
         /// <summary>Whether our engine answers on the port.</summary>
@@ -113,7 +106,7 @@ namespace Retrobird.Core
                 if (await Answers()) return null;
                 await Task.Delay(250);
             }
-            return "Retrobird's mail engine didn't answer. Close the app and open it again.";
+            return "Retrobird's mail engine didn't answer. Close Retrobird and open it again.";
         }
     }
 }

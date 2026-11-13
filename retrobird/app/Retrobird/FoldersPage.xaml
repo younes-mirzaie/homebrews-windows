@@ -1,49 +1,36 @@
-<phone:PhoneApplicationPage
+<local:RbPage
     x:Class="Retrobird.FoldersPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
-    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
-    xmlns:local="clr-namespace:Retrobird"
-    FontFamily="{StaticResource PhoneFontFamilyNormal}"
-    FontSize="{StaticResource PhoneFontSizeNormal}"
-    Foreground="{StaticResource PhoneForegroundBrush}"
-    SupportedOrientations="PortraitOrLandscape" Orientation="Portrait"
-    shell:SystemTray.IsVisible="True">
+    xmlns:local="using:Retrobird">
 
-    <Grid x:Name="LayoutRoot" Background="Transparent">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <StackPanel Grid.Row="0" Margin="12,8,12,8">
-            <TextBlock x:Name="AccountText" Text="RETROBIRD" Style="{StaticResource PhoneTextNormalStyle}" Margin="12,0"/>
-            <TextBlock x:Name="TitleText" Text="folders" Margin="9,-7,12,0"
-                       Style="{StaticResource PhoneTextTitle1Style}"/>
+        <StackPanel Style="{StaticResource RbHeaderPanel}">
+            <TextBlock x:Name="AccountText" Text="RETROBIRD" Style="{StaticResource RbAppTitle}"/>
+            <TextBlock x:Name="TitleText" Text="folders" Style="{StaticResource RbPageTitle}"/>
         </StackPanel>
-        <TextBlock x:Name="StatusText" Grid.Row="1" Margin="24,0,24,8" TextWrapping="Wrap" Visibility="Collapsed"
-                   Foreground="{StaticResource PhoneSubtleBrush}" FontSize="{StaticResource PhoneFontSizeSmall}"/>
-        <ListBox x:Name="Items" Grid.Row="2" Margin="12,0,12,0" SelectionChanged="Items_SelectionChanged">
-            <ListBox.ItemContainerStyle>
-                <Style TargetType="ListBoxItem">
-                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                </Style>
-            </ListBox.ItemContainerStyle>
-            <ListBox.ItemTemplate>
+        <TextBlock x:Name="StatusText" Grid.Row="1" Margin="19,0,19,9.5" Visibility="Collapsed" Style="{StaticResource RbSmall}"/>
+        <ListView x:Name="Items" Grid.Row="2" Padding="19,0,19,0" SelectionMode="None" IsItemClickEnabled="True"
+                  ItemClick="Items_ItemClick" ItemContainerStyle="{StaticResource RbStretchItem}">
+            <ListView.ItemTemplate>
                 <DataTemplate>
-                    <Grid Margin="12,4,12,8" Opacity="{Binding ItemOpacity}" Background="Transparent" local:Motion.Tilt="True">
+                    <Grid Margin="0,0,0,9.5" Opacity="{Binding ItemOpacity}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="{Binding Label}" FontSize="{StaticResource PhoneFontSizeLarge}"
-                                   FontFamily="{StaticResource PhoneFontFamilySemiLight}" TextTrimming="WordEllipsis"/>
-                        <TextBlock Grid.Column="1" Text="{Binding CountText}" Foreground="{StaticResource PhoneAccentBrush}"
-                                   FontSize="{StaticResource PhoneFontSizeLarge}" Margin="12,0,0,0"/>
+                        <TextBlock Text="{Binding Label}" Style="{StaticResource RbItemTitleLarge}"/>
+                        <!-- unread count in the accent color -->
+                        <TextBlock Grid.Column="1" Text="{Binding CountText}" Foreground="{ThemeResource PhoneAccentBrush}"
+                                   Style="{StaticResource RbItemTitleLarge}" Margin="10,0,0,0"/>
                     </Grid>
                 </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+            </ListView.ItemTemplate>
+        </ListView>
     </Grid>
-</phone:PhoneApplicationPage>
+</local:RbPage>

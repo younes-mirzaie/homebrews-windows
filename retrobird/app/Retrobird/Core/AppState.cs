@@ -1,6 +1,6 @@
-// State shared between pages, and the few settings kept in isolated storage.
+// State shared between pages, and the few settings kept in the app's local settings.
 using System.Collections.Generic;
-using System.IO.IsolatedStorage;
+using Windows.Storage;
 
 namespace Retrobird.Core
 {
@@ -19,14 +19,15 @@ namespace Retrobird.Core
 
         static T Get<T>(string key, T dflt)
         {
-            T v;
-            return IsolatedStorageSettings.ApplicationSettings.TryGetValue(key, out v) ? v : dflt;
+            object v;
+            return ApplicationData.Current.LocalSettings.Values.TryGetValue(key, out v) && v is T ? (T)v : dflt;
         }
 
         static void Set<T>(string key, T v)
         {
-            IsolatedStorageSettings.ApplicationSettings[key] = v;
-            IsolatedStorageSettings.ApplicationSettings.Save();
+            var values = ApplicationData.Current.LocalSettings.Values;
+            if (v == null) values.Remove(key);
+            else values[key] = v;
         }
 
         public static string CurrentAccountId { get { return Get<string>("account", null); } set { Set("account", value); } }
