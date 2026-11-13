@@ -48,8 +48,6 @@ namespace AppLoader
         {
             InitializeComponent();
             Pivots.Title = AppInfo.Name.ToUpperInvariant();
-            LogText.Text = AppLog.Text;
-            AppLog.Changed += () => Dispatcher.BeginInvoke(() => LogText.Text = AppLog.Text);
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -347,6 +345,13 @@ namespace AppLoader
             if (_leaving) return;
             _leaving = true;
             Turnstile.Out(Pivots, false, () => { _leaving = false; NavigationService.Navigate(uri); });
+        }
+
+        void Log_Click(object sender, EventArgs e)
+        {
+            if (_leaving) return;
+            _leaving = true;
+            Turnstile.Out(Pivots, false, () => { _leaving = false; NavigationService.Navigate(new Uri("/LogPage.xaml", UriKind.Relative)); });
         }
 
         void Refresh_Click(object sender, EventArgs e)

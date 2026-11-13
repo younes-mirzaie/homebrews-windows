@@ -1,6 +1,6 @@
 // Everything the user reads when something goes wrong, in plain words: what happened, whether
 // anything changed, and what to do next. Technical details (installer output, error codes, shell
-// replies) go to AppLog, shown in the log pane, never as the main message.
+// replies) go to AppLog, shown on the log page, never as the main message.
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -14,7 +14,7 @@ namespace AppLoader.Core
         public const string Name = "Unesbrews";
     }
 
-    /// <summary>Recent technical details for the log pane (newest first, kept in memory).</summary>
+    /// <summary>Recent technical details for the log page (newest first, kept in memory).</summary>
     public static class AppLog
     {
         static readonly List<string> _entries = new List<string>();
@@ -137,8 +137,8 @@ namespace AppLoader.Core
             if (e is System.IO.IOException || e is ArgumentException || e is AppLoader.Catalog.CatalogException)
                 return e.Message;
             AppLog.Add("unexpected error: " + e.GetType().Name, e.ToString());
-            return "Something went wrong inside " + AppInfo.Name + ". Try again; if it keeps happening, restart the app. " +
-                   "Details are in the log pane.";
+            return "Something went wrong inside " + AppInfo.Name + ". Try again; if it keeps happening, close " +
+                   AppInfo.Name + " and open it again.";
         }
 
         static string HResult(string output)

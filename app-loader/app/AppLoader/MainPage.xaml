@@ -142,18 +142,14 @@
             </Grid>
         </phone:PivotItem>
 
-        <phone:PivotItem x:Name="LogPivot" Header="log">
-            <ScrollViewer>
-                <TextBlock x:Name="LogText" TextWrapping="Wrap" Margin="12,0,12,96"
-                           Style="{StaticResource PhoneTextSubtleStyle}" FontSize="{StaticResource PhoneFontSizeSmall}"
-                           Text="" />
-            </ScrollViewer>
-        </phone:PivotItem>
     </phone:Pivot>
 
     <phone:PhoneApplicationPage.ApplicationBar>
-        <shell:ApplicationBar Mode="Minimized" Opacity="0.9">
+        <shell:ApplicationBar Opacity="1">
             <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/refresh.png" Text="refresh" Click="Refresh_Click" />
+            <shell:ApplicationBar.MenuItems>
+                <shell:ApplicationBarMenuItem Text="log" Click="Log_Click" />
+            </shell:ApplicationBar.MenuItems>
         </shell:ApplicationBar>
     </phone:PhoneApplicationPage.ApplicationBar>
 </phone:PhoneApplicationPage>

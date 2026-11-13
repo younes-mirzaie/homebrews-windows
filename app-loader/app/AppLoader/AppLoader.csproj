@@ -47,6 +47,7 @@
     <Compile Include="App.xaml.cs"><DependentUpon>App.xaml</DependentUpon></Compile>
     <Compile Include="MainPage.xaml.cs"><DependentUpon>MainPage.xaml</DependentUpon></Compile>
     <Compile Include="CatalogPage.xaml.cs"><DependentUpon>CatalogPage.xaml</DependentUpon></Compile>
+    <Compile Include="LogPage.xaml.cs"><DependentUpon>LogPage.xaml</DependentUpon></Compile>
     <Compile Include="Core\CatalogService.cs" />
     <!-- stage 2 catalog client, shared with the Mono tests in ..\..\catalog\test -->
     <Compile Include="..\..\catalog\client\*.cs"><Link>Catalog\%(Filename)%(Extension)</Link></Compile>
@@ -63,6 +64,7 @@
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml"><SubType>Designer</SubType><Generator>MSBuild:Compile</Generator></ApplicationDefinition>
     <Page Include="CatalogPage.xaml"><SubType>Designer</SubType><Generator>MSBuild:Compile</Generator></Page>
+    <Page Include="LogPage.xaml"><SubType>Designer</SubType><Generator>MSBuild:Compile</Generator></Page>
     <Page Include="MainPage.xaml"><SubType>Designer</SubType><Generator>MSBuild:Compile</Generator></Page>
   </ItemGroup>
   <ItemGroup>
