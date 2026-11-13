@@ -120,7 +120,7 @@ static int send_err(Conn *c, DWORD code, const WCHAR *where)
     DWORD n = FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, code,
                              0, msg, sizeof msg, NULL);
     while (n && (msg[n - 1] == '\r' || msg[n - 1] == '\n' || msg[n - 1] == ' ' || msg[n - 1] == '.')) msg[--n] = 0;
-    if (!n) _snprintf(msg, sizeof msg, "Windows error %lu", (unsigned long)code);
+    if (!n) _snprintf(msg, sizeof msg, "the phone couldn't do that (code %lu)", (unsigned long)code);
     sendf(c, "ERR\t%lu\t%s%s%s\n", (unsigned long)code, msg, w ? ": " : "", w ? w : "");
     free(w);
     return 0;

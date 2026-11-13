@@ -68,6 +68,7 @@
     <None Include="Properties\AppManifest.xml" />
     <None Include="Properties\WMAppManifest.xml"><SubType>Designer</SubType></None>
     <Content Include="Assets\**\*.png" />
+    <Content Include="SplashScreenImage.jpg" />
     <!-- the native helper, built by ..\..\build.ps1 (daemon\rfxfsd.c) -->
     <Content Include="Helper\rfxfsd.exe" />
   </ItemGroup>

@@ -20,11 +20,10 @@
 
         <!-- app title in caps, then the folder's name as a big light page title and its full path
              (tap either to type a path) -->
-        <StackPanel Grid.Row="0" Margin="12,17,0,12">
-            <TextBlock Text="FILE EXPLORER" Style="{StaticResource PhoneTextNormalStyle}"/>
+        <StackPanel Grid.Row="0" Margin="12,16,0,28">
+            <TextBlock Text="FILE EXPLORER" Style="{StaticResource PhoneTextNormalStyle}" FontFamily="{StaticResource PhoneFontFamilySemiBold}"/>
             <TextBlock x:Name="PageTitle" Text="places" Tap="PathText_Tap" TextTrimming="WordEllipsis"
-                       FontSize="{StaticResource PhoneFontSizeExtraLarge}" FontFamily="{StaticResource PhoneFontFamilySemiLight}"
-                       Margin="9,-4,12,0"/>
+                       Style="{StaticResource PhoneTextTitle1Style}" Margin="9,-10,12,0"/>
             <TextBlock x:Name="PathText" Text="" Tap="PathText_Tap" TextWrapping="Wrap" Visibility="Collapsed"
                        Style="{StaticResource PhoneTextSubtleStyle}"/>
             <TextBox x:Name="PathBox" Visibility="Collapsed" InputScope="Url" KeyUp="PathBox_KeyUp" LostFocus="PathBox_LostFocus"/>
@@ -35,8 +34,8 @@
             <TextBlock x:Name="StatusText" TextWrapping="Wrap" Foreground="{StaticResource PhoneSubtleBrush}"/>
             <ProgressBar x:Name="Busy" IsIndeterminate="False" Visibility="Collapsed"/>
             <StackPanel Orientation="Horizontal">
-                <Button x:Name="RetryButton" Content="start helper" Click="RetryButton_Click" Visibility="Collapsed" Margin="-12,0,0,0"/>
-                <Button x:Name="CancelButton" Content="cancel" Click="CancelButton_Click" Visibility="Collapsed" Margin="-12,0,0,0"/>
+                <Button x:Name="RetryButton" Content="start helper" Click="RetryButton_Click" Visibility="Collapsed" Margin="-12,0,0,0" core:Metro.Tilt="True"/>
+                <Button x:Name="CancelButton" Content="cancel" Click="CancelButton_Click" Visibility="Collapsed" Margin="-12,0,0,0" core:Metro.Tilt="True"/>
             </StackPanel>
         </StackPanel>
 
@@ -66,7 +65,7 @@
                                   Data="M7,2 L22,2 L30,10 L30,34 L7,34 Z M22,2 L22,10 L30,10"/>
                         </Grid>
                         <StackPanel Grid.Column="1">
-                            <TextBlock Text="{Binding Name}" FontSize="{StaticResource PhoneFontSizeMediumLarge}" TextTrimming="WordEllipsis"/>
+                            <TextBlock Text="{Binding Name}" FontSize="{StaticResource PhoneFontSizeLarge}" FontFamily="{StaticResource PhoneFontFamilySemiLight}" TextTrimming="WordEllipsis"/>
                             <TextBlock Text="{Binding SubText}" Foreground="{StaticResource PhoneSubtleBrush}" FontSize="{StaticResource PhoneFontSizeNormal}" TextTrimming="WordEllipsis"/>
                         </StackPanel>
                     </Grid>

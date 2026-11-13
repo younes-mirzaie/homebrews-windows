@@ -23,19 +23,28 @@ const jobs = [
   ['Square44x44Logo.png', 44, 44, 'file-explorer-glyph.svg', null],
   ['StoreLogo.png', 50, 50, 'file-explorer-tile.svg', YELLOW],
   ['SplashScreen.png', 480, 800, 'file-explorer-tile.svg', YELLOW],
+  // scale-240 copies for the 8.1 package (the OS picks them on high-resolution phones)
+  ['Square150x150Logo.scale-240.png', 360, 360, 'file-explorer-glyph.svg', null],
+  ['Square71x71Logo.scale-240.png', 170, 170, 'file-explorer-glyph.svg', null],
+  ['Square44x44Logo.scale-240.png', 106, 106, 'file-explorer-glyph.svg', null],
+  ['StoreLogo.scale-240.png', 120, 120, 'file-explorer-tile.svg', YELLOW],
+  ['SplashScreen.scale-240.png', 1152, 1920, 'file-explorer-tile.svg', YELLOW],
+  // the splash Silverlight apps actually show: SplashScreenImage.jpg in the project root
+  ['../SplashScreenImage.jpg', 768, 1280, 'file-explorer-tile.svg', YELLOW],
 ];
 
 (async () => {
   const browser = await chromium.launch();
   const page = await browser.newPage({ deviceScaleFactor: 1 });
-  for (const [file, w, h, src, bg] of jobs) {
+  for (const [file, w, h, src, bg, scale] of jobs) {
     await page.setViewportSize({ width: w, height: h });
-    const side = Math.min(w, h);
+    const side = Math.round(Math.min(w, h) * (scale || 1));
     await page.setContent(`<html><body style="margin:0;width:${w}px;height:${h}px;background:${bg || 'transparent'};
       display:flex;align-items:center;justify-content:center">
       <img src="${svg(src)}" style="width:${side}px;height:${side}px"></body></html>`);
     await page.waitForFunction(() => document.images[0].complete);
-    await page.screenshot({ path: path.join(out, file), omitBackground: !bg });
+    await page.screenshot(file.endsWith('.jpg') ? { path: path.join(out, file), type: 'jpeg', quality: 92 }
+                                               : { path: path.join(out, file), omitBackground: !bg });
     console.log(file, w + 'x' + h);
   }
   await browser.close();

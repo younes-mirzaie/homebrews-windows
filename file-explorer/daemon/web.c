@@ -168,7 +168,7 @@ static void web_win_error(SOCKET s, DWORD code, const WCHAR *where)
     char *w = where ? w_to_utf8(where) : NULL;
     DWORD n = FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, code, 0, msg, sizeof msg, NULL);
     while (n && (msg[n - 1] == '\r' || msg[n - 1] == '\n' || msg[n - 1] == ' ' || msg[n - 1] == '.')) msg[--n] = 0;
-    if (!n) _snprintf(msg, sizeof msg, "Windows error %lu", (unsigned long)code);
+    if (!n) _snprintf(msg, sizeof msg, "the phone couldn't do that (code %lu)", (unsigned long)code);
     _snprintf(full, sizeof full - 1, "%s%s%s", msg, w ? ": " : "", w ? w : "");
     full[sizeof full - 1] = 0;
     free(w);

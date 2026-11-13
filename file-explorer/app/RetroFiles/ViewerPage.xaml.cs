@@ -42,7 +42,7 @@ namespace RetroFiles
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
-            Metro.TurnstileIn(LayoutRoot);
+            Metro.TurnstileIn(LayoutRoot, e.NavigationMode == NavigationMode.Back);
             if (e.NavigationMode == NavigationMode.Back && _data != null) return;
             _path = AppState.ViewerPath;
             TitleText.Text = FsItem.NameOf(_path);

@@ -38,62 +38,53 @@ namespace RetroFiles.Core
             }
         }
 
-        const double MaxAngle = 10, Depress = 0.97;
+        // Windows Phone Toolkit values: up to 0.3 rad at the corners, 25 px down on Z,
+        // held while pressed, back over 100 ms after a 200 ms delay
+        const double MaxAngle = 0.3, Depression = 25;
 
         static void TiltDown(object sender, MouseButtonEventArgs e)
         {
             var el = (FrameworkElement)sender;
             if (el.ActualWidth <= 0 || el.ActualHeight <= 0) return;
             var p = e.GetPosition(el);
-            // -1..1 from the center; the touched side goes down
-            double x = Math.Max(-1, Math.Min(1, (p.X - el.ActualWidth / 2) / (el.ActualWidth / 2)));
-            double y = Math.Max(-1, Math.Min(1, (p.Y - el.ActualHeight / 2) / (el.ActualHeight / 2)));
+            double nx = Math.Max(0, Math.Min(1, p.X / el.ActualWidth)), ny = Math.Max(0, Math.Min(1, p.Y / el.ActualHeight));
+            double xMag = Math.Abs(nx - 0.5), yMag = Math.Abs(ny - 0.5);
+            double mag = xMag + yMag;
+            double angle = mag * MaxAngle * 180 / Math.PI;
             el.Projection = new PlaneProjection
             {
                 CenterOfRotationX = 0.5, CenterOfRotationY = 0.5,
-                RotationY = x * MaxAngle,
-                RotationX = -y * MaxAngle
+                RotationY = mag > 0 ? angle * (xMag / mag) * -Math.Sign(nx - 0.5) : 0,
+                RotationX = mag > 0 ? angle * (yMag / mag) * Math.Sign(ny - 0.5) : 0,
+                GlobalOffsetZ = -Depression
             };
-            el.RenderTransformOrigin = new Point(0.5, 0.5);
-            el.RenderTransform = new ScaleTransform { ScaleX = Depress, ScaleY = Depress };
         }
 
         static void TiltRelease(object sender, EventArgs e)
         {
             var el = (FrameworkElement)sender;
-            if (el.Projection == null) return;
-            var sb = new Storyboard();
             var pp = el.Projection as PlaneProjection;
-            if (pp != null)
-            {
-                sb.Children.Add(To(pp, "RotationX", 0, 100));
-                sb.Children.Add(To(pp, "RotationY", 0, 100));
-            }
-            var st = el.RenderTransform as ScaleTransform;
-            if (st != null)
-            {
-                sb.Children.Add(To(st, "ScaleX", 1, 100));
-                sb.Children.Add(To(st, "ScaleY", 1, 100));
-            }
+            if (pp == null || pp.GlobalOffsetZ == 0) return;
+            var sb = new Storyboard { BeginTime = TimeSpan.FromMilliseconds(200) };
+            sb.Children.Add(To(pp, "RotationX", 0, 100));
+            sb.Children.Add(To(pp, "RotationY", 0, 100));
+            sb.Children.Add(To(pp, "GlobalOffsetZ", 0, 100));
             // a projection left in place renders the element through a texture: drop it when done
-            sb.Completed += (o, a) => { el.Projection = null; el.RenderTransform = null; };
+            sb.Completed += (o, a) => { if (el.Projection == pp) el.Projection = null; };
             sb.Begin();
         }
 
         // ---------- turnstile: page content swings in around its left edge ----------
 
-        public static void TurnstileIn(UIElement root)
+        /// <summary>Forward: in from -80 degrees; back: in from 50 degrees. 350 ms, exponential ease out;
+        /// opacity snaps (never fades).</summary>
+        public static void TurnstileIn(UIElement root, bool back)
         {
-            var pp = new PlaneProjection { CenterOfRotationX = 0, RotationY = -80 };
+            var pp = new PlaneProjection { CenterOfRotationX = 0, RotationY = back ? 50 : -80 };
             root.Projection = pp;
-            root.Opacity = 0;
             var sb = new Storyboard();
-            sb.Children.Add(To(pp, "RotationY", 0, 300));
-            var fade = new DoubleAnimation { To = 1, Duration = TimeSpan.FromMilliseconds(150) };
-            Storyboard.SetTarget(fade, root);
-            Storyboard.SetTargetProperty(fade, new PropertyPath("Opacity"));
-            sb.Children.Add(fade);
-            sb.Completed += (o, a) => { root.Projection = null; root.Opacity = 1; };
+            sb.Children.Add(To(pp, "RotationY", 0, 350));
+            sb.Completed += (o, a) => { if (root.Projection == pp) root.Projection = null; };
             sb.Begin();
         }
 
@@ -101,11 +92,11 @@ namespace RetroFiles.Core
 
         public static void SwivelIn(UIElement el)
         {
-            var pp = new PlaneProjection { CenterOfRotationY = 0, RotationX = -60 };
+            var pp = new PlaneProjection { CenterOfRotationY = 0, RotationX = -45 };
             el.Projection = pp;
             var sb = new Storyboard();
-            sb.Children.Add(To(pp, "RotationX", 0, 250));
-            sb.Completed += (o, a) => el.Projection = null;
+            sb.Children.Add(To(pp, "RotationX", 0, 350));
+            sb.Completed += (o, a) => { if (el.Projection == pp) el.Projection = null; };
             sb.Begin();
         }
 

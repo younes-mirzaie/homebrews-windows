@@ -78,7 +78,7 @@ namespace RetroFiles.Core
             {
                 uint code;
                 uint.TryParse(f.Length > 1 ? f[1] : "0", out code);
-                throw new RfxException(code, f.Length > 2 ? f[2] : "error");
+                throw new RfxException(code, f.Length > 2 ? f[2] : "the helper couldn't do that");
             }
             throw new RfxException(0, "unexpected reply: " + line);
         }

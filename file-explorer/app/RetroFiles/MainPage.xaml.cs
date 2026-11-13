@@ -57,7 +57,7 @@ namespace RetroFiles
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
-            Metro.TurnstileIn(LayoutRoot);
+            Metro.TurnstileIn(LayoutRoot, e.NavigationMode == NavigationMode.Back);
             if (e.NavigationMode == NavigationMode.New)
             {
                 await StartHelperAsync();
@@ -154,6 +154,9 @@ namespace RetroFiles
                 _path = path;
                 _items = items;
                 ShowItems(keepScroll && oldPath == path);
+                // moving between folders turnstiles the list: back when going up, forward otherwise
+                if (!string.Equals(oldPath, path, StringComparison.OrdinalIgnoreCase))
+                    Metro.TurnstileIn(Items, path == null || (oldPath != null && oldPath.StartsWith(path, StringComparison.OrdinalIgnoreCase)));
                 if (StatusPanel.Visibility == Visibility.Visible && RetryButton.Visibility != Visibility.Visible && StatusText.Text != _webLine) HideStatus();
             }
             catch (Exception e)
@@ -366,7 +369,7 @@ namespace RetroFiles
                 bar.Buttons.Add(WebButton());
                 bar.MenuItems.Add(Menu("go to path...", (s, e) => PathText_Tap(null, null)));
                 bar.MenuItems.Add(Menu("new web password", NewWebPassword_Click));
-                if (Bookmarks.Count > 0) bar.MenuItems.Add(Menu("clear favorites", (s, e) => { SaveBookmarks(new List<string>()); var _ = LoadAsync(null); }));
+                bar.MenuItems.Add(Menu(_showHidden ? "hide hidden items" : "show hidden items", Hidden_Click));
                 bar.MenuItems.Add(Menu("restart helper", RestartHelper_Click));
                 bar.MenuItems.Add(Menu("about", About_Click));
             }
@@ -377,12 +380,11 @@ namespace RetroFiles
                 bar.Buttons.Add(Btn("newfolder", "new folder", NewFolder_Click));
                 bar.Buttons.Add(Btn("select", "select", (s, e) => EnterSelectMode()));
                 bar.Buttons.Add(WebButton());
+                // at most 5 menu items, 20 characters or fewer (Metro app bar rules)
                 bar.MenuItems.Add(Menu("refresh", async (s, e) => await LoadAsync(_path, keepScroll: true)));
                 bar.MenuItems.Add(Menu("new text file", NewFile_Click));
-                bar.MenuItems.Add(Menu("places", async (s, e) => await LoadAsync(null)));
-                bar.MenuItems.Add(Menu(Bookmarks.Contains(_path) ? "remove from favorites" : "add to favorites", Bookmark_Click));
-                bar.MenuItems.Add(Menu("sort: " + (_sort == SortBy.Name ? "name" : _sort == SortBy.Size ? "size" : "date") + " (change)", Sort_Click));
-                bar.MenuItems.Add(Menu(_showHidden ? "hide hidden/system items" : "show hidden/system items", Hidden_Click));
+                bar.MenuItems.Add(Menu(Bookmarks.Contains(_path) ? "remove favorite" : "add to favorites", Bookmark_Click));
+                bar.MenuItems.Add(Menu("sort by " + (_sort == SortBy.Name ? "size" : _sort == SortBy.Size ? "date" : "name"), Sort_Click));
                 bar.MenuItems.Add(Menu("folder properties", (s, e) => { AppState.PropertiesPath = _path; NavigationService.Navigate(new Uri("/PropertiesPage.xaml", UriKind.Relative)); }));
             }
             ApplicationBar = bar;

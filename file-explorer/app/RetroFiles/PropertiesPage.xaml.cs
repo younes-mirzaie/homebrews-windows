@@ -19,7 +19,7 @@ namespace RetroFiles
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
-            Metro.TurnstileIn(LayoutRoot);
+            Metro.TurnstileIn(LayoutRoot, e.NavigationMode == NavigationMode.Back);
             _path = AppState.PropertiesPath;
             NameText.Text = FsItem.NameOf(_path);
             try

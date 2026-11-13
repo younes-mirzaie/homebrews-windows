@@ -14,12 +14,11 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <StackPanel Margin="24,17,24,12">
-            <TextBlock Text="FILE EXPLORER" Style="{StaticResource PhoneTextNormalStyle}" Margin="0"/>
-            <TextBlock x:Name="TitleText" FontSize="{StaticResource PhoneFontSizeExtraLarge}" FontFamily="{StaticResource PhoneFontFamilySemiLight}"
-                       Margin="-3,-4,0,0" TextTrimming="WordEllipsis"/>
-            <TextBlock x:Name="InfoText" Foreground="{StaticResource PhoneSubtleBrush}" TextWrapping="Wrap" FontSize="{StaticResource PhoneFontSizeSmall}"/>
-            <ProgressBar x:Name="Busy" IsIndeterminate="True" Visibility="Collapsed"/>
+        <StackPanel Margin="12,16,0,12">
+            <TextBlock Text="FILE EXPLORER" Style="{StaticResource PhoneTextNormalStyle}" FontFamily="{StaticResource PhoneFontFamilySemiBold}"/>
+            <TextBlock x:Name="TitleText" Style="{StaticResource PhoneTextTitle1Style}" Margin="9,-10,12,0" TextTrimming="WordEllipsis"/>
+            <TextBlock x:Name="InfoText" Style="{StaticResource PhoneTextSmallStyle}" TextWrapping="Wrap"/>
+            <ProgressBar x:Name="Busy" IsIndeterminate="True" Visibility="Collapsed" Margin="12,0"/>
         </StackPanel>
         <!-- text and hex are line lists: a single huge TextBlock would be cut off at 2048 px -->
         <ListBox x:Name="Lines" Grid.Row="1" Margin="24,0,0,0" SelectionChanged="Lines_SelectionChanged">
