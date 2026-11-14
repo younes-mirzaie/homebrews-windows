@@ -39,8 +39,13 @@
                 <Button Content="add account" Style="{StaticResource RbButton}" Click="Add_Click"/>
 
                 <TextBlock Text="check for new mail" Style="{StaticResource RbSection}"/>
-                <TextBlock Text="While Retrobird is open, it checks the inbox for you." Style="{StaticResource RbSubtle}" Margin="0,4,0,0"/>
+                <TextBlock Text="while Retrobird is open" Style="{StaticResource RbSubtle}" Margin="0,4,0,0"/>
                 <Button x:Name="SyncButton" Style="{StaticResource RbButton}" Click="SyncButton_Click"/>
+                <TextBlock Text="while Retrobird is closed" Style="{StaticResource RbSubtle}" Margin="0,4,0,0"/>
+                <Button x:Name="BackgroundButton" Style="{StaticResource RbButton}" Click="BackgroundButton_Click"/>
+                <TextBlock Style="{StaticResource RbSmall}"
+                           Text="Windows Phone decides when to run the check, so new mail can take up to about half an hour to show up on the tile. It works on the phone alone: there's no push service."/>
+                <ToggleSwitch x:Name="NotifySwitch" Header="notifications for new mail" Toggled="NotifySwitch_Toggled" Margin="0,9.5,0,0"/>
 
                 <TextBlock Text="pictures" Style="{StaticResource RbSection}"/>
                 <ToggleSwitch x:Name="ImagesSwitch" Header="show pictures from the web in mail" Toggled="ImagesSwitch_Toggled"/>

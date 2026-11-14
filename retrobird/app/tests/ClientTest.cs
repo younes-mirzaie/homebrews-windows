@@ -72,6 +72,8 @@ static class ClientTest
         catch (MailException e) { Check(e.Code == "ARG", "no recipient error"); }
         try { await c.GetMessageAsync(id, "INBOX", 999999, false); Check(false, "missing message must fail"); }
         catch (MailException e) { Check(e.Message.Length > 0, "missing message error"); }
+        // RB_KEEP_ACCOUNT: leave it for the background check test (check_test.py)
+        if (Environment.GetEnvironmentVariable("RB_KEEP_ACCOUNT") != null) return;
         await c.DeleteAccountAsync(id);
         Check(!(await c.GetAccountsAsync()).Any(a => a.Id == id), "account deleted");
     }

@@ -4,6 +4,8 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Retrobird", "Retrobird\Retrobird.csproj", "{366858C9-2152-47A8-82A1-481BE0CC341B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RetrobirdTasks", "RetrobirdTasks\RetrobirdTasks.csproj", "{8E1D5C3B-6A2F-4B7E-9C41-2D7A0F5E8B63}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM = Debug|ARM
@@ -16,5 +18,9 @@ Global
 		{366858C9-2152-47A8-82A1-481BE0CC341B}.Release|ARM.ActiveCfg = Release|ARM
 		{366858C9-2152-47A8-82A1-481BE0CC341B}.Release|ARM.Build.0 = Release|ARM
 		{366858C9-2152-47A8-82A1-481BE0CC341B}.Release|ARM.Deploy.0 = Release|ARM
+		{8E1D5C3B-6A2F-4B7E-9C41-2D7A0F5E8B63}.Debug|ARM.ActiveCfg = Debug|ARM
+		{8E1D5C3B-6A2F-4B7E-9C41-2D7A0F5E8B63}.Debug|ARM.Build.0 = Debug|ARM
+		{8E1D5C3B-6A2F-4B7E-9C41-2D7A0F5E8B63}.Release|ARM.ActiveCfg = Release|ARM
+		{8E1D5C3B-6A2F-4B7E-9C41-2D7A0F5E8B63}.Release|ARM.Build.0 = Release|ARM
 	EndGlobalSection
 EndGlobal

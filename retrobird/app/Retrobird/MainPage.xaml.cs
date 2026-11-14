@@ -148,7 +148,7 @@ namespace Retrobird
             {
                 var r = await AppState.Client.SyncAsync(acct.Id, AppState.CurrentFolder);
                 Status(null);
-                if (r.Added > 0 || userAsked || _items.Count == 0) await LoadFromCache();
+                if (r.Added > 0 || userAsked || _items.Count == 0 || AppState.CurrentFolderRole == "inbox") await LoadFromCache();
                 if (AppState.CurrentFolderRole == "inbox" && r.Unseen >= 0) UpdateTile(r.Unseen);
             }
             catch (Exception ex)
@@ -162,18 +162,26 @@ namespace Retrobird
             }
         }
 
-        /// <summary>The unread count on the tile (the system draws it in the accent color).</summary>
-        static void UpdateTile(int unread)
+        /// <summary>The tile shows the unread count and the newest unread messages. Mail seen
+        /// here isn't announced again by the background check.</summary>
+        void UpdateTile(int unread)
         {
-            try
-            {
-                var updater = BadgeUpdateManager.CreateBadgeUpdaterForApplication();
-                if (unread <= 0) { updater.Clear(); return; }
-                var xml = BadgeUpdateManager.GetTemplateContent(BadgeTemplateType.BadgeNumber);
-                ((XmlElement)xml.SelectSingleNode("/badge")).SetAttribute("value", Math.Min(unread, 99).ToString());
-                updater.Update(new BadgeNotification(xml));
-            }
-            catch (Exception) { }
+            var acct = AppState.CurrentAccount;
+            if (acct == null) return;
+            var latest = _items.Where(m => m.IsUnread).Take(3)
+                               .Select(m => new NewMail { AccountId = acct.Id, Uid = m.Uid, From = m.From, Subject = m.Subject })
+                               .ToList();
+            // other accounts' unread mail counts too
+            int total = unread + AppState.Accounts.Where(a => a.Id != acct.Id).Sum(a => Math.Max(0, a.Unseen));
+            Notify.UpdateTile(total, latest);
+            if (_items.Count > 0) Notify.SetLastNotified(acct.Id, _items.Max(m => m.Uid));
+        }
+
+        /// <summary>Shows the account and folder chosen elsewhere (a notification was tapped).</summary>
+        public async void ShowCurrent()
+        {
+            _shown = PageSize;
+            await Start();
         }
 
         async void MoreButton_Click(object sender, RoutedEventArgs e)

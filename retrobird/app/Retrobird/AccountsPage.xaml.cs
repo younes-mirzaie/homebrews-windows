@@ -24,8 +24,10 @@ namespace Retrobird
             base.OnNavigatedTo(e);
             _init = true;
             ImagesSwitch.IsOn = AppState.LoadImages;
+            NotifySwitch.IsOn = Notify.Enabled;
             _init = false;
             ShowInterval();
+            ShowBackground();
             await Refresh();
         }
 
@@ -64,6 +66,28 @@ namespace Retrobird
             ShowInterval();
             try { await AppState.Client.SetSyncMinutesAsync(AppState.SyncMinutes); }
             catch (Exception ex) { await Ui.ErrorAsync(ex); }
+        }
+
+        static readonly int[] BackgroundIntervals = { 30, 60, 0 };
+
+        void ShowBackground()
+        {
+            int m = Notify.BackgroundMinutes;
+            BackgroundButton.Content = m == 0 ? "never" : m < 60 ? "about every " + m + " minutes" : "about every hour";
+            NotifySwitch.IsEnabled = m != 0;
+        }
+
+        void BackgroundButton_Click(object sender, RoutedEventArgs e)
+        {
+            int i = Array.IndexOf(BackgroundIntervals, Notify.BackgroundMinutes);
+            Notify.BackgroundMinutes = BackgroundIntervals[(i + 1) % BackgroundIntervals.Length];
+            ShowBackground();
+            App.ScheduleBackgroundCheck(true);
+        }
+
+        void NotifySwitch_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (!_init) Notify.Enabled = NotifySwitch.IsOn;
         }
 
         void ImagesSwitch_Toggled(object sender, RoutedEventArgs e)

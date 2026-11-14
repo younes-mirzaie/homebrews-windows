@@ -48,7 +48,9 @@ if command -v mcs >/dev/null && command -v mono >/dev/null; then
     mcs -nologo -main:InProcessTest -out:"$dir/InProcessTest.exe" "$here/../../app/tests/InProcessTest.cs" \
         "$here/../../app/tests/ClientTest.cs" "$core/LineSocket.cs" "$core/MailClient.cs" "$core/Models.cs" "$core/Providers.cs"
     echo "in-process:"
-    LD_LIBRARY_PATH="$here/../build" timeout -k 5 180 mono "$dir/InProcessTest.exe" 18098 mono-token-12345 "s3cret päss" "$dir/inprocdata"
+    RB_KEEP_ACCOUNT=1 LD_LIBRARY_PATH="$here/../build" timeout -k 5 180 mono "$dir/InProcessTest.exe" 18098 mono-token-12345 "s3cret päss" "$dir/inprocdata"
+    # the background task's one-shot check, on the account that test left
+    timeout -k 5 120 python3 -I "$here/check_test.py" "$here/../build/librbmail.so" "$dir/inprocdata" mono-token-12345
     exit $?
 else
     echo "(mcs/mono not installed: skipping the C# client test)"

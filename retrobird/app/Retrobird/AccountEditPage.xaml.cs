@@ -122,21 +122,36 @@ namespace Retrobird
             ShowProvider(p);
             if (_manual || p == null) return;
             _filling = true;
-            ImapHostBox.Text = p.ImapHost;
-            ImapPortBox.Text = p.ImapPort.ToString();
-            SmtpHostBox.Text = p.SmtpHost;
-            SmtpPortBox.Text = p.SmtpPort.ToString();
+            Fill(ImapHostBox, p.ImapHost);
+            Fill(ImapPortBox, p.ImapPort.ToString());
+            Fill(SmtpHostBox, p.SmtpHost);
+            Fill(SmtpPortBox, p.SmtpPort.ToString());
             _imapSec = p.ImapSec;
             _smtpSec = p.SmtpSec;
-            UserBox.Text = EmailBox.Text.Trim();
+            Fill(UserBox, EmailBox.Text.Trim());
             SaveSentBox.IsChecked = p.SaveSent;
             _filling = false;
             ShowSec();
         }
 
+        // What the app itself put in each server box. TextChanged arrives later on WinRT, after
+        // _filling is cleared, so the app's own fill must not count as a change by hand (that froze
+        // the user name at the first letter typed).
+        readonly Dictionary<TextBox, string> _auto = new Dictionary<TextBox, string>();
+
+        void Fill(TextBox box, string text)
+        {
+            _auto[box] = text;
+            box.Text = text;
+        }
+
         void Server_Changed(object sender, TextChangedEventArgs e)
         {
-            if (!_filling) _manual = true;
+            if (_filling) return;
+            var box = sender as TextBox;
+            string auto;
+            if (box != null && _auto.TryGetValue(box, out auto) && auto == box.Text) return;
+            _manual = true;
         }
 
         static string SecLabel(string s)
@@ -217,7 +232,8 @@ namespace Retrobird
             {
                 { "name", NameBox.Text.Trim() },
                 { "email", email },
-                { "user", string.IsNullOrEmpty(UserBox.Text.Trim()) ? email : UserBox.Text.Trim() },
+                // a known service signs in with the full address unless it was changed by hand
+                { "user", (!_manual && _provider != null) || string.IsNullOrEmpty(UserBox.Text.Trim()) ? email : UserBox.Text.Trim() },
                 { "pass", PassBox.Password },
                 { "imap_host", ImapHostBox.Text.Trim() },
                 { "imap_port", ImapPortBox.Text.Trim() },

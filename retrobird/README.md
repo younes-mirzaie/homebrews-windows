@@ -27,7 +27,11 @@ live in the app's own folder (`LocalState\data`). No CMD Injector, no SYSTEM pro
 that outlives the app. The only network traffic is to your mail servers.
 
 Passwords are stored encrypted (AES-256-GCM) with a key derived from the app's key, which is kept
-in the app's settings. New mail is checked every N minutes while the app is open.
+in the app's settings. New mail is checked every N minutes while the app is open. While it's
+closed, a background task (`app/RetrobirdTasks`, a Windows timer about every 30 minutes, the
+shortest the phone allows) calls `RetrobirdCheck` in the same rbmail.dll for one pass over every
+inbox, then updates the live tile (unread count, newest senders and subjects) and shows a
+notification for new mail. No push server is involved.
 
 See [PROTOCOL.md](PROTOCOL.md).
 

@@ -1151,11 +1151,99 @@ static int rb_main(int argc, char **argv)
     return 0;
 }
 
+/* One check of every account's inbox, for the app's background task (no listener, no threads
+   left behind). Takes --token, --data and --roots like the engine. Writes to out, one line each,
+   TAB-separated, tabs and line breaks in values turned into spaces:
+     A <id> <email> <unseen> <added> <error>
+     M <uid> <date> <from> <subject>        up to 5 newest unread messages of that account
+   Returns 0, or 1 when the engine couldn't start. */
 #ifdef RB_DLL
+static int g_check_ready;
+
+static void check_field(buf_t *b, const char *v)
+{
+    buf_addc(b, '\t');
+    for (; v && *v; v++) buf_addc(b, *v == '\t' || *v == '\n' || *v == '\r' ? ' ' : *v);
+}
+
+static int rb_check(int argc, char **argv, char *out, int outlen)
+{
+    char data[600] = "./rbdata", roots[600] = "";
+    buf_t b;
+    for (int i = 1; i + 1 < argc; i++) {
+        if (!strcmp(argv[i], "--token")) g_token = argv[++i];
+        else if (!strcmp(argv[i], "--data")) snprintf(data, sizeof(data), "%s", argv[++i]);
+        else if (!strcmp(argv[i], "--roots")) snprintf(roots, sizeof(roots), "%s", argv[++i]);
+    }
+    if (!out || outlen < 1) return 1;
+    out[0] = '\0';
+    if (!g_token || strlen(g_token) < 8) return 1;
+    /* the background task's process may be reused: set up once */
+    if (!g_check_ready) {
+        if (net_init(roots) != 0) return 1;
+        g_lock = PR_NewLock();
+        store_init(data, g_token);
+        g_check_ready = 1;
+    }
+    buf_init(&b);
+    for (account *a = store_accounts(); a; a = a->next) {
+        char err[512] = "", num[64];
+        sync_args sa = {0};
+        folder_cache fc;
+        char *dir;
+        PR_Lock(a->lock);
+        sa.folder = "INBOX";
+        if (run_imap(a, op_sync, &sa, err, sizeof(err)) == 0) {
+            a->last_sync = time(NULL);
+            if (sa.unseen >= 0) a->unseen = sa.unseen;
+            err[0] = '\0';
+            if (sa.added) rb_log("background check %s: %d new", a->id, sa.added);
+        } else {
+            rb_log("background check %s failed: %s", a->id, err);
+        }
+        /* leave nothing open: the task ends right after */
+        if (a->im) { imap_close(a->im); a->im = NULL; }
+        buf_adds(&b, "A");
+        check_field(&b, a->id);
+        check_field(&b, a->email);
+        snprintf(num, sizeof(num), "%d", a->unseen);
+        check_field(&b, num);
+        snprintf(num, sizeof(num), "%d", sa.added);
+        check_field(&b, num);
+        check_field(&b, err);
+        buf_addc(&b, '\n');
+        dir = folder_dir(a, "INBOX");
+        cache_load(&fc, dir);
+        free(dir);
+        for (int i = fc.n - 1, k = 0; i >= 0 && k < 5; i--) {
+            msg_entry *e = &fc.e[i];
+            if (strchr(e->flags, 'S') || strchr(e->flags, 'D')) continue;
+            snprintf(num, sizeof(num), "%u", e->uid);
+            buf_adds(&b, "M");
+            check_field(&b, num);
+            snprintf(num, sizeof(num), "%lld", (long long)e->date);
+            check_field(&b, num);
+            check_field(&b, e->from);
+            check_field(&b, e->subject);
+            buf_addc(&b, '\n');
+            k++;
+        }
+        cache_free(&fc);
+        PR_Unlock(a->lock);
+    }
+    snprintf(out, (size_t)outlen, "%s", b.p ? b.p : "");
+    buf_free(&b);
+    return 0;
+}
+
 #ifdef _WIN32
 __declspec(dllexport)
 #endif
 int RetrobirdMain(int argc, char **argv) { return rb_main(argc, argv); }
+#ifdef _WIN32
+__declspec(dllexport)
+#endif
+int RetrobirdCheck(int argc, char **argv, char *out, int outlen) { return rb_check(argc, argv, out, outlen); }
 #else
 int main(int argc, char **argv) { return rb_main(argc, argv); }
 #endif
