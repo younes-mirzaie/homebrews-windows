@@ -217,16 +217,29 @@ namespace AppLoader.Core
             return list;
         }
 
-        /// <summary>Installed versions, read from the installed manifests (phone and SD card). TH's
-        /// app list has no versions. Apps whose manifest isn't where we look stay unknown.</summary>
+        /// <summary>Installed versions, read from the installed manifests. TH's app list has no
+        /// versions. Apps whose manifest isn't found stay unknown.</summary>
         public static async Task<Dictionary<string, string>> InstalledVersionsAsync(List<string> productIds)
         {
             var result = new Dictionary<string, string>();
-            if (productIds.Count == 0) return result;
+            foreach (var kv in await InstalledAsync(productIds)) result[kv.Key] = kv.Value.Version;
+            return result;
+        }
+
+        public sealed class InstalledCopy { public string Version, Kind; }   // Kind: "xap" or "appx"
+
+        /// <summary>Version and kind of each installed app. An appx app lives in
+        /// C:\Data\Programs\WindowsApps\Name_Version_..., a Silverlight one in
+        /// C:\Data\Programs\{ID}\Install. When an app moved from Silverlight to appx, the old
+        /// Silverlight folder can stay behind with its old version: the appx copy counts then.</summary>
+        public static async Task<Dictionary<string, InstalledCopy>> InstalledAsync(List<string> productIds)
+        {
+            var result = new Dictionary<string, InstalledCopy>();
+            var ids = new List<string>();
+            foreach (var pid in productIds) if (Regex.IsMatch(pid, "^[0-9A-F-]{36}$")) ids.Add(pid);
+            if (ids.Count == 0) return result;
             var cmds = new StringBuilder();
-            foreach (var pid in productIds)
-            {
-                if (!Regex.IsMatch(pid, "^[0-9A-F-]{36}$")) continue;
+            foreach (var pid in ids)
                 foreach (var root in new[] { @"C:\Data\Programs", @"D:\WPSystem\Apps" })
                     foreach (var man in new[] { "AppxManifest.xml", "WMAppManifest.xml" })
                     {
@@ -234,11 +247,35 @@ namespace AppLoader.Core
                         string dst = Shell.LocalPath + "\\ver-" + pid + "-" + man;
                         cmds.Append("if exist " + Shell.Quote(src) + " copy /y " + Shell.Quote(src) + " " + Shell.Quote(dst) + " >nul\n");
                     }
-            }
-            await Shell.RunAsync(cmds.ToString(), 60);
+            // every appx app's manifest (small files), named after its package folder
+            Shell.Quote(Shell.LocalPath);   // refuses a folder name a batch line can't hold
+            string waDst = "\"" + Shell.LocalPath + "\\wa-%%~nxd.xml\"";
+            foreach (var root in new[] { @"C:\Data\Programs\WindowsApps", @"D:\WPSystem\Apps\WindowsApps", @"D:\WindowsApps" })
+                cmds.Append("if exist " + Shell.Quote(root) + " for /d %%d in (" + Shell.Quote(root + "\\*") + ") do " +
+                            "if exist \"%%d\\AppxManifest.xml\" copy /y \"%%d\\AppxManifest.xml\" " + waDst + " >nul\n");
+            await Shell.RunAsync(cmds.ToString(), 90);
             using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
             {
-                foreach (var pid in productIds)
+                // appx copies first
+                foreach (var f in iso.GetFileNames("wa-*"))
+                {
+                    try
+                    {
+                        string xml = Decode(ReadAll(iso, f));
+                        var pm = Regex.Match(xml, @"PhoneProductId\s*=\s*""\{?([0-9A-Fa-f-]{36})\}?""");
+                        string v = ManifestVersion(xml, true);
+                        if (pm.Success && v != null)
+                        {
+                            string pid = pm.Groups[1].Value.ToUpperInvariant();
+                            InstalledCopy have;
+                            if (ids.Contains(pid) && (!result.TryGetValue(pid, out have) || CatalogIndex.CompareVersions(v, have.Version) > 0))
+                                result[pid] = new InstalledCopy { Version = v, Kind = "appx" };
+                        }
+                    }
+                    catch (Exception) { }
+                    try { iso.DeleteFile(f); } catch (Exception) { }
+                }
+                foreach (var pid in ids)
                 {
                     string v = null;
                     foreach (var man in new[] { "AppxManifest.xml", "WMAppManifest.xml" })
@@ -252,7 +289,7 @@ namespace AppLoader.Core
                         catch (Exception) { }
                         try { iso.DeleteFile(f); } catch (Exception) { }
                     }
-                    if (v != null) result[pid] = v;
+                    if (v != null && !result.ContainsKey(pid)) result[pid] = new InstalledCopy { Version = v, Kind = "xap" };
                 }
             }
             return result;
@@ -352,7 +389,7 @@ namespace AppLoader.Core
             try
             {
                 using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
-                    foreach (var pattern in new[] { "staged-*", "dl-*", "ver-*" })
+                    foreach (var pattern in new[] { "staged-*", "dl-*", "ver-*", "wa-*" })
                         foreach (var f in iso.GetFileNames(pattern))
                         {
                             if (job != null && f == job.Staged) continue;

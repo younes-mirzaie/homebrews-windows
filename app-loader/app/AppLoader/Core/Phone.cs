@@ -43,6 +43,7 @@ namespace AppLoader.Core
     {
         public string Run, Mode, ProductId, Title, Version, ExistingTitle, Staged;
         public bool ExistingOnSd;   // the installed copy (if any) lives on the SD card
+        public bool KindChange;     // the installed copy is Silverlight and the package is appx
         public bool IsUpdate { get { return Mode == PackageInstaller.Update; } }
 
         const string Key = "job";
@@ -50,7 +51,7 @@ namespace AppLoader.Core
         public void Save()
         {
             IsolatedStorageSettings.ApplicationSettings[Key] = string.Join("\n",
-                new[] { Run, Mode, ProductId, Title, Version, ExistingTitle ?? "", Staged, ExistingOnSd ? "sd" : "" });
+                new[] { Run, Mode, ProductId, Title, Version, ExistingTitle ?? "", Staged, ExistingOnSd ? "sd" : "", KindChange ? "kind" : "" });
             IsolatedStorageSettings.ApplicationSettings.Save();
         }
 
@@ -62,7 +63,8 @@ namespace AppLoader.Core
             if (f.Length < 7) return null;
             return new InstallJob { Run = f[0], Mode = f[1], ProductId = f[2], Title = f[3], Version = f[4],
                                     ExistingTitle = f[5].Length > 0 ? f[5] : null, Staged = f[6],
-                                    ExistingOnSd = f.Length > 7 && f[7] == "sd" };
+                                    ExistingOnSd = f.Length > 7 && f[7] == "sd",
+                                    KindChange = f.Length > 8 && f[8] == "kind" };
         }
 
         public static void Clear()
@@ -243,6 +245,18 @@ namespace AppLoader.Core
                     return outcome;
                 }
 
+                string existingKind = null;
+                if (existing != null)
+                {
+                    try
+                    {
+                        CatalogService.InstalledCopy have;
+                        if ((await CatalogService.InstalledAsync(new List<string> { pkg.ProductId })).TryGetValue(pkg.ProductId, out have))
+                            existingKind = have.Kind;
+                    }
+                    catch (Exception) { }
+                }
+
                 string mode = existing != null ? PackageInstaller.Update : PackageInstaller.Deploy;
                 status((existing != null ? "updating " : "installing ") + pkg.Title + "...");
                 string run;
@@ -259,6 +273,8 @@ namespace AppLoader.Core
                     Run = run, Mode = mode, ProductId = pkg.ProductId, Title = pkg.Title, Version = pkg.Version,
                     ExistingTitle = existing != null ? existing.Title : null, Staged = stageName,
                     ExistingOnSd = existing != null && existing.OnSd,
+                    // a Silverlight app replaced by an appx one with the same product ID
+                    KindChange = existingKind == "xap" && pkg.Kind == "appx",
                 };
                 outcome.Job.Save();
                 outcome.Started = true;

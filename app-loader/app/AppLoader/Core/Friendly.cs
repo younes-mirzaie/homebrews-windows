@@ -80,7 +80,12 @@ namespace AppLoader.Core
         {
             string what = job.Title + " " + job.Version;
             string code = th.PacManCode ?? HResult(th.Output);
-            string why = Reason(code, job);
+            string why = job.KindChange && job.IsUpdate
+                ? "This version is built differently from the " + (job.ExistingTitle ?? job.Title) + " you have now " +
+                  "(a newer kind of app package), and the phone can't always switch one to the other in place. " +
+                  "Uninstall " + (job.ExistingTitle ?? job.Title) + " (tap and hold it in the app list, then uninstall), " +
+                  "then install it again from " + AppInfo.Name + ". Its saved settings go with the uninstall. " + Unchanged
+                : Reason(code, job);
             return (job.IsUpdate ? "Couldn't update " : "Couldn't install ") + what + ". " + why;   // the code itself is in the log
         }
 
