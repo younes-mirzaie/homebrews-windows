@@ -228,10 +228,11 @@ namespace AppLoader.Core
 
         public sealed class InstalledCopy { public string Version, Kind; }   // Kind: "xap" or "appx"
 
-        /// <summary>Version and kind of each installed app. An appx app lives in
-        /// C:\Data\Programs\WindowsApps\Name_Version_..., a Silverlight one in
-        /// C:\Data\Programs\{ID}\Install. When an app moved from Silverlight to appx, the old
-        /// Silverlight folder can stay behind with its old version: the appx copy counts then.</summary>
+        /// <summary>Version and kind of each installed app. A sideloaded appx app lives in
+        /// C:\Data\SharedData\PhoneTools\Name_Version_... (SD: D:\PhoneTools\AppxLayouts), a Store
+        /// one in C:\Data\Programs\WindowsApps, a Silverlight one in C:\Data\Programs\{ID}\Install.
+        /// Old copies stay behind (older appx versions, the Silverlight folder of an app that moved
+        /// to appx), so the highest version found counts.</summary>
         public static async Task<Dictionary<string, InstalledCopy>> InstalledAsync(List<string> productIds)
         {
             var result = new Dictionary<string, InstalledCopy>();
@@ -250,13 +251,12 @@ namespace AppLoader.Core
             // every appx app's manifest (small files), named after its package folder
             Shell.Quote(Shell.LocalPath);   // refuses a folder name a batch line can't hold
             string waDst = "\"" + Shell.LocalPath + "\\wa-%%~nxd.xml\"";
-            foreach (var root in new[] { @"C:\Data\Programs\WindowsApps", @"D:\WPSystem\Apps\WindowsApps", @"D:\WindowsApps" })
+            foreach (var root in new[] { @"C:\Data\SharedData\PhoneTools", @"D:\PhoneTools\AppxLayouts", @"C:\Data\Programs\WindowsApps" })
                 cmds.Append("if exist " + Shell.Quote(root) + " for /d %%d in (" + Shell.Quote(root + "\\*") + ") do " +
                             "if exist \"%%d\\AppxManifest.xml\" copy /y \"%%d\\AppxManifest.xml\" " + waDst + " >nul\n");
             await Shell.RunAsync(cmds.ToString(), 90);
             using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
             {
-                // appx copies first
                 foreach (var f in iso.GetFileNames("wa-*"))
                 {
                     try
@@ -289,7 +289,9 @@ namespace AppLoader.Core
                         catch (Exception) { }
                         try { iso.DeleteFile(f); } catch (Exception) { }
                     }
-                    if (v != null && !result.ContainsKey(pid)) result[pid] = new InstalledCopy { Version = v, Kind = "xap" };
+                    InstalledCopy appx;
+                    if (v != null && (!result.TryGetValue(pid, out appx) || CatalogIndex.CompareVersions(v, appx.Version) > 0))
+                        result[pid] = new InstalledCopy { Version = v, Kind = "xap" };
                 }
             }
             return result;
