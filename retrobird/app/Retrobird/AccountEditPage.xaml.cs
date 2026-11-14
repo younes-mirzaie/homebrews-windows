@@ -22,6 +22,11 @@ namespace Retrobird
         Provider _provider;
         Provider _chosen;   // picked on the provider page: its servers apply whatever the domain
         AppBarButton _save;
+        // Microsoft (Outlook.com) sign-in
+        bool _ms, _msStored, _signedIn;
+        string _refresh;      // from a finished sign-in, saved as the account's token
+        OAuthDevice _device;
+        int _pollGen;         // bumped to stop a running poll
 
         public AccountEditPage()
         {
@@ -38,6 +43,8 @@ namespace Retrobird
             Ui.Scope(UserBox, InputScopeNameValue.EmailSmtpAddress);
             Ui.Scope(SmtpHostBox, InputScopeNameValue.Url);
             Ui.Scope(SmtpPortBox, InputScopeNameValue.Number);
+            Ui.Scope(ClientBox, InputScopeNameValue.Default);
+            ClientBox.Text = AppState.MicrosoftClientId;
             foreach (var box in new[] { ImapSecBox, SmtpSecBox })
                 foreach (var sec in Secs) box.Items.Add(SecLabel(sec));
             _save = Ui.Button(this, Symbol.Accept, "save", async (s, e) => await Save());
@@ -85,6 +92,16 @@ namespace Retrobird
                 _smtpPin = g("smtp_pin");
                 SaveSentBox.IsChecked = g("save_sent") != "0";
                 if (g("has_pass") != "1") PassHint.Text = "The saved password can't be used any more. Enter it again.";
+                _msStored = g("auth") == "microsoft";
+                if (_msStored)
+                {
+                    if (g("oauth_client").Length > 0) ClientBox.Text = g("oauth_client");
+                    _signedIn = g("has_pass") == "1";
+                    MsStatus.Text = _signedIn
+                        ? "Signed in with Microsoft. Sign in again only if Retrobird asks you to."
+                        : "The Microsoft sign-in has expired. Sign in again.";
+                    MsSignInButton.Content = "sign in again";
+                }
                 _filling = false;
                 _provider = Provider.ForEmail(EmailBox.Text);
                 ShowProvider(_provider);
@@ -98,11 +115,132 @@ namespace Retrobird
         void ShowProvider(Provider p)
         {
             bool known = p != null && !string.IsNullOrEmpty(p.Name);
+            _ms = _msStored || (p != null && p.Microsoft);
+            var ms = _ms ? Visibility.Visible : Visibility.Collapsed;
+            var pw = _ms ? Visibility.Collapsed : Visibility.Visible;
+            MsPanel.Visibility = ms;
+            ClientBox.Visibility = ms;
+            PassBox.Visibility = pw;
+            AppPassText.Visibility = pw;
+            if (_ms) PassHint.Visibility = Visibility.Collapsed;
+            else if (_id != null) PassHint.Visibility = Visibility.Visible;
             ProviderText.Text = known ? p.Name : "";
             ProviderText.Visibility = known ? Visibility.Visible : Visibility.Collapsed;
             NoteText.Text = known && !string.IsNullOrEmpty(p.Note) ? p.Note : "";
             NoteText.Visibility = NoteText.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
             AppPasswordButton.Visibility = known && !string.IsNullOrEmpty(p.AppPasswordUrl) ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        // ---------------- Microsoft sign-in ----------------
+
+        protected override void OnNavigatedFrom(NavigationEventArgs e)
+        {
+            base.OnNavigatedFrom(e);
+            _pollGen++;   // stop waiting for a sign-in
+        }
+
+        async void MsSignIn_Click(object sender, RoutedEventArgs e)
+        {
+            var client = ClientBox.Text.Trim();
+            if (client.Length == 0)
+            {
+                AdvancedPanel.Visibility = Visibility.Visible;
+                await Ui.AlertAsync("This copy of Retrobird doesn't have a Microsoft app ID yet. Enter it under server settings, in \"Microsoft app ID\".", "Microsoft sign-in");
+                return;
+            }
+            int gen = ++_pollGen;
+            MsSignInButton.IsEnabled = false;
+            Busy("contacting Microsoft");
+            try
+            {
+                _device = await AppState.Client.OAuthStartAsync(client);
+            }
+            catch (Exception ex)
+            {
+                MsStatus.Text = Ui.Describe(ex);
+                MsSignInButton.IsEnabled = true;
+                return;
+            }
+            finally { Busy(null); }
+            AppState.MicrosoftClientId = client;
+            CodeText.Text = _device.UserCode;
+            CodeHelp.Text = "Open " + _device.Url + ", sign in with your Microsoft account and enter this code. Then come back here: Retrobird notices by itself.";
+            CodePanel.Visibility = Visibility.Visible;
+            MsStatus.Text = "Waiting for you to sign in on Microsoft's page.";
+            MsSignInButton.Content = "get a new code";
+            MsSignInButton.IsEnabled = true;
+            await Poll(gen, client, _device);
+        }
+
+        async Task Poll(int gen, string client, OAuthDevice d)
+        {
+            var until = DateTime.UtcNow.AddSeconds(d.ExpiresIn > 0 ? d.ExpiresIn : 900);
+            int interval = d.Interval, failures = 0;
+            while (gen == _pollGen)
+            {
+                await Task.Delay(interval * 1000);
+                if (gen != _pollGen) return;
+                if (DateTime.UtcNow > until)
+                {
+                    CodePanel.Visibility = Visibility.Collapsed;
+                    MsStatus.Text = "The code expired before it was entered. Tap \"sign in with Microsoft\" for a new one.";
+                    MsSignInButton.Content = "sign in with Microsoft";
+                    return;
+                }
+                Tuple<string, string> r;
+                try
+                {
+                    r = await AppState.Client.OAuthPollAsync(client, d.DeviceCode);
+                    failures = 0;
+                }
+                catch (MailException ex)
+                {
+                    // the phone may be offline for a moment while you switch apps: keep waiting
+                    if (ex.Code == "NET" && ++failures < 5) { interval = Math.Min(interval * 2, 30); continue; }
+                    if (gen != _pollGen) return;
+                    CodePanel.Visibility = Visibility.Collapsed;
+                    MsStatus.Text = Ui.Describe(ex);
+                    MsSignInButton.Content = "sign in with Microsoft";
+                    return;
+                }
+                if (gen != _pollGen) return;
+                if (r == null) continue;
+                _pollGen++;
+                _refresh = r.Item1;
+                _signedIn = true;
+                CodePanel.Visibility = Visibility.Collapsed;
+                MsSignInButton.Content = "sign in again";
+                var email = r.Item2 ?? "";
+                if (email.Length > 0 && EmailBox.Text.Trim().Length == 0) EmailBox.Text = email;
+                var typed = EmailBox.Text.Trim();
+                if (email.Length > 0 && !string.Equals(email, typed, StringComparison.OrdinalIgnoreCase))
+                {
+                    MsStatus.Text = "Microsoft signed you in as " + email + ", not " + typed + ". Change the address above or sign in again with the right account.";
+                    return;
+                }
+                MsStatus.Text = "Signed in" + (email.Length > 0 ? " as " + email : "") + ". Checking your mail servers.";
+                await Save();
+                return;
+            }
+        }
+
+        async void OpenRetrofox_Click(object sender, RoutedEventArgs e)
+        {
+            if (_device == null) return;
+            bool ok = false;
+            try { ok = await Windows.System.Launcher.LaunchUriAsync(new Uri("retrofox:" + _device.Url)); }
+            catch (Exception ex) { InAppHelper.Log("retrofox launch: " + ex.Message); }
+            if (!ok)
+            {
+                await Ui.AlertAsync("Retrofox couldn't be opened from here. It may need an update. The page will open in Internet Explorer instead.", "Microsoft sign-in");
+                OpenBrowser_Click(sender, e);
+            }
+        }
+
+        async void OpenBrowser_Click(object sender, RoutedEventArgs e)
+        {
+            if (_device == null) return;
+            await Windows.System.Launcher.LaunchUriAsync(new Uri(_device.Url));
         }
 
         async void AppPasswordButton_Click(object sender, RoutedEventArgs e)
@@ -234,7 +372,9 @@ namespace Retrobird
                 { "email", email },
                 // a known service signs in with the full address unless it was changed by hand
                 { "user", (!_manual && _provider != null) || string.IsNullOrEmpty(UserBox.Text.Trim()) ? email : UserBox.Text.Trim() },
-                { "pass", PassBox.Password },
+                { "pass", _ms ? (_refresh ?? "") : PassBox.Password },
+                { "auth", _ms ? "microsoft" : "password" },
+                { "oauth_client", _ms ? ClientBox.Text.Trim() : "" },
                 { "imap_host", ImapHostBox.Text.Trim() },
                 { "imap_port", ImapPortBox.Text.Trim() },
                 { "imap_sec", _imapSec },
@@ -256,7 +396,12 @@ namespace Retrobird
                 await Ui.AlertAsync("Enter your email address. It looks like this: name@example.com", "account");
                 return;
             }
-            if (_id == null && PassBox.Password.Length == 0)
+            if (_ms && _refresh == null && !_signedIn)
+            {
+                await Ui.AlertAsync("Tap \"sign in with Microsoft\" first. Outlook.com doesn't let mail apps in with a password.", "account");
+                return;
+            }
+            if (!_ms && _id == null && PassBox.Password.Length == 0)
             {
                 await Ui.AlertAsync("Enter the app password your mail service gave you (or your password).", "account");
                 return;

@@ -57,6 +57,7 @@ namespace Retrobird
             {
                 case "AUTH": return "Couldn't sign in: " + m.Message;
                 case "NET": return "Can't connect: " + m.Message;
+                case "OAUTH": return m.Message;
                 default: return m.Message;
             }
         }

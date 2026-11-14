@@ -278,10 +278,63 @@ void imap_quote(buf_t *out, const char *s)
     buf_addc(out, '"');
 }
 
+/* XOAUTH2 with a Microsoft access token. On a refusal the server sends a "+ <details>"
+   continuation, which takes an empty line before the tagged NO. */
+static int login_xoauth2(imap *m, account *a, const char *user)
+{
+    char tag[16], *b64;
+    buf_t line;
+    int rc;
+    if (oauth_ensure(a, m->err, sizeof(m->err)) != 0) return -1;
+    b64 = oauth_xoauth2(user, a->access);
+    buf_init(&line);
+    snprintf(tag, sizeof(tag), "R%04d", ++m->tag);
+    if (rb_debug) rb_log("C: %s AUTHENTICATE XOAUTH2 <login hidden>", tag);
+    if (imap_has_cap(m, "SASL-IR")) buf_printf(&line, "%s AUTHENTICATE XOAUTH2 %s\r\n", tag, b64);
+    else buf_printf(&line, "%s AUTHENTICATE XOAUTH2\r\n", tag);
+    rc = conn_write(m->c, line.p, line.len);
+    memset(line.p, 0, line.len);
+    for (int sent = imap_has_cap(m, "SASL-IR"); rc == 0;) {
+        rc = conn_readline(m->c, &line);
+        if (rc != 0) break;
+        if (line.len && line.p[0] == '+') {
+            buf_clear(&line);
+            if (!sent) { buf_printf(&line, "%s\r\n", b64); sent = 1; }
+            else buf_adds(&line, "\r\n");
+            rc = conn_write(m->c, line.p, line.len);
+            memset(line.p, 0, line.len);
+            continue;
+        }
+        if (line.len > strlen(tag) && !strncmp(line.p, tag, strlen(tag)) && line.p[strlen(tag)] == ' ') {
+            const char *st = line.p + strlen(tag) + 1;
+            if (starts_with_i(st, "OK")) { rc = 0; break; }
+            snprintf(m->err, sizeof(m->err), "%.300s", st);
+            rc = -2;
+            break;
+        }
+        /* untagged lines (CAPABILITY) are fine to skip here; capabilities are asked for again */
+    }
+    if (rc == -1) {
+        m->io_error = 1;
+        snprintf(m->err, sizeof(m->err), "%s", conn_error(m->c));
+    }
+    if (rc != 0) {
+        /* a rejected token may just be stale: the next attempt refreshes it */
+        free(a->access);
+        a->access = NULL;
+        a->access_exp = 0;
+    }
+    memset(b64, 0, strlen(b64));
+    free(b64);
+    buf_free(&line);
+    return rc == 0 ? 0 : -1;
+}
+
 static int login(imap *m, account *a)
 {
     const char *user = a->user && *a->user ? a->user : a->email;
     const char *pass = a->pass ? a->pass : "";
+    if (a->auth == AUTH_MICROSOFT) return login_xoauth2(m, a, user);
     if (imap_has_cap(m, "LOGINDISABLED") && !imap_has_cap(m, "AUTH=PLAIN")) {
         snprintf(m->err, sizeof(m->err), "server refuses plain logins on this connection; use TLS or STARTTLS");
         return -1;

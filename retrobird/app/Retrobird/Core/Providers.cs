@@ -19,6 +19,12 @@ namespace Retrobird.Core
         public string Note;
         /// <summary>Where the app password is made, opened from the account page.</summary>
         public string AppPasswordUrl;
+        /// <summary>Signs in on Microsoft's page (OAuth) instead of with a password.</summary>
+        public bool Microsoft;
+
+        /// <summary>The app (client) ID registered with Microsoft for Retrobird's Outlook sign-in.
+        /// Can be overridden in the account's server settings.</summary>
+        public const string MicrosoftClientId = "";
 
         /// <summary>The name, for binding (bindings need a property).</summary>
         public string Title { get { return Name; } }
@@ -34,8 +40,8 @@ namespace Retrobird.Core
                 AppPasswordUrl = "https://myaccount.google.com/apppasswords" },
             new Provider { Name = "Outlook.com / Hotmail", Domains = new[] { "outlook.com", "hotmail.com", "live.com", "msn.com", "outlook.de", "hotmail.de", "hotmail.co.uk", "live.de" },
                 ImapHost = "outlook.office365.com", SmtpHost = "smtp-mail.outlook.com", SmtpPort = 587, SmtpSec = "starttls", SaveSent = false,
-                Works = false,
-                Note = "Microsoft only lets mail apps in through its own sign-in page, which Retrobird doesn't support yet. A password will be refused." },
+                Microsoft = true,
+                Note = "Outlook.com doesn't take passwords from mail apps. You sign in on Microsoft's own page instead: Retrobird shows a short code, you open the page in Retrofox, sign in and enter the code." },
             new Provider { Name = "Yahoo Mail", Domains = new[] { "yahoo.com", "yahoo.de", "yahoo.co.uk", "yahoo.fr", "ymail.com", "rocketmail.com" },
                 ImapHost = "imap.mail.yahoo.com", SmtpHost = "smtp.mail.yahoo.com",
                 Note = "Yahoo needs an app password: Account Security > Generate app password.",

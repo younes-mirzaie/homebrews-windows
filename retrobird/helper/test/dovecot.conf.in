@@ -11,7 +11,7 @@ ssl_cert = <@DIR@/server.crt
 ssl_key = <@DIR@/server.key
 ssl_min_protocol = TLSv1.2
 disable_plaintext_auth = yes
-auth_mechanisms = plain login
+auth_mechanisms = plain login xoauth2
 mail_location = maildir:@DIR@/mail/%u
 first_valid_uid = 1
 default_internal_user = @USER@
@@ -33,6 +33,11 @@ service anvil {
 }
 service imap-login {
   chroot =
+}
+passdb {
+  driver = oauth2
+  mechanisms = xoauth2
+  args = @DIR@/oauth2.conf
 }
 passdb {
   driver = passwd-file

@@ -161,6 +161,8 @@ int random_bytes(void *out, size_t n);
 char *secret_seal(const char *token, const char *plain);
 char *secret_open(const char *token, const char *sealed);
 
+enum { AUTH_PASSWORD = 0, AUTH_MICROSOFT = 1 };
+
 /* ---- accounts / store (store.c) ---- */
 typedef struct account {
     char *id, *name, *email;
@@ -170,6 +172,10 @@ typedef struct account {
     char *smtp_user;             /* NULL: same as user */
     char *imap_pin, *smtp_pin;
     int save_sent;
+    int auth;                    /* AUTH_PASSWORD, or AUTH_MICROSOFT: pass holds the refresh token */
+    char *oauth_client;          /* app (client) ID registered with Microsoft */
+    char *access;                /* current access token, memory only */
+    time_t access_exp;
     struct imap *im;             /* open connection, guarded by lock */
     void *lock;                  /* PRLock */
     time_t last_sync;
@@ -214,6 +220,20 @@ msg_entry *cache_find(folder_cache *fc, uint32_t uid);
 msg_entry *cache_insert(folder_cache *fc, uint32_t uid);
 void cache_remove(folder_cache *fc, uint32_t uid);
 void entry_free(msg_entry *e);
+/* ---- oauth.c: Microsoft sign-in (device code flow) and XOAUTH2 ---- */
+typedef struct { char *device_code, *user_code, *verify_uri; int interval, expires_in; } oauth_device;
+int oauth_device_start(const char *client, oauth_device *d, char *err, size_t errlen);
+void oauth_device_free(oauth_device *d);
+/* 0 signed in (*refresh and *email set, malloc), 1 still waiting, -1 failed (err) */
+int oauth_device_poll(const char *client, const char *device_code, char **refresh, char **email,
+                      char *err, size_t errlen);
+/* For AUTH_MICROSOFT accounts: makes a->access fresh (refreshing with a->pass). 0 or -1 (err). */
+int oauth_ensure(account *a, char *err, size_t errlen);
+/* base64 of "user=<email>^Aauth=Bearer <token>^A^A" (malloc) */
+char *oauth_xoauth2(const char *user, const char *token);
+extern volatile int g_store_dirty;   /* a refresh token changed: accounts.conf needs saving */
+char *json_get(const char *json, const char *key);   /* top-level string/number value, or NULL */
+
 #include <stdio.h>
 FILE *rb_fopen(const char *path, const char *mode);   /* UTF-8 path */
 char *read_file(const char *path, size_t *len);

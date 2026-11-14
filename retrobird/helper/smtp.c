@@ -142,7 +142,29 @@ static int smtp_open(smtp *s, account *a)
         code = cmd(s, &s->ehlo, "EHLO [127.0.0.1]");
         if (code != 250) { fail_text(s, "EHLO", code, &s->ehlo); goto fail; }
     }
-    if (a->pass && *a->pass) {
+    if (a->auth == AUTH_MICROSOFT) {
+        char *x;
+        if (oauth_ensure(a, s->err, sizeof(s->err)) != 0) {
+            char e[600];
+            snprintf(e, sizeof(e), "login failed: %s", s->err);
+            snprintf(s->err, sizeof(s->err), "%.490s", e);
+            goto fail;
+        }
+        x = oauth_xoauth2(user, a->access);
+        s->secret = 1;
+        code = cmd(s, &t, "AUTH XOAUTH2 %s", x);
+        if (code == 334) code = cmd(s, &t, "%s", "");   /* refusal details; an empty line ends it */
+        s->secret = 0;
+        memset(x, 0, strlen(x));
+        free(x);
+        if (code != 235) {
+            free(a->access);
+            a->access = NULL;
+            a->access_exp = 0;
+            fail_text(s, "login failed", code, &t);
+            goto fail;
+        }
+    } else if (a->pass && *a->pass) {
         buf_t raw, b64;
         buf_init(&raw);
         buf_init(&b64);

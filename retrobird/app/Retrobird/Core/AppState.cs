@@ -35,6 +35,12 @@ namespace Retrobird.Core
         public static string CurrentFolderLabel { get { return Get("folderLabel", "inbox"); } set { Set("folderLabel", value); } }
         public static string CurrentFolderRole { get { return Get("folderRole", "inbox"); } set { Set("folderRole", value); } }
         public static bool LoadImages { get { return Get("images", false); } set { Set("images", value); } }
+        /// <summary>A Microsoft app ID typed under server settings (overrides the built-in one).</summary>
+        public static string MicrosoftClientId
+        {
+            get { var v = Get<string>("msClient", null); return string.IsNullOrEmpty(v) ? Provider.MicrosoftClientId : v; }
+            set { Set("msClient", string.IsNullOrEmpty(value) || value == Provider.MicrosoftClientId ? null : value); }
+        }
         public static int SyncMinutes { get { return Get("syncMinutes", 15); } set { Set("syncMinutes", value); } }
 
         public static AccountInfo CurrentAccount

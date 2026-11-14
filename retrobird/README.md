@@ -13,9 +13,11 @@ IMAP/SMTP mail service, runs entirely inside the app, modern TLS.
 - Reply, reply all, forward, compose; sent mail saved to Sent; drafts open in compose.
 - Flag, mark unread, move, delete (to Trash), background check for new mail every N minutes,
   unread count on the live tile.
+- Outlook.com / Hotmail: Microsoft sign-in with a short code (OAuth 2.0 device code flow) entered
+  at microsoft.com/link in Retrofox or any browser; XOAUTH2 for IMAP and SMTP. Needs a Microsoft
+  app (client) ID: built in as `Provider.MicrosoftClientId`, or typed under server settings.
 
-Not yet: OAuth2 sign-in (Outlook.com/Hotmail need it, so they won't work; Gmail needs an app
-password), sending attachments, push (IDLE), search, signatures.
+Not yet: Google sign-in (Gmail uses an app password), sending attachments, push (IDLE), search, signatures.
 
 ## How it works
 

@@ -138,6 +138,10 @@ static imap *get_imap(account *a, char *err, size_t errlen)
         a->im = NULL;
     }
     if (!a->im) {
+        if (!a->pass && a->auth == AUTH_MICROSOFT) {
+            snprintf(err, errlen, "login failed: not signed in to Microsoft (edit the account to sign in)");
+            return NULL;
+        }
         if (!a->pass) {
             snprintf(err, errlen, "login failed: no password stored for %s (edit the account)", a->email ? a->email : "");
             return NULL;
@@ -247,6 +251,8 @@ static void cmd_get(client *c, char **f, int n)
     KV("imap_pin", a->imap_pin); KV("smtp_pin", a->smtp_pin);
     snprintf(num, sizeof(num), "%d", a->save_sent); KV("save_sent", num);
     KV("has_pass", a->pass ? "1" : "0");
+    KV("auth", a->auth == AUTH_MICROSOFT ? "microsoft" : "password");
+    KV("oauth_client", a->oauth_client);
 #undef KV
     out_end(c);
     unlock_account(a);
@@ -276,6 +282,8 @@ static void cmd_save(client *c, char **f, int n)
         tmp->imap_pin = a->imap_pin ? xstrdup(a->imap_pin) : NULL;
         tmp->smtp_pin = a->smtp_pin ? xstrdup(a->smtp_pin) : NULL;
         tmp->save_sent = a->save_sent;
+        tmp->auth = a->auth;
+        tmp->oauth_client = a->oauth_client ? xstrdup(a->oauth_client) : NULL;
         unlock_account(a);
     }
     for (int i = 2; i < n; i++) {
@@ -345,6 +353,9 @@ static void cmd_save(client *c, char **f, int n)
                 free(keep.name); free(keep.email); free(keep.imap_host); free(keep.smtp_host);
                 free(keep.user); if (keep.pass) memset(keep.pass, 0, strlen(keep.pass)); free(keep.pass);
                 free(keep.smtp_user); free(keep.imap_pin); free(keep.smtp_pin); free(keep.last_error);
+                free(keep.oauth_client);
+                if (keep.access) memset(keep.access, 0, strlen(keep.access));
+                free(keep.access);
                 free(tmp);
             }
             PR_Unlock(a->lock);
@@ -374,6 +385,61 @@ static void cmd_delacct(client *c, char **f, int n)
     PR_Unlock(g_lock);
     if (!a) reply_err(c, "NOTFOUND", "no such account");
     else { out_ok(c); out_end(c); }
+}
+
+/* OAUTHSTART client -> OK user_code verify_uri device_code interval expires_in */
+static void cmd_oauthstart(client *c, char **f, int n)
+{
+    oauth_device d;
+    char err[512], num[16];
+    if (oauth_device_start(n > 1 ? f[1] : NULL, &d, err, sizeof(err)) != 0) {
+        reply_err(c, stristr(err, "couldn't reach") ? "NET" : "OAUTH", err);
+        return;
+    }
+    out_ok(c);
+    out_field(c, d.user_code);
+    out_field(c, d.verify_uri);
+    out_field(c, d.device_code);
+    snprintf(num, sizeof(num), "%d", d.interval);
+    out_field(c, num);
+    snprintf(num, sizeof(num), "%d", d.expires_in);
+    out_field(c, num);
+    out_end(c);
+    oauth_device_free(&d);
+}
+
+/* OAUTHPOLL client device_code -> OK done refresh_token email | OK wait | ERR */
+static void cmd_oauthpoll(client *c, char **f, int n)
+{
+    char err[512], *refresh = NULL, *email = NULL;
+    int rc;
+    if (n < 3) { reply_err(c, "ARG", "OAUTHPOLL client device_code"); return; }
+    rc = oauth_device_poll(f[1], f[2], &refresh, &email, err, sizeof(err));
+    if (rc < 0) {
+        reply_err(c, stristr(err, "couldn't reach") ? "NET" : "OAUTH", err);
+    } else if (rc == 1) {
+        out_ok(c);
+        out_field(c, "wait");
+        out_end(c);
+    } else {
+        out_ok(c);
+        out_field(c, "done");
+        out_field(c, refresh);
+        out_field(c, email);
+        out_end(c);
+        rb_log("Microsoft sign-in finished for %s", email ? email : "(no address given)");
+    }
+    if (refresh) { memset(refresh, 0, strlen(refresh)); free(refresh); }
+    free(email);
+}
+
+/* A refresh token changed during the last piece of work: write it out (no locks held). */
+static void save_if_dirty(void)
+{
+    if (!g_store_dirty) return;
+    PR_Lock(g_lock);
+    if (store_save() != 0) rb_log("couldn't write accounts.conf");
+    PR_Unlock(g_lock);
 }
 
 typedef struct { folder_info *f; int n; } folders_ctx;
@@ -1007,6 +1073,7 @@ static void sync_thread(void *arg)
             }
             unlock_account(a);
         }
+        save_if_dirty();
     }
 }
 
@@ -1048,6 +1115,8 @@ static void serve(void *arg)
         else if (!strcmp(f[0], "MOVE")) cmd_move(c, f, n, 0);
         else if (!strcmp(f[0], "SEND")) cmd_send(c, f, n);
         else if (!strcmp(f[0], "SETTINGS")) cmd_settings(c, f, n);
+        else if (!strcmp(f[0], "OAUTHSTART")) cmd_oauthstart(c, f, n);
+        else if (!strcmp(f[0], "OAUTHPOLL")) cmd_oauthpoll(c, f, n);
         else if (!strcmp(f[0], "QUIT")) {
             buf_adds(&c->out, "OK\n");
             flush(c);
@@ -1056,6 +1125,7 @@ static void serve(void *arg)
         } else {
             reply_err(c, "ARG", "unknown command");
         }
+        save_if_dirty();
         if (flush(c) != 0) break;
     }
     buf_free(&line);
@@ -1231,6 +1301,7 @@ static int rb_check(int argc, char **argv, char *out, int outlen)
         cache_free(&fc);
         PR_Unlock(a->lock);
     }
+    save_if_dirty();
     snprintf(out, (size_t)outlen, "%s", b.p ? b.p : "");
     buf_free(&b);
     return 0;

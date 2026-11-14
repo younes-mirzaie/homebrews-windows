@@ -16,6 +16,21 @@
         <ScrollViewer Grid.Row="1">
             <StackPanel Margin="19,0,19,19">
                 <TextBox x:Name="EmailBox" Header="email address" TextChanged="EmailBox_TextChanged"/>
+
+                <!-- Outlook.com: sign in on Microsoft's page with a short code instead of a password -->
+                <StackPanel x:Name="MsPanel" Visibility="Collapsed" Margin="0,0,0,9.5">
+                    <TextBlock x:Name="MsStatus" Style="{StaticResource RbBody}" Margin="0,0,0,4"
+                               Text="Sign in on Microsoft's own page. Retrobird never sees your Microsoft password."/>
+                    <StackPanel x:Name="CodePanel" Visibility="Collapsed">
+                        <TextBlock Text="your code" Style="{StaticResource RbSubtle}" Margin="0,9.5,0,0"/>
+                        <TextBlock x:Name="CodeText" FontSize="42.67" FontWeight="SemiLight" IsTextSelectionEnabled="True"
+                                   Foreground="{ThemeResource PhoneAccentBrush}"/>
+                        <TextBlock x:Name="CodeHelp" Style="{StaticResource RbSmall}" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                        <Button x:Name="OpenRetrofoxButton" Content="open in Retrofox" Style="{StaticResource RbButton}" Click="OpenRetrofox_Click"/>
+                        <Button x:Name="OpenBrowserButton" Content="open in Internet Explorer" Style="{StaticResource RbButton}" Click="OpenBrowser_Click"/>
+                    </StackPanel>
+                    <Button x:Name="MsSignInButton" Content="sign in with Microsoft" Style="{StaticResource RbButton}" Click="MsSignIn_Click"/>
+                </StackPanel>
                 <PasswordBox x:Name="PassBox" Header="password"/>
                 <TextBlock x:Name="PassHint" Text="Leave it empty to keep the saved password." Visibility="Collapsed"
                            Style="{StaticResource RbSmall}" Margin="0,-4,0,9.5"/>
@@ -26,7 +41,7 @@
                     <TextBlock x:Name="ProviderText" Visibility="Collapsed" Margin="0,0,0,4"
                                Foreground="{ThemeResource PhoneAccentBrush}" FontSize="20.27"/>
                     <TextBlock x:Name="NoteText" Style="{StaticResource RbBody}" Visibility="Collapsed" Margin="0,0,0,4"/>
-                    <TextBlock Style="{StaticResource RbSmall}"
+                    <TextBlock x:Name="AppPassText" Style="{StaticResource RbSmall}"
                                Text="Use an app password, not your main password. Windows Phone is an older system that no longer gets security updates. An app password works only for mail, and you can cancel it from your account at any time without changing your main password."/>
                     <Button x:Name="AppPasswordButton" Content="get an app password" Style="{StaticResource RbButton}"
                             Visibility="Collapsed" Click="AppPasswordButton_Click"/>
@@ -57,6 +72,7 @@
                         <TextBox x:Name="SmtpPortBox" Header="port" TextChanged="Server_Changed"/>
                         <ComboBox x:Name="SmtpSecBox" Grid.Column="1" Header="security" Margin="12,0,0,0" SelectionChanged="Sec_Changed"/>
                     </Grid>
+                    <TextBox x:Name="ClientBox" Header="Microsoft app ID" Visibility="Collapsed"/>
                     <TextBlock x:Name="PinsText" Style="{StaticResource RbSmall}" Margin="0,9.5,0,0" Visibility="Collapsed"/>
                     <Button x:Name="ForgetPinsButton" Content="forget trusted certificates" Style="{StaticResource RbButton}"
                             Visibility="Collapsed" Click="ForgetPinsButton_Click"/>

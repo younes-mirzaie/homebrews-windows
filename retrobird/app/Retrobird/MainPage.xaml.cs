@@ -94,7 +94,7 @@ namespace Retrobird
             AccountText.Text = "RETROBIRD · " + acct.Title.ToUpperInvariant();
             FolderText.Text = AppState.CurrentFolderLabel;
             _listKey = acct.Id + "/" + AppState.CurrentFolder;
-            if (!acct.HasPassword) Status("The password for this account needs to be entered again (tap here).");
+            if (!acct.HasPassword) Status("This account needs you to sign in again (tap here).");
             await LoadFromCache();
             await SyncNow(false);
         }

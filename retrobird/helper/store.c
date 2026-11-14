@@ -200,6 +200,12 @@ int account_set(account *a, const char *key, const char *val)
     else if (!strcmp(key, "imap_pin")) set_str(&a->imap_pin, val);
     else if (!strcmp(key, "smtp_pin")) set_str(&a->smtp_pin, val);
     else if (!strcmp(key, "save_sent")) a->save_sent = atoi(val);
+    else if (!strcmp(key, "auth")) {
+        int m = val && !strcmp(val, "microsoft") ? AUTH_MICROSOFT : AUTH_PASSWORD;
+        if (m != a->auth) { free(a->access); a->access = NULL; a->access_exp = 0; }
+        a->auth = m;
+    }
+    else if (!strcmp(key, "oauth_client")) set_str(&a->oauth_client, val);
     else return -1;
     return 0;
 }
@@ -221,7 +227,9 @@ void account_free(account *a)
     if (a->pass) memset(a->pass, 0, strlen(a->pass));
     free(a->id); free(a->name); free(a->email); free(a->imap_host); free(a->smtp_host);
     free(a->user); free(a->pass); free(a->smtp_user); free(a->imap_pin); free(a->smtp_pin);
-    free(a->last_error);
+    free(a->last_error); free(a->oauth_client);
+    if (a->access) memset(a->access, 0, strlen(a->access));
+    free(a->access);
     if (a->lock) PR_DestroyLock(a->lock);
     free(a);
 }
@@ -234,8 +242,10 @@ static void put(buf_t *b, const char *k, const char *v)
     buf_addc(b, '\n');
 }
 
+/* Callers hold the account-list lock and no account lock. */
 int store_save(void)
 {
+    g_store_dirty = 0;
     buf_t b;
     char *path = xprintf("%s/accounts.conf", g_dir);
     int rc;
@@ -261,11 +271,16 @@ int store_save(void)
         put(&b, "smtp_pin", a->smtp_pin);
         snprintf(num, sizeof(num), "%d", a->save_sent);
         put(&b, "save_sent", num);
+        if (a->auth == AUTH_MICROSOFT) put(&b, "auth", "microsoft");
+        put(&b, "oauth_client", a->oauth_client);
+        /* the refresh token in pass can change under the account lock (oauth.c) */
+        if (a->lock) PR_Lock(a->lock);
         if (a->pass) {
             char *sealed = secret_seal(g_token, a->pass);
             put(&b, "pass_sealed", sealed);
             free(sealed);
         }
+        if (a->lock) PR_Unlock(a->lock);
     }
     rc = write_file(path, b.p, b.len);
     free(path);

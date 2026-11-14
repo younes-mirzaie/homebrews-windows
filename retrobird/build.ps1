@@ -46,7 +46,7 @@ foreach ($d in Get-ChildItem "$nss\lib" -Directory) { $cflags += @("-I", $d.Full
 # blapit.h (freebl) includes ecl-exp.h, one level further down
 $cflags += @("-I", "$nss\lib\freebl\ecl")
 
-$sources = "buf", "codec", "mime", "net", "store", "imap", "smtp", "server"
+$sources = "buf", "codec", "mime", "net", "store", "imap", "smtp", "oauth", "server"
 Write-Host "Compiling the mail engine (ARM)..." -ForegroundColor Cyan
 foreach ($s in $sources) {
     # RB_DLL: server.c exports RetrobirdMain instead of main. Compiler warnings go to stderr:

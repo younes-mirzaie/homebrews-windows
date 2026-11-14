@@ -234,4 +234,10 @@ namespace Retrobird.Core
             return r;
         }
     }
+
+    public sealed class OAuthDevice
+    {
+        public string UserCode, Url, DeviceCode;
+        public int Interval, ExpiresIn;
+    }
 }

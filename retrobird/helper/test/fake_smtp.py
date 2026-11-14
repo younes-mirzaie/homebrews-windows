@@ -39,7 +39,7 @@ class Session:
         caps = ["fake.test", "SIZE 10000000", "8BITMIME"]
         if self.tls:
             # the STARTTLS port offers only LOGIN so both client paths get exercised
-            caps.append("AUTH PLAIN LOGIN" if self.sock.getsockname()[1] == tls_port else "AUTH LOGIN")
+            caps.append("AUTH PLAIN LOGIN XOAUTH2" if self.sock.getsockname()[1] == tls_port else "AUTH LOGIN XOAUTH2")
         else:
             caps.append("STARTTLS")
         for i, c in enumerate(caps):
@@ -75,6 +75,17 @@ class Session:
                     self.send("334 UGFzc3dvcmQ6")
                     p = base64.b64decode(self.readline()).decode()
                     self.check(u, p)
+                elif parts[0].upper() == "XOAUTH2":
+                    # tokens from fake_oauth.py that start with AT-ok are good
+                    raw = base64.b64decode(parts[1]).decode()
+                    f = dict(x.split("=", 1) for x in raw.split("\x01") if "=" in x)
+                    if f.get("user") == user and f.get("auth", "").startswith("Bearer AT-ok"):
+                        self.authed = True
+                        self.send("235 2.7.0 ok")
+                    else:
+                        self.send("334 eyJzdGF0dXMiOiI0MDEifQ==")
+                        self.readline()
+                        self.send("535 5.7.3 token rejected")
                 else:
                     self.send("504 unsupported")
             elif verb == "MAIL":

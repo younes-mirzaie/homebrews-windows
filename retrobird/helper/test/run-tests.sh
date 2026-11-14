@@ -12,6 +12,7 @@ user=vmail
 id "$user" >/dev/null 2>&1 || useradd -r -M -s /usr/sbin/nologin "$user"
 cleanup() {
     [ -f "$dir/smtp.pid" ] && kill "$(cat "$dir/smtp.pid")" 2>/dev/null || true
+    [ -f "$dir/oauth.pid" ] && kill "$(cat "$dir/oauth.pid")" 2>/dev/null || true
     timeout 10 doveadm -c "$dir/dovecot.conf" stop 2>/dev/null || pkill -f "dovecot -c $dir/dovecot.conf" || true
     [ -n "$KEEP" ] || rm -rf "$dir"
 }
@@ -22,6 +23,9 @@ openssl req -x509 -newkey rsa:2048 -nodes -days 2 -subj "/CN=localhost" \
 echo "test@localhost:{PLAIN}s3cret p\xc3\xa4ss" | sed 's/\\xc3\\xa4/ä/' > "$dir/users"
 mkdir -p "$dir/run" "$dir/state" "$dir/mail/test@localhost" "$dir/outbox"
 for d in cur new tmp; do mkdir -p "$dir/mail/test@localhost/$d"; done
+printf 'tokeninfo_url = http://127.0.0.1:18099/tokeninfo?access_token=\nusername_attribute = email\n' > "$dir/oauth2.conf"
+python3 -I "$here/fake_oauth.py" 18099 "test@localhost" &
+echo $! > "$dir/oauth.pid"
 sed -e "s|@DIR@|$dir|g" -e "s|@USER@|$user|g" "$here/dovecot.conf.in" > "$dir/dovecot.conf"
 chown -R "$user:$user" "$dir/mail"
 chmod 755 "$dir"
@@ -31,6 +35,7 @@ python3 -I "$here/fake_smtp.py" "$dir/server.crt" "$dir/server.key" "$dir/outbox
 echo $! > "$dir/smtp.pid"
 sleep 1
 RB_TEST_DIR="$dir" RB_MAIL_USER="$user" python3 -u -I "$here/test_rbmaild.py" "$here/../build/rbmaild"
+python3 -u -I "$here/oauth_test.py" "$here/../build/rbmaild" 18099
 
 # The app's C# protocol client, on Mono, against a fresh helper
 if command -v mcs >/dev/null && command -v mono >/dev/null; then

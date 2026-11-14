@@ -372,6 +372,21 @@ namespace Retrobird.Core
             return F(f, 1);
         }
 
+        /// <summary>Starts a Microsoft sign-in: the code to show and where to enter it.</summary>
+        public async Task<OAuthDevice> OAuthStartAsync(string client)
+        {
+            var f = await Simple("OAUTHSTART", client);
+            return new OAuthDevice { UserCode = F(f, 1), Url = F(f, 2), DeviceCode = F(f, 3), Interval = Math.Max(1, I(f, 4)), ExpiresIn = I(f, 5) };
+        }
+
+        /// <summary>Null while the user hasn't finished on Microsoft's page; then the refresh token
+        /// (Item1) and the signed-in address (Item2).</summary>
+        public async Task<Tuple<string, string>> OAuthPollAsync(string client, string deviceCode)
+        {
+            var f = await Simple("OAUTHPOLL", client, deviceCode);
+            return F(f, 1) == "done" ? Tuple.Create(F(f, 2), F(f, 3)) : null;
+        }
+
         /// <summary>Background check interval in minutes (0 = off). Returns what the helper uses.</summary>
         public async Task<int> SetSyncMinutesAsync(int minutes)
         {
