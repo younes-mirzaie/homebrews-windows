@@ -169,7 +169,7 @@ namespace Retrobird
             var acct = AppState.CurrentAccount;
             if (acct == null) return;
             var latest = _items.Where(m => m.IsUnread).Take(3)
-                               .Select(m => new NewMail { AccountId = acct.Id, Uid = m.Uid, From = m.From, Subject = m.Subject })
+                               .Select(m => new NewMail { AccountId = acct.Id, Uid = m.Uid, Date = Notify.ToUnix(m.Date), From = m.From, Subject = m.Subject })
                                .ToList();
             // other accounts' unread mail counts too
             int total = unread + AppState.Accounts.Where(a => a.Id != acct.Id).Sum(a => Math.Max(0, a.Unseen));

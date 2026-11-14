@@ -129,7 +129,13 @@ namespace Retrobird.Core
 
         /// <summary>The app says when it's on screen, so the background task leaves the mail alone
         /// while the app's own engine works on it.</summary>
-        static long Now { get { return (long)(DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalSeconds; } }
+        static long Now { get { return ToUnix(DateTime.UtcNow); } }
+
+        public static long ToUnix(DateTime d)
+        {
+            if (d == DateTime.MinValue) return 0;
+            return (long)(d.ToUniversalTime() - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalSeconds;
+        }
 
         public static void AppVisible(bool visible)
         {
