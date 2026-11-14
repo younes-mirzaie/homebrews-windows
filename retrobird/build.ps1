@@ -1,13 +1,12 @@
 # Builds Retrobird: the mail engine (helper\*.c on NSPR/NSS, ARM, as rbmail.dll, which runs
-# inside the app) and the Windows Phone 8.1 (WinRT XAML) app, then installs the app on the
-# USB-connected Lumia.
-#   .\build.ps1               engine + app + install on the phone (phone must be unlocked)
-#   .\build.ps1 -NoDeploy     build only (Retrobird_<version>_ARM.appx)
+# inside the app) and the Windows Phone 8.1 (WinRT XAML) app.
+#   .\build.ps1               engine + app, build only (Retrobird_<version>_ARM.appx)
+#   .\build.ps1 -Deploy       also installs on the USB-connected phone (phone must be unlocked)
 # Needs the retrofox phone toolchain and its NSS build (retrofox notes/step2-nss.md):
 #   C:\rfx\sdk, C:\rfx\uxp (NSS headers), C:\rfx\obj-js (NSPR), C:\rfx\obj-nss (static NSS libs,
 #   nssckbi.dll, targets.json). It never rebuilds those, so it is safe next to a Gecko build.
-# The rfxdev portal (http://<phone>:8082) can install the .xap over Wi-Fi instead of USB.
-param([switch]$NoDeploy, [string]$Configuration = "Release")
+# Normally the app is installed over Wi-Fi instead (no USB phone is assumed).
+param([switch]$Deploy, [string]$Configuration = "Release")
 $ErrorActionPreference = "Stop"
 $here = $PSScriptRoot
 $Llvm = "C:\Program Files\LLVM\bin"
@@ -93,7 +92,7 @@ $appx = Get-ChildItem "$here\app\Retrobird" -Recurse -Filter *.appx | Where-Obje
         Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if (-not $appx) { throw "No .appx produced." }
 Write-Host "Package: $($appx.FullName)" -ForegroundColor Green
-if ($NoDeploy) { return }
+if (-not $Deploy) { return }
 
 $deploy = "$pf86\Microsoft SDKs\Windows Phone\v8.1\Tools\AppDeploy\AppDeployCmd.exe"
 if (-not (Test-Path $deploy)) {
