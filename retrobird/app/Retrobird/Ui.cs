@@ -41,6 +41,14 @@ namespace Retrobird
             return m;
         }
 
+        /// <summary>The keyboard for a text box (set in code: older XAML parsers reject the short form).</summary>
+        public static void Scope(TextBox box, Windows.UI.Xaml.Input.InputScopeNameValue name)
+        {
+            var scope = new Windows.UI.Xaml.Input.InputScope();
+            scope.Names.Add(new Windows.UI.Xaml.Input.InputScopeName { NameValue = name });
+            box.InputScope = scope;
+        }
+
         public static string Describe(Exception e)
         {
             var m = e as MailException;

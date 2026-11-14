@@ -14,13 +14,13 @@
         </StackPanel>
         <ScrollViewer Grid.Row="1">
             <StackPanel Margin="19,0,19,19">
-                <TextBox x:Name="ToBox" Header="to" InputScope="EmailSmtpAddress" TextWrapping="Wrap"/>
+                <TextBox x:Name="ToBox" Header="to" TextWrapping="Wrap"/>
                 <StackPanel x:Name="CcPanel" Visibility="Collapsed">
-                    <TextBox x:Name="CcBox" Header="cc" InputScope="EmailSmtpAddress" TextWrapping="Wrap"/>
-                    <TextBox x:Name="BccBox" Header="bcc" InputScope="EmailSmtpAddress" TextWrapping="Wrap"/>
+                    <TextBox x:Name="CcBox" Header="cc" TextWrapping="Wrap"/>
+                    <TextBox x:Name="BccBox" Header="bcc" TextWrapping="Wrap"/>
                 </StackPanel>
-                <TextBox x:Name="SubjectBox" Header="subject" InputScope="Chat"/>
-                <TextBox x:Name="BodyBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="240" InputScope="Chat"
+                <TextBox x:Name="SubjectBox" Header="subject"/>
+                <TextBox x:Name="BodyBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="240"
                          PlaceholderText="message"/>
             </StackPanel>
         </ScrollViewer>

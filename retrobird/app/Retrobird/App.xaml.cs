@@ -39,6 +39,13 @@ namespace Retrobird
             {
                 // the stock frame brings the phone's turnstile page transition
                 RootFrame = new Frame { Language = "en-US" };
+                // a page that can't be built would otherwise just not open
+                RootFrame.NavigationFailed += (s, ev) =>
+                {
+                    ev.Handled = true;
+                    InAppHelper.Log("couldn't open " + ev.SourcePageType + ": " + ev.Exception);
+                    var unused = Ui.AlertAsync("That page couldn't open. " + (ev.Exception == null ? "" : ev.Exception.Message), "Retrobird");
+                };
                 Window.Current.Content = RootFrame;
             }
             if (RootFrame.Content == null) RootFrame.Navigate(typeof(MainPage));

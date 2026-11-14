@@ -23,6 +23,7 @@ namespace Retrobird
         async void Items_ItemClick(object sender, ItemClickEventArgs e)
         {
             var p = e.ClickedItem as Provider;
+            InAppHelper.Log("provider tapped: " + (p == null ? "(none)" : p.Name));
             if (p == null) return;
             if (p == Other) { Go("/AccountEditPage.xaml"); return; }
             if (!p.Works)

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Retrobird.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Navigation;
 
 namespace Retrobird
@@ -17,6 +18,11 @@ namespace Retrobird
         public ComposePage()
         {
             InitializeComponent();
+            Ui.Scope(ToBox, InputScopeNameValue.EmailSmtpAddress);
+            Ui.Scope(CcBox, InputScopeNameValue.EmailSmtpAddress);
+            Ui.Scope(BccBox, InputScopeNameValue.EmailSmtpAddress);
+            Ui.Scope(SubjectBox, InputScopeNameValue.Chat);
+            Ui.Scope(BodyBox, InputScopeNameValue.Chat);
             _send = Ui.Button(this, Symbol.Send, "send", async (s, e) => await Send());
             Ui.Button(this, Symbol.People, "cc/bcc", (s, e) => CcPanel.Visibility = Visibility.Visible);
         }

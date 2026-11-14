@@ -56,7 +56,16 @@ namespace Retrobird
             var path = q >= 0 ? target.Substring(0, q) : target;
             var name = path.TrimStart('/');
             if (name.EndsWith(".xaml")) name = name.Substring(0, name.Length - 5);
-            Frame.Navigate(PageType(name), q >= 0 ? target.Substring(q + 1) : null);
+            try
+            {
+                if (!Frame.Navigate(PageType(name), q >= 0 ? target.Substring(q + 1) : null))
+                    Core.InAppHelper.Log("navigation to " + target + " refused");
+            }
+            catch (Exception e)
+            {
+                Core.InAppHelper.Log("navigation to " + target + " failed: " + e);
+                var unused = Ui.AlertAsync("That page couldn't open. " + e.Message, "Retrobird");
+            }
         }
 
         protected bool CanGoBack { get { return Frame != null && Frame.CanGoBack; } }

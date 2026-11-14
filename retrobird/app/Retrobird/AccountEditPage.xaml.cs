@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Retrobird.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Navigation;
 
 namespace Retrobird
@@ -25,6 +26,13 @@ namespace Retrobird
         public AccountEditPage()
         {
             InitializeComponent();
+            Ui.Scope(EmailBox, InputScopeNameValue.EmailSmtpAddress);
+            Ui.Scope(NameBox, InputScopeNameValue.PersonalFullName);
+            Ui.Scope(ImapHostBox, InputScopeNameValue.Url);
+            Ui.Scope(ImapPortBox, InputScopeNameValue.Number);
+            Ui.Scope(UserBox, InputScopeNameValue.EmailSmtpAddress);
+            Ui.Scope(SmtpHostBox, InputScopeNameValue.Url);
+            Ui.Scope(SmtpPortBox, InputScopeNameValue.Number);
             foreach (var box in new[] { ImapSecBox, SmtpSecBox })
                 foreach (var sec in Secs) box.Items.Add(SecLabel(sec));
             _save = Ui.Button(this, Symbol.Accept, "save", async (s, e) => await Save());
