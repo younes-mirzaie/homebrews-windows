@@ -27,7 +27,7 @@ namespace Retrobird
         {
             InitializeComponent();
             Ui.Scope(EmailBox, InputScopeNameValue.EmailSmtpAddress);
-            Ui.Scope(NameBox, InputScopeNameValue.PersonalFullName);
+            Ui.Scope(NameBox, InputScopeNameValue.Default);   // no PersonalFullName on WP 8.1
             Ui.Scope(ImapHostBox, InputScopeNameValue.Url);
             Ui.Scope(ImapPortBox, InputScopeNameValue.Number);
             Ui.Scope(UserBox, InputScopeNameValue.EmailSmtpAddress);
