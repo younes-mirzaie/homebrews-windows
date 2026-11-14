@@ -29,6 +29,8 @@ namespace RetroFiles
             panel.Children.Add(new TextBlock
             {
                 Text = title, Margin = new Thickness(12, 0, 12, 12),
+                // a popup sits outside the page, so text doesn't inherit the theme's color
+                Foreground = (Brush)Application.Current.Resources["PhoneForegroundBrush"],
                 FontSize = (double)Application.Current.Resources["PhoneFontSizeLarge"],
                 FontFamily = (FontFamily)Application.Current.Resources["PhoneFontFamilySemiBold"]
             });
