@@ -41,10 +41,9 @@
             </Grid>
         </StackPanel>
         <ScrollViewer Grid.Row="1">
-            <StackPanel Margin="12,0,12,96">
+            <StackPanel Margin="12,0,12,24">
                 <TextBlock x:Name="Status" Style="{StaticResource PhoneTextAccentStyle}" TextWrapping="Wrap"
-                           FontSize="{StaticResource PhoneFontSizeMedium}" Margin="12,0,12,12" />
-                <Button x:Name="InstallButton" HorizontalAlignment="Left" Click="Install_Click" Margin="0,0,0,12" />
+                           FontSize="{StaticResource PhoneFontSizeMedium}" Margin="12,0,12,24" />
                 <TextBlock x:Name="Description" Style="{StaticResource PhoneTextNormalStyle}" TextWrapping="Wrap" Margin="12,0,12,24" />
                 <TextBlock Text="details" Style="{StaticResource PhoneTextLargeStyle}" Margin="12,0,12,6" />
                 <TextBlock x:Name="Details" Style="{StaticResource PhoneTextSubtleStyle}" TextWrapping="Wrap" Margin="12,0,12,24" />
@@ -64,4 +63,12 @@
             </StackPanel>
         </ScrollViewer>
     </Grid>
+
+    <!-- install/update and open sit in the app bar at the bottom, like the Store -->
+    <phone:PhoneApplicationPage.ApplicationBar>
+        <shell:ApplicationBar Opacity="1">
+            <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/download.png" Text="install" Click="Install_Click" />
+            <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/open.png" Text="open" Click="Open_Click" />
+        </shell:ApplicationBar>
+    </phone:PhoneApplicationPage.ApplicationBar>
 </phone:PhoneApplicationPage>

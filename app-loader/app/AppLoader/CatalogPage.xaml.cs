@@ -72,25 +72,25 @@ namespace AppLoader
             if (!CatalogService.Supported(latest))
             {
                 Status.Text = "This kind of package (" + latest.Kind + ") can't be installed by " + AppInfo.Name + " yet.";
-                InstallButton.Visibility = Visibility.Collapsed;
+                SetInstall(null);
             }
             else if (installed == null)
             {
                 Status.Text = "Not installed.";
-                InstallButton.Content = "install " + latest.Version;
+                SetInstall("install");
             }
             else if (_entry.UpdateAvailable)
             {
                 Status.Text = "Installed: " + installed + ". Version " + latest.Version + " is available.";
-                InstallButton.Content = "update to " + latest.Version;
+                SetInstall("update");
             }
             else
             {
                 Status.Text = "Installed and up to date (" + installed + ").";
-                InstallButton.Content = "reinstall " + latest.Version;
                 // the phone refuses to reinstall the same version of an appx app
-                if (latest.Kind == "appx" && _entry.InstalledVersion != null) InstallButton.Visibility = Visibility.Collapsed;
+                SetInstall(latest.Kind == "appx" && _entry.InstalledVersion != null ? null : "reinstall");
             }
+            FindLaunchable();
             Versions.ItemsSource = _app.Releases.Select(r => new VersionRow
             {
                 Release = r,
@@ -118,17 +118,68 @@ namespace AppLoader
             Leave();
         }
 
+        string _installLabel;
+        Windows.ApplicationModel.Package _launchable;
+
+        ApplicationBarIconButton InstallBar { get { return (ApplicationBarIconButton)ApplicationBar.Buttons[0]; } }
+        ApplicationBarIconButton OpenBar { get { return (ApplicationBarIconButton)ApplicationBar.Buttons[1]; } }
+
+        /// <summary>The app bar's install button: "install", "update", "reinstall", or null (none).</summary>
+        void SetInstall(string label)
+        {
+            _installLabel = label;
+            InstallBar.Text = label ?? "install";
+            InstallBar.IsEnabled = label != null && !_busy;
+        }
+
+        /// <summary>Finds the installed app so "open" can start it. Apps from another publisher
+        /// may not be visible to this app; open stays disabled then.</summary>
+        void FindLaunchable()
+        {
+            _launchable = null;
+            if (_entry != null && _entry.Installed != null)
+            {
+                try
+                {
+                    foreach (var p in Windows.Phone.Management.Deployment.InstallationManager.FindPackagesForCurrentPublisher())
+                        if (PackageInfo.Guid(p.Id.ProductId) == _app.ProductId) { _launchable = p; break; }
+                }
+                catch (Exception e) { AppLog.Add("couldn't list this publisher's apps", e.Message); }
+                if (_launchable == null)
+                {
+                    try
+                    {
+                        foreach (var p in Windows.Phone.Management.Deployment.InstallationManager.FindPackages())
+                            if (PackageInfo.Guid(p.Id.ProductId) == _app.ProductId) { _launchable = p; break; }
+                    }
+                    catch (Exception e) { AppLog.Add("couldn't list the installed apps", e.Message); }
+                }
+            }
+            OpenBar.IsEnabled = _launchable != null && _app.ProductId != Phone.OwnProductId;
+        }
+
+        void Open_Click(object sender, EventArgs e)
+        {
+            if (_launchable == null) return;
+            try { _launchable.Launch(""); }
+            catch (Exception ex)
+            {
+                AppLog.Add("couldn't open " + _app.Name, ex.Message);
+                MessageBox.Show(_app.Name + " didn't open. Open it from the app list instead.", "open", MessageBoxButton.OK);
+            }
+        }
+
         void Busy(string text)
         {
             _busy = text != null;
             Progress.IsVisible = _busy;
             Progress.Text = text ?? "";
-            InstallButton.IsEnabled = !_busy;
+            InstallBar.IsEnabled = !_busy && _installLabel != null;
         }
 
-        async void Install_Click(object sender, RoutedEventArgs e)
+        async void Install_Click(object sender, EventArgs e)
         {
-            if (!_busy) await ConfirmAndInstallAsync(_app.Latest);
+            if (!_busy && _installLabel != null) await ConfirmAndInstallAsync(_app.Latest);
         }
 
         async void Version_Tap(object sender, System.Windows.Input.GestureEventArgs e)

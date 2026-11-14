@@ -25,7 +25,7 @@
                 </Grid.RowDefinitions>
                 <TextBlock x:Name="CatalogNote" TextWrapping="Wrap" Margin="12,0,12,12"
                            Style="{StaticResource PhoneTextSubtleStyle}" Text="Loading the catalog..." />
-                <ListBox x:Name="CatalogList" Grid.Row="1" Padding="0,0,0,96" SelectionChanged="CatalogList_SelectionChanged">
+                <ListBox x:Name="CatalogList" Grid.Row="1" SelectionChanged="CatalogList_SelectionChanged">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Grid Margin="12,0,0,24">
@@ -67,7 +67,7 @@
                     <Button x:Name="UpdateAllButton" Content="update all" HorizontalAlignment="Left"
                             Visibility="Collapsed" Click="UpdateAll_Click" Margin="0,0,0,12" />
                 </StackPanel>
-                <ListBox x:Name="UpdatesList" Grid.Row="1" Padding="0,0,0,96" SelectionChanged="CatalogList_SelectionChanged">
+                <ListBox x:Name="UpdatesList" Grid.Row="1" SelectionChanged="CatalogList_SelectionChanged">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Grid Margin="12,0,0,24">
@@ -104,7 +104,7 @@
                 <TextBlock x:Name="PackagesNote" TextWrapping="Wrap" Margin="12,0,12,12"
                            Style="{StaticResource PhoneTextSubtleStyle}"
                            Text="Looking in Downloads and Documents for .xap and .appx files..." />
-                <ListBox x:Name="PackagesList" Grid.Row="1" Padding="0,0,0,96" SelectionChanged="PackagesList_SelectionChanged">
+                <ListBox x:Name="PackagesList" Grid.Row="1" SelectionChanged="PackagesList_SelectionChanged">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Margin="12,0,0,24">
@@ -127,7 +127,7 @@
                 </Grid.RowDefinitions>
                 <TextBlock x:Name="InstalledNote" TextWrapping="Wrap" Margin="12,0,12,12"
                            Style="{StaticResource PhoneTextSubtleStyle}" Text="" />
-                <ListBox x:Name="InstalledList" Grid.Row="1" Padding="0,0,0,96">
+                <ListBox x:Name="InstalledList" Grid.Row="1">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Margin="12,0,0,24">
