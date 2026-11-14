@@ -64,8 +64,9 @@ namespace Retrobird.Core
         }
 
         /// <summary>The tile shows the newest unread messages in turn (sender, then subject) and the
-        /// unread count; with nothing unread it goes back to the plain logo. Medium and small only:
-        /// no wide tile yet.</summary>
+        /// unread count; with nothing unread it goes back to the plain logo. The wide tile carries the
+        /// same text, which the lock screen shows as its detailed status (newest message last, so
+        /// that is what the lock screen shows).</summary>
         public static void UpdateTile(int unread, IList<NewMail> latest)
         {
             try
@@ -82,11 +83,15 @@ namespace Retrobird.Core
                 tile.Clear();
                 if (unread <= 0 || latest == null || latest.Count == 0) return;
                 tile.EnableNotificationQueue(true);
-                for (int i = 0; i < latest.Count && i < 3; i++)
+                for (int i = Math.Min(latest.Count, 3) - 1; i >= 0; i--)
                 {
                     var m = latest[i];
-                    var xml = Template(TileTemplateType.TileSquare150x150Text02, NameOf(m.From),
-                                       string.IsNullOrEmpty(m.Subject) ? "(no subject)" : m.Subject);
+                    var from = NameOf(m.From);
+                    var subject = string.IsNullOrEmpty(m.Subject) ? "(no subject)" : m.Subject;
+                    var xml = Template(TileTemplateType.TileWide310x150Text09, from, subject);
+                    var square = Template(TileTemplateType.TileSquare150x150Text02, from, subject);
+                    var binding = xml.ImportNode(square.GetElementsByTagName("binding")[0], true);
+                    xml.GetElementsByTagName("visual")[0].AppendChild(binding);
                     tile.Update(new TileNotification(xml) { Tag = "m" + i });
                 }
             }

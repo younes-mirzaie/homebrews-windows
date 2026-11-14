@@ -2,7 +2,7 @@
 // Chromium):  node render-art.js
 //   retrobird-tile.svg   white glyph on transparent: tiles and app icon take the accent color
 //   retrobird-store.svg  the same glyph on blue: store logo and splash screen
-// No wide tile until there's a wide design.
+// BadgeLogo: the white glyph alone, for the unread count on the lock screen.
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
@@ -18,6 +18,9 @@ const jobs = [
   ['Square150x150Logo.scale-240.png', 360, 360, 'retrobird-tile.svg', null],
   ['Square71x71Logo.scale-240.png', 170, 170, 'retrobird-tile.svg', null],
   ['Square44x44Logo.scale-240.png', 106, 106, 'retrobird-tile.svg', null],
+  ['BadgeLogo.scale-240.png', 58, 58, 'retrobird-tile.svg', null],
+  // wide: the glyph at the same size as on the medium tile, centered
+  ['Wide310x150Logo.scale-240.png', 744, 360, 'retrobird-tile.svg', null, 360],
   ['StoreLogo.scale-240.png', 120, 120, 'retrobird-store.svg', null],
   ['SplashScreen.scale-240.png', 1152, 1920, 'retrobird-store.svg', BLUE],
 ];
@@ -25,9 +28,9 @@ const jobs = [
 (async () => {
   const browser = await chromium.launch();
   const page = await browser.newPage({ deviceScaleFactor: 1 });
-  for (const [file, w, h, src, bg] of jobs) {
+  for (const [file, w, h, src, bg, glyph] of jobs) {
     await page.setViewportSize({ width: w, height: h });
-    const side = Math.min(w, h);
+    const side = glyph || Math.min(w, h);
     await page.setContent(`<html><body style="margin:0;width:${w}px;height:${h}px;background:${bg || 'transparent'};
       display:flex;align-items:center;justify-content:center">
       <img src="${svg(src)}" style="width:${side}px;height:${side}px"></body></html>`);
