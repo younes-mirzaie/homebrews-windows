@@ -79,15 +79,6 @@ namespace AppLoader
 
         // Keeps the phone from locking during an install (the install itself runs on without the
         // app, but the user sees it through)
-        public static void KeepAwake(bool on)
-        {
-            try
-            {
-                PhoneApplicationService.Current.UserIdleDetectionMode = on ? IdleDetectionMode.Disabled : IdleDetectionMode.Enabled;
-            }
-            catch (InvalidOperationException) { }   // can't go back to Enabled once disabled on some builds
-        }
-
         async Task RefreshAsync()
         {
             if (_busy) return;
@@ -145,7 +136,6 @@ namespace AppLoader
                                 "install", MessageBoxButton.OKCancel) != MessageBoxResult.OK)
                 return;
             InstallOutcome outcome;
-            KeepAwake(true);
             try
             {
                 outcome = await Phone.InstallAsync(row.Package, s => Busy(s));
@@ -160,11 +150,10 @@ namespace AppLoader
             }
             if (!outcome.Started)
             {
-                KeepAwake(false);
                 Show(row.Name, outcome);
                 return;
             }
-            if (outcome.Job.ProductId == Phone.OwnProductId)
+            if (outcome.Job.Includes(Phone.OwnProductId))
                 MessageBox.Show(AppInfo.Name + " is updating itself, so it will close in a moment. Open it again " +
                                 "afterwards to see how it went.", "updating " + AppInfo.Name, MessageBoxButton.OK);
             await FinishAsync(outcome.Job, outcome.Package);
@@ -173,12 +162,11 @@ namespace AppLoader
         async Task FinishAsync(InstallJob job, PackageInfo pkg)
         {
             _waiting = true;
-            KeepAwake(true);
-            Busy((job.IsUpdate ? "updating " : "installing ") + job.Title + "...");
+            Busy("working on " + job.Title + "...");
             InstallOutcome outcome;
             try
             {
-                outcome = await Phone.FinishAsync(job);
+                outcome = await Phone.FinishAsync(job, s => Busy(s));
                 outcome.Package = pkg;
             }
             catch (Exception ex)
@@ -188,17 +176,16 @@ namespace AppLoader
             finally
             {
                 Busy(null);
-                KeepAwake(false);
                 _waiting = false;
             }
-            Show(job.Title + " " + job.Version, outcome);
-            if (outcome.Succeeded || outcome.Th == null || outcome.Th.Finished) { _loaded = true; var t = RefreshAsync(); }
+            Show(job.Title, outcome);
+            if (!outcome.StillRunning) { _loaded = true; var t = RefreshAsync(); }
         }
 
         void Show(string what, InstallOutcome outcome)
         {
             if (outcome.Succeeded) AppLog.Add(outcome.Message, null);
-            MessageBox.Show(outcome.Message, outcome.Succeeded ? "done" : "not installed", MessageBoxButton.OK);
+            MessageBox.Show(outcome.Message, outcome.Succeeded ? "done" : outcome.StillRunning ? "still working" : "not installed", MessageBoxButton.OK);
         }
 
         // ---- catalog (stage 2) ----
@@ -265,58 +252,26 @@ namespace AppLoader
             long total = todo.Sum(x => x.App.Latest.Size);
             if (MessageBox.Show("Update " + string.Join(", ", todo.Select(x => x.App.Name)) + " (" + Size(total) + ")?\n\n" +
                                 "Each one is checked against the signed catalog, then updated in place with its data. " +
-                                "Close those apps first." +
+                                "Close those apps first. It carries on if you leave " + AppInfo.Name + " or lock the phone, " +
+                                "and a notification says how it went." +
                                 (self ? " " + AppInfo.Name + " updates itself last and closes; open it again afterwards." : ""),
                                 "update all", MessageBoxButton.OKCancel) != MessageBoxResult.OK)
                 return;
 
-            _waiting = true;
-            KeepAwake(true);
-            var report = new List<string>();
+            InstallOutcome outcome;
             try
             {
-                for (int i = 0; i < todo.Count; i++)
-                {
-                    var app = todo[i].App;
-                    var r = app.Latest;
-                    string step = (todo.Count > 1 ? (i + 1) + "/" + todo.Count + ": " : "");
-                    string what = app.Name + " " + r.Version;
-                    try
-                    {
-                        if (!CatalogService.IsDownloaded(r))
-                        {
-                            Busy(step + "downloading " + app.Name + "...");
-                            var job = await CatalogService.StartDownloadAsync(app, r);
-                            var err = await CatalogService.WaitDownloadAsync(job, what, (d, t) =>
-                                Busy(step + "downloading " + app.Name + " " + Size(d) + (t > 0 ? " of " + Size(t) : "") + "..."));
-                            if (err != null) { report.Add(err); continue; }
-                        }
-                        if (app.ProductId == Phone.OwnProductId && report.Count > 0)
-                        {
-                            Busy(null);
-                            MessageBox.Show(string.Join("\n\n", report) + "\n\n" + AppInfo.Name + " updates itself now and closes. " +
-                                            "Open it again afterwards to see how it went.", "update all", MessageBoxButton.OK);
-                            report.Clear();
-                        }
-                        var outcome = await CatalogService.InstallDownloadedAsync(app, r, s => Busy(step + s));
-                        if (!outcome.Started) { report.Add(outcome.Message ?? "Nothing was installed for " + app.Name + "."); continue; }
-                        Busy(step + "updating " + app.Name + "...");
-                        var done = await Phone.FinishAsync(outcome.Job);
-                        report.Add(done.Message);
-                        if (done.Th != null && !done.Th.Finished && !done.Succeeded) break;   // still running: wait for it
-                    }
-                    catch (Exception ex) { report.Add(what + ": " + Friendly.Of(ex)); }
-                }
+                outcome = await Phone.StartCatalogAsync(todo, todo.Select(x => x.App.Latest).ToList(), s => Busy(s));
             }
-            finally
+            catch (Exception ex) { outcome = new InstallOutcome { Message = Friendly.Of(ex) }; }
+            finally { Busy(null); }
+            if (!outcome.Started)
             {
-                Busy(null);
-                KeepAwake(false);
-                _waiting = false;
+                MessageBox.Show(outcome.Message ?? "Nothing was updated.", "update all", MessageBoxButton.OK);
+                return;
             }
-            foreach (var line in report) AppLog.Add(line, null);
-            if (report.Count > 0) MessageBox.Show(string.Join("\n\n", report), "update all", MessageBoxButton.OK);
-            var t2 = RefreshAsync();
+            if (outcome.Message != null) MessageBox.Show(outcome.Message + "\n\nThe others are being updated now.", "update all", MessageBoxButton.OK);
+            await FinishAsync(outcome.Job, null);
         }
 
         static string StateText(CatalogEntry x)

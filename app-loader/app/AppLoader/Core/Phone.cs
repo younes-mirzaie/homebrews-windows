@@ -18,6 +18,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using AppLoader.Catalog;
 
 namespace AppLoader.Core
 {
@@ -38,50 +39,14 @@ namespace AppLoader.Core
         public bool OnSd { get { return string.Equals(Location, "SD", StringComparison.OrdinalIgnoreCase); } }
     }
 
-    /// <summary>An install that has been started: kept in the settings until its result is shown.</summary>
-    public sealed class InstallJob
-    {
-        public string Run, Mode, ProductId, Title, Version, ExistingTitle, Staged;
-        public bool ExistingOnSd;   // the installed copy (if any) lives on the SD card
-        public bool KindChange;     // the installed copy is Silverlight and the package is appx
-        public bool IsUpdate { get { return Mode == PackageInstaller.Update; } }
-
-        const string Key = "job";
-
-        public void Save()
-        {
-            IsolatedStorageSettings.ApplicationSettings[Key] = string.Join("\n",
-                new[] { Run, Mode, ProductId, Title, Version, ExistingTitle ?? "", Staged, ExistingOnSd ? "sd" : "", KindChange ? "kind" : "" });
-            IsolatedStorageSettings.ApplicationSettings.Save();
-        }
-
-        public static InstallJob Load()
-        {
-            object v;
-            if (!IsolatedStorageSettings.ApplicationSettings.TryGetValue(Key, out v) || !(v is string)) return null;
-            var f = ((string)v).Split('\n');
-            if (f.Length < 7) return null;
-            return new InstallJob { Run = f[0], Mode = f[1], ProductId = f[2], Title = f[3], Version = f[4],
-                                    ExistingTitle = f[5].Length > 0 ? f[5] : null, Staged = f[6],
-                                    ExistingOnSd = f.Length > 7 && f[7] == "sd",
-                                    KindChange = f.Length > 8 && f[8] == "kind" };
-        }
-
-        public static void Clear()
-        {
-            IsolatedStorageSettings.ApplicationSettings.Remove(Key);
-            IsolatedStorageSettings.ApplicationSettings.Save();
-        }
-    }
-
     public sealed class InstallOutcome
     {
-        public bool Started;        // TH is running (Job), the result comes from FinishAsync
+        public bool Started;        // the job is running (Job), the result comes from FinishAsync
+        public bool StillRunning;   // FinishAsync gave up waiting; the job is still remembered
         public bool Succeeded;
         public string Message;      // plain words for the user
         public PackageInfo Package;
         public InstallJob Job;
-        public ThResult Th;         // what TH said, once it has finished
         public bool HashMismatch;   // a catalog download didn't match its SHA-256
     }
 
@@ -159,12 +124,8 @@ namespace AppLoader.Core
                                                               string expectedProductId, string expectedSha256)
         {
             var outcome = new InstallOutcome();
-            var pending = InstallJob.Load();
-            if (pending != null && !Shell.IsDone(pending.Run))
-            {
-                outcome.Message = "The phone is still installing " + pending.Title + ". Wait for it to finish, then try again.";
-                return outcome;
-            }
+            var busy = Busy();
+            if (busy != null) { outcome.Message = busy; return outcome; }
 
             string ext = found.Path.EndsWith(".appx", StringComparison.OrdinalIgnoreCase) ? ".appx" : ".xap";
             string stageName = "staged-" + DateTime.UtcNow.Ticks + ext;
@@ -279,24 +240,18 @@ namespace AppLoader.Core
 
                 string mode = existing != null ? PackageInstaller.Update : PackageInstaller.Deploy;
                 status((existing != null ? "updating " : "installing ") + pkg.Title + "...");
-                string run;
-                try { run = await PackageInstaller.StartAsync(staged, mode, true); }
-                catch (Exception e)
+                var job = new InstallJob();
+                job.Items.Add(new InstallItem
                 {
-                    AppLog.Add("couldn't start the installer", e.Message);
-                    outcome.Message = e is IOException ? e.Message + " " + Friendly.Unchanged
-                        : "Couldn't start the phone's installer. Try again in a moment. " + Friendly.Unchanged;
-                    return outcome;
-                }
-                outcome.Job = new InstallJob
-                {
-                    Run = run, Mode = mode, ProductId = pkg.ProductId, Title = pkg.Title, Version = pkg.Version,
-                    ExistingTitle = existing != null ? existing.Title : null, Staged = stageName,
+                    ProductId = pkg.ProductId, Title = pkg.Title, Version = pkg.Version, Mode = mode, File = stageName,
+                    ExistingTitle = existing != null ? existing.Title : null,
                     ExistingOnSd = existing != null && existing.OnSd,
                     // a Silverlight app replaced by an appx one with the same product ID
                     KindChange = existingKind == "xap" && pkg.Kind == "appx",
-                };
-                outcome.Job.Save();
+                });
+                string problem = await StartAsync(job);
+                if (problem != null) { outcome.Message = problem; return outcome; }
+                outcome.Job = job;
                 outcome.Started = true;
                 return outcome;
             }
@@ -316,51 +271,187 @@ namespace AppLoader.Core
             }
         }
 
-        /// <summary>Waits for a started install to finish and turns TH's answer into words.
-        /// Clears the remembered job once it has finished.</summary>
-        public static async Task<InstallOutcome> FinishAsync(InstallJob job)
+        /// <summary>Null if a new install can start, otherwise why not.</summary>
+        public static string Busy()
+        {
+            var pending = InstallJob.Load();
+            if (pending != null && !JobLog.IsDone(pending))
+                return "The phone is still installing " + pending.Title + ". Wait for it to finish, then try again.";
+            return null;
+        }
+
+        /// <summary>Starts the job's batch in the background and remembers the job. Null when it
+        /// started, otherwise what went wrong.</summary>
+        public static async Task<string> StartAsync(InstallJob job)
+        {
+            try
+            {
+                job.Run = await Shell.StartDetachedAsync(job.Commands(Shell.LocalPath, Shell.Quote, Shell.Helper("rfxfetch.exe")));
+            }
+            catch (Exception e)
+            {
+                AppLog.Add("couldn't start the installer", e.Message);
+                return e is IOException ? e.Message + " " + Friendly.Unchanged
+                    : e is ArgumentException ? e.Message
+                    : "Couldn't start the phone's installer. Try again in a moment. " + Friendly.Unchanged;
+            }
+            job.Save();
+            Notify.ClearProgress();
+            Background.Watch();
+            return null;
+        }
+
+        /// <summary>Downloads and installs catalog releases, one after the other, in one background
+        /// task: it carries on when the app is minimized or the phone is locked. Each download is
+        /// pinned to the SHA-256 in the signed catalog. Unesbrews itself goes last.</summary>
+        public static async Task<InstallOutcome> StartCatalogAsync(List<CatalogEntry> entries, List<CatalogRelease> releases, Action<string> status)
+        {
+            var outcome = new InstallOutcome();
+            var busy = Busy();
+            if (busy != null) { outcome.Message = busy; return outcome; }
+            status("checking what's installed...");
+            var ids = new List<string>();
+            foreach (var e in entries) ids.Add(e.App.ProductId);
+            Dictionary<string, CatalogService.InstalledCopy> have;
+            try { have = await CatalogService.InstalledAsync(ids); }
+            catch (Exception) { have = new Dictionary<string, CatalogService.InstalledCopy>(); }
+
+            var job = new InstallJob();
+            var skipped = new List<string>();
+            InstallItem self = null;
+            for (int n = 0; n < entries.Count; n++)
+            {
+                var e = entries[n];
+                var r = releases[n];
+                CatalogService.InstalledCopy copy;
+                have.TryGetValue(e.App.ProductId, out copy);
+                if (!CatalogService.Supported(r))
+                {
+                    skipped.Add("This kind of package (" + r.Kind + ") can't be installed by " + AppInfo.Name + " yet.");
+                    continue;
+                }
+                // the phone only updates an appx app to a higher version (0x81030137 otherwise)
+                if (r.Kind == "appx" && copy != null)
+                {
+                    int cmp;
+                    try { cmp = AppLoader.Catalog.CatalogIndex.CompareVersions(r.Version, copy.Version); }
+                    catch (Exception) { cmp = 1; }
+                    if (cmp <= 0)
+                    {
+                        skipped.Add(cmp == 0
+                            ? e.App.Name + " " + r.Version + " is already installed."
+                            : "You have a newer " + e.App.Name + " (" + copy.Version + ") than " + r.Version +
+                              ", and the phone doesn't go back to older versions of this kind of app.");
+                        continue;
+                    }
+                }
+                var item = new InstallItem
+                {
+                    ProductId = e.App.ProductId, Title = e.App.Name, Version = r.Version,
+                    Mode = e.Installed != null ? PackageInstaller.Update : PackageInstaller.Deploy,
+                    File = "dl-" + r.Sha256.Substring(0, 16) + (r.Kind == "appx" ? ".appx" : ".xap"),
+                    Url = r.Url, Sha256 = r.Sha256, Size = r.Size,
+                    ExistingTitle = e.Installed != null ? e.Installed.Title : null,
+                    ExistingOnSd = e.Installed != null && e.Installed.OnSd,
+                    KindChange = copy != null && copy.Kind == "xap" && r.Kind == "appx",
+                };
+                if (item.ProductId == OwnProductId) self = item; else job.Items.Add(item);
+            }
+            if (self != null) job.Items.Add(self);
+            if (job.Items.Count == 0)
+            {
+                outcome.Message = string.Join("\n\n", skipped.ToArray()) + " " + Friendly.Unchanged;
+                return outcome;
+            }
+            string problem = await StartAsync(job);
+            if (problem != null) { outcome.Message = problem; return outcome; }
+            if (skipped.Count > 0) AppLog.Add("skipped", string.Join("\n", skipped.ToArray()));
+            outcome.Job = job;
+            outcome.Started = true;
+            outcome.Message = skipped.Count > 0 ? string.Join("\n\n", skipped.ToArray()) : null;
+            return outcome;
+        }
+
+        /// <summary>Waits for a started job, telling progress (also to the notification), then checks
+        /// what's really installed. Clears the remembered job once it has finished.</summary>
+        public static async Task<InstallOutcome> FinishAsync(InstallJob job, Action<string> progress)
         {
             var outcome = new InstallOutcome { Job = job };
-            var th = await PackageInstaller.WaitAsync(job.Run, job.Mode, 900);
-            outcome.Th = th;
-            // What's really installed now decides, not only what TH said
-            string installed = await InstalledVersionAsync(job.ProductId);
-            bool isNew = installed != null && SameVersion(installed, job.Version);
-            if (!th.Finished && !isNew)
+            var end = DateTime.UtcNow.AddMinutes(30);
+            while (!JobLog.IsDone(job) && DateTime.UtcNow < end)
             {
-                outcome.Message = "The phone is still installing " + job.Title + ". Its result shows up when it's done.";
+                string now = JobLog.Describe(job, JobLog.Parse(job, JobLog.Read(job)));
+                if (progress != null) progress(now);
+                Notify.Progress(now);
+                await Task.Delay(1000);
+            }
+            string log = JobLog.Read(job);
+            var states = JobLog.Parse(job, log);
+            if (!JobLog.IsDone(job))
+            {
+                outcome.StillRunning = true;
+                outcome.Message = "The phone is still working on " + job.Title + ". The result shows up when it's done.";
                 return outcome;   // still remembered: picked up again next time
             }
-            AppLog.Add("installer finished: " + job.Title + " " + job.Version,
-                       "TH.exe -" + th.Mode + ", exit " + th.ExitCode + ", installed version now " + (installed ?? "unknown") +
-                       (th.Output.Length > 0 ? "\n" + th.Output : ""));
-            if (isNew)
+            if (progress != null) progress("checking what's installed...");
+            var ids = new List<string>();
+            foreach (var i in job.Items) ids.Add(i.ProductId);
+            var installed = await CatalogService.InstalledVersionsAsync(ids);
+
+            var messages = new List<string>();
+            bool all = true;
+            for (int n = 0; n < job.Items.Count; n++)
             {
-                outcome.Succeeded = true;
-                outcome.Message = job.IsUpdate ? job.Title + " is updated to " + job.Version + "." : job.Title + " " + job.Version + " is installed.";
+                var it = job.Items[n];
+                var st = states[n];
+                string v;
+                installed.TryGetValue(it.ProductId, out v);
+                bool ok;
+                messages.Add(Explain(it, st, v, out ok));
+                all &= ok;
             }
-            else if (th.Succeeded && installed == null && !job.IsUpdate)
-            {
-                // a fresh install whose version can't be read: trust the installer
-                outcome.Succeeded = true;
-                outcome.Message = job.Title + " " + job.Version + " is installed.";
-            }
-            else if (th.Succeeded)
-            {
-                outcome.Message = "The phone's installer finished, but " + job.Title + " is " +
-                    (installed != null ? "still version " + installed : "not showing up as installed") +
-                    ". Close " + job.Title + " if it's open, then try again.";
-            }
-            else outcome.Message = Explain(th, job);
+            outcome.Succeeded = all;
+            outcome.Message = string.Join("\n\n", messages.ToArray());
+            Notify.Result(job.Run, all ? "done" : "not everything installed", outcome.Message);
             InstallJob.Clear();
             Shell.Delete(job.Run);
             try
             {
                 using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
-                    if (iso.FileExists(job.Staged)) iso.DeleteFile(job.Staged);
+                {
+                    foreach (var it in job.Items) if (iso.FileExists(it.File)) iso.DeleteFile(it.File);
+                    if (iso.FileExists("notified-" + job.Run)) iso.DeleteFile("notified-" + job.Run);
+                }
             }
             catch (Exception) { }
+            Background.Stop();
             return outcome;
+        }
+
+        /// <summary>One item's result in plain words; what's installed now decides, not only TH.</summary>
+        static string Explain(InstallItem it, ItemState st, string installed, out bool ok)
+        {
+            ok = false;
+            AppLog.Add("finished: " + it.What, "phase " + st.Phase + ", TH exit " + st.ThExit + ", installed version now " +
+                       (installed ?? "unknown") + (st.Output.Trim().Length > 0 ? "\n" + st.Output.Trim() : ""));
+            if (st.Phase == "failed-download") return Friendly.Download(it.What, st.Output) + " " + Friendly.Unchanged;
+            if (installed != null && SameVersion(installed, it.Version))
+            {
+                ok = true;
+                return it.IsUpdate ? it.Title + " is updated to " + it.Version + "." : it.What + " is installed.";
+            }
+            if (st.Phase != "finished")
+                return "The installer for " + it.Title + " stopped before it finished. Try again in a moment.";
+            if (st.ThExit == 0 && installed == null && !it.IsUpdate)
+            {
+                ok = true;   // a fresh install whose version can't be read: trust the installer
+                return it.What + " is installed.";
+            }
+            if (st.ThExit == 0)
+                return "The phone's installer finished, but " + it.Title + " is " +
+                       (installed != null ? "still version " + installed : "not showing up as installed") +
+                       ". Close " + it.Title + " if it's open, then try again.";
+            return Friendly.InstallFailed(st.ThExit, st.Output, it);
         }
 
         /// <summary>The installed version of an app, or null when it can't be read.</summary>
@@ -397,14 +488,6 @@ namespace AppLoader.Core
             foreach (char c in path)
                 if (c > 126 || c == ' ' || c == '%' || c == '^' || c == '&' || c == '"') return false;
             return true;
-        }
-
-        public static string Explain(ThResult th, InstallJob job)
-        {
-            string what = job.Title + " " + job.Version;
-            AppLog.Add((job.IsUpdate ? "update failed: " : "install failed: ") + what,
-                       "TH.exe -" + th.Mode + ", exit " + th.ExitCode + "\n" + th.Output);
-            return Friendly.InstallFailed(th, job);
         }
     }
 }

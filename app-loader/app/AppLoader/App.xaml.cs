@@ -28,6 +28,10 @@ namespace AppLoader
             };
         }
 
+        // a job still running: let the background agent report on it
+        void Service_Deactivated(object sender, Microsoft.Phone.Shell.DeactivatedEventArgs e) { AppLoader.Core.Background.Nudge(); }
+        void Service_Closing(object sender, Microsoft.Phone.Shell.ClosingEventArgs e) { AppLoader.Core.Background.Nudge(); }
+
         void CompleteInit(object sender, NavigationEventArgs e)
         {
             if (RootVisual != RootFrame) RootVisual = RootFrame;

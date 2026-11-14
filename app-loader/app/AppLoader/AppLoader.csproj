@@ -48,12 +48,16 @@
     <Compile Include="MainPage.xaml.cs"><DependentUpon>MainPage.xaml</DependentUpon></Compile>
     <Compile Include="CatalogPage.xaml.cs"><DependentUpon>CatalogPage.xaml</DependentUpon></Compile>
     <Compile Include="LogPage.xaml.cs"><DependentUpon>LogPage.xaml</DependentUpon></Compile>
+    <Compile Include="Core\AppInfo.cs" />
+    <Compile Include="Core\Background.cs" />
     <Compile Include="Core\CatalogService.cs" />
     <!-- stage 2 catalog client, shared with the Mono tests in ..\..\catalog\test -->
     <Compile Include="..\..\catalog\client\*.cs"><Link>Catalog\%(Filename)%(Extension)</Link></Compile>
     <Compile Include="Core\Friendly.cs" />
+    <Compile Include="Core\Jobs.cs" />
     <Compile Include="Core\LineSocket.cs" />
     <Compile Include="Core\Motion.cs" />
+    <Compile Include="Core\Notify.cs" />
     <Compile Include="Core\PackageInfo.cs" />
     <Compile Include="Core\PackageInstaller.cs" />
     <Compile Include="Core\Phone.cs" />
@@ -80,6 +84,12 @@
     <Content Include="Helper\nspr4.dll" />
     <Content Include="Helper\plc4.dll" />
     <Content Include="Helper\plds4.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AppLoader.Agent\AppLoader.Agent.csproj">
+      <Project>{7B1E4C2A-5D3F-4A8B-9C61-2E0F8D4A7B35}</Project>
+      <Name>AppLoader.Agent</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).$(TargetFrameworkVersion).Overrides.targets" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).CSharp.targets" />

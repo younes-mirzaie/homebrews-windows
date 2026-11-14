@@ -8,12 +8,6 @@ using System.Text.RegularExpressions;
 
 namespace AppLoader.Core
 {
-    public static class AppInfo
-    {
-        // The name people see. Same product ID whatever it's called, so updates keep applying.
-        public const string Name = "Unesbrews";
-    }
-
     /// <summary>Recent technical details for the log page (newest first, kept in memory).</summary>
     public static class AppLog
     {
@@ -76,10 +70,12 @@ namespace AppLoader.Core
         }
 
         /// <summary>An install TH.exe refused, in plain words.</summary>
-        public static string InstallFailed(ThResult th, InstallJob job)
+        public static string InstallFailed(int exitCode, string output, InstallItem job)
         {
-            string what = job.Title + " " + job.Version;
-            string code = th.PacManCode ?? HResult(th.Output);
+            var m = Regex.Match(output ?? "", @"PacMan Error Code\s*=\s*(0x[0-9a-fA-F]{8})");
+            string code = m.Success ? m.Groups[1].Value.ToLowerInvariant() : HResult(output);
+            if (code == null && exitCode != 0 && exitCode != -1) code = "0x" + ((uint)exitCode).ToString("x8");
+            string what = job.What;
             string why = job.KindChange && job.IsUpdate
                 ? "This version is built differently from the " + (job.ExistingTitle ?? job.Title) + " you have now " +
                   "(a newer kind of app package), and the phone can't always switch one to the other in place. " +
@@ -89,7 +85,7 @@ namespace AppLoader.Core
             return (job.IsUpdate ? "Couldn't update " : "Couldn't install ") + what + ". " + why;   // the code itself is in the log
         }
 
-        static string Reason(string code, InstallJob job)
+        static string Reason(string code, InstallItem job)
         {
             switch (code)
             {

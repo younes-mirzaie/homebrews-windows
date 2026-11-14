@@ -46,32 +46,6 @@ namespace AppLoader.Core
     }
 
     /// <summary>A package download that has been started (kept in settings until it is used).</summary>
-    public sealed class DownloadJob
-    {
-        public string Run, AppId, Version, File;
-        const string Key = "download";
-
-        public void Save()
-        {
-            IsolatedStorageSettings.ApplicationSettings[Key] = string.Join("\n", new[] { Run, AppId, Version, File });
-            IsolatedStorageSettings.ApplicationSettings.Save();
-        }
-
-        public static DownloadJob Load()
-        {
-            object v;
-            if (!IsolatedStorageSettings.ApplicationSettings.TryGetValue(Key, out v) || !(v is string)) return null;
-            var f = ((string)v).Split('\n');
-            return f.Length < 4 ? null : new DownloadJob { Run = f[0], AppId = f[1], Version = f[2], File = f[3] };
-        }
-
-        public static void Clear()
-        {
-            IsolatedStorageSettings.ApplicationSettings.Remove(Key);
-            IsolatedStorageSettings.ApplicationSettings.Save();
-        }
-    }
-
     public static class CatalogService
     {
         const string SerialKey = "catalogSerial";
@@ -305,99 +279,18 @@ namespace AppLoader.Core
             return m.Success ? m.Groups[1].Value : null;
         }
 
-        /// <summary>Where a release's verified download goes (named by its hash, so a finished
-        /// download is never mistaken for another one).</summary>
-        public static string DownloadName(CatalogRelease r)
-        {
-            return "dl-" + r.Sha256.Substring(0, 16) + (r.Kind == "appx" ? ".appx" : ".xap");
-        }
-
-        public static bool IsDownloaded(CatalogRelease r)
-        {
-            using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
-                return iso.FileExists(DownloadName(r));
-        }
-
-        /// <summary>Starts downloading a release in the background (rfxfetch, detached).</summary>
-        public static async Task<DownloadJob> StartDownloadAsync(CatalogApp app, CatalogRelease r)
-        {
-            var pending = DownloadJob.Load();
-            if (pending != null && !Shell.IsDone(pending.Run))
-                throw new CatalogException("Still downloading " + pending.AppId + " " + pending.Version + ". Wait for it to finish, then try again.");
-            string file = DownloadName(r);
-            string cmds = Shell.Quote(Helper("rfxfetch.exe")) + " " + Shell.Quote(r.Url) + " " +
-                          Shell.Quote(Shell.LocalPath + "\\" + file) +
-                          " --sha256 " + r.Sha256 + " --size " + r.Size + " --max-bytes " + r.Size;
-            string run = await Shell.StartDetachedAsync(cmds);
-            var job = new DownloadJob { Run = run, AppId = app.Id, Version = r.Version, File = file };
-            job.Save();
-            return job;
-        }
-
-        /// <summary>(bytes so far, total) from rfxfetch's progress lines.</summary>
-        public static void Progress(DownloadJob job, out long done, out long total)
-        {
-            done = 0; total = -1;
-            var log = Shell.Read(job.Run).Output;
-            int at = log.LastIndexOf("PROGRESS ", StringComparison.Ordinal);
-            if (at < 0) return;
-            var parts = log.Substring(at + 9).Split(new[] { ' ', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length >= 2) { long.TryParse(parts[0], out done); long.TryParse(parts[1], out total); }
-        }
-
-        /// <summary>Waits for a download; returns null on success, or what went wrong.</summary>
-        public static async Task<string> WaitDownloadAsync(DownloadJob job, string what, Action<long, long> progress)
-        {
-            while (!Shell.IsDone(job.Run))
-            {
-                long d, t;
-                Progress(job, out d, out t);
-                if (progress != null) progress(d, t);
-                await Task.Delay(1000);
-            }
-            var r = Shell.Read(job.Run);
-            Shell.Delete(job.Run);
-            DownloadJob.Clear();
-            if (r.Reached && r.ExitCode == 0) return null;
-            return Friendly.Download(what, r.Output);
-        }
-
-        /// <summary>Installs a downloaded release through stage 1 (which checks product ID and
-        /// SHA-256 again on its staged copy). The download is removed once TH has started.</summary>
-        public static async Task<InstallOutcome> InstallDownloadedAsync(CatalogApp app, CatalogRelease r, Action<string> status)
-        {
-            string file = DownloadName(r);
-            var found = new FoundPackage { Path = Shell.LocalPath + "\\" + file, Size = r.Size };
-            var outcome = await Phone.InstallAsync(found, status, r.ProductId, r.Sha256);
-            if (outcome.Started || outcome.HashMismatch)
-            {
-                try
-                {
-                    using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
-                        if (iso.FileExists(file)) iso.DeleteFile(file);
-                }
-                catch (Exception) { }
-            }
-            return outcome;
-        }
-
         /// <summary>Removes copies, downloads and run files left behind by installs and downloads
         /// that ended while the app was away. Leaves whatever a remembered job still needs.</summary>
         public static void CleanUp()
         {
-            var job = InstallJob.Load();
-            var dl = DownloadJob.Load();
-            if ((job != null && !Shell.IsDone(job.Run)) || (dl != null && !Shell.IsDone(dl.Run))) return;
+            // a job that is still running, or finished but not yet reported, keeps its files
+            if (InstallJob.Load() != null) return;
             try
             {
                 using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
-                    foreach (var pattern in new[] { "staged-*", "dl-*", "ver-*", "wa-*" })
+                    foreach (var pattern in new[] { "staged-*", "dl-*", "ver-*", "wa-*", "notified-*" })
                         foreach (var f in iso.GetFileNames(pattern))
-                        {
-                            if (job != null && f == job.Staged) continue;
-                            if (dl != null && f == dl.File) continue;
                             try { iso.DeleteFile(f); } catch (Exception) { }
-                        }
             }
             catch (Exception e) { AppLog.Add("cleanup skipped", e.Message); }
         }

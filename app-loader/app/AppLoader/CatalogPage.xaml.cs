@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -42,13 +43,7 @@ namespace AppLoader
             if (_app == null) { if (NavigationService.CanGoBack) NavigationService.GoBack(); return; }
             _entry = MainPage.Entries == null ? null : MainPage.Entries.FirstOrDefault(x => x.App.Id == id);
             Show();
-            // a download of this app that was running when the app was left
-            var dl = DownloadJob.Load();
-            if (dl != null && dl.AppId == _app.Id)
-            {
-                var rel = _app.Releases.FirstOrDefault(r => r.Version == dl.Version);
-                if (rel != null) await DownloadAndInstallAsync(rel, dl);
-            }
+            await Task.Yield();
         }
 
         void Show()
@@ -197,51 +192,40 @@ namespace AppLoader
             }
             string what = _app.Name + " " + r.Version + " (" + MainPage.Size(r.Size) + ")";
             if (MessageBox.Show("Download and install " + what + "?\n\nIt's checked against the signed catalog " +
-                                "before anything is installed. An installed app is updated in place and keeps its data.",
+                                "before anything is installed. An installed app is updated in place and keeps its data. " +
+                                "It carries on if you leave " + AppInfo.Name + " or lock the phone, and a notification says how it went.",
                                 "install", MessageBoxButton.OKCancel) != MessageBoxResult.OK)
                 return;
-            await DownloadAndInstallAsync(r, null);
+            await DownloadAndInstallAsync(r);
         }
 
-        async Task DownloadAndInstallAsync(CatalogRelease r, DownloadJob running)
+        async Task DownloadAndInstallAsync(CatalogRelease r)
         {
-            MainPage.KeepAwake(true);
+            if (_entry == null)
+            {
+                MessageBox.Show("Go back, tap refresh, then try again: " + AppInfo.Name + " needs to check what's installed first.", "install", MessageBoxButton.OK);
+                return;
+            }
             try
             {
-                if (running != null || !CatalogService.IsDownloaded(r))
-                {
-                    Busy("starting the download...");
-                    var job = running ?? await CatalogService.StartDownloadAsync(_app, r);
-                    var err = await CatalogService.WaitDownloadAsync(job, _app.Name + " " + r.Version, (d, t) =>
-                        Busy("downloading " + MainPage.Size(d) + (t > 0 ? " of " + MainPage.Size(t) : "") + "..."));
-                    if (err != null)
-                    {
-                        Busy(null);
-                        MessageBox.Show(err + " " + Friendly.Unchanged, "download", MessageBoxButton.OK);
-                        return;
-                    }
-                }
-                var outcome = await CatalogService.InstallDownloadedAsync(_app, r, s => Busy(s));
+                Busy("starting...");
+                var outcome = await Phone.StartCatalogAsync(new List<CatalogEntry> { _entry }, new List<CatalogRelease> { r }, s => Busy(s));
                 Busy(null);
                 if (!outcome.Started)
                 {
                     MessageBox.Show(outcome.Message ?? "Nothing was installed.", "not installed", MessageBoxButton.OK);
                     return;
                 }
-                if (outcome.Job.ProductId == Phone.OwnProductId)
-                    MessageBox.Show(AppInfo.Name + " is updating itself, so it will close in a moment. Open it again " +
+                if (outcome.Job.Includes(Phone.OwnProductId))
+                    MessageBox.Show(AppInfo.Name + " is updating itself, so it will close once the download is done. Open it again " +
                                     "afterwards to see how it went.", "updating " + AppInfo.Name, MessageBoxButton.OK);
-                // the main page picks the running install up and shows the result
+                // the main page follows the running job and shows the result
                 Leave();
             }
             catch (Exception ex)
             {
                 Busy(null);
                 MessageBox.Show(Friendly.Of(ex), "not installed", MessageBoxButton.OK);
-            }
-            finally
-            {
-                MainPage.KeepAwake(false);
             }
         }
     }
