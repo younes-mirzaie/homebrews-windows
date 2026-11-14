@@ -88,6 +88,8 @@ namespace AppLoader
             {
                 Status.Text = "Installed and up to date (" + installed + ").";
                 InstallButton.Content = "reinstall " + latest.Version;
+                // the phone refuses to reinstall the same version of an appx app
+                if (latest.Kind == "appx" && _entry.InstalledVersion != null) InstallButton.Visibility = Visibility.Collapsed;
             }
             Versions.ItemsSource = _app.Releases.Select(r => new VersionRow
             {

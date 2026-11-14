@@ -245,16 +245,36 @@ namespace AppLoader.Core
                     return outcome;
                 }
 
-                string existingKind = null;
+                string existingKind = null, existingVersion = null;
                 if (existing != null)
                 {
                     try
                     {
                         CatalogService.InstalledCopy have;
                         if ((await CatalogService.InstalledAsync(new List<string> { pkg.ProductId })).TryGetValue(pkg.ProductId, out have))
+                        {
                             existingKind = have.Kind;
+                            existingVersion = have.Version;
+                        }
                     }
                     catch (Exception) { }
+                }
+
+                // The phone only updates an appx app to a higher version (the same version fails
+                // with 0x81030137). Uninstalling first would lose the app's data, so it isn't tried.
+                if (pkg.Kind == "appx" && existingVersion != null && pkg.Version != null)
+                {
+                    int cmp;
+                    try { cmp = AppLoader.Catalog.CatalogIndex.CompareVersions(pkg.Version, existingVersion); }
+                    catch (Exception) { cmp = 1; }
+                    if (cmp <= 0)
+                    {
+                        outcome.Message = cmp == 0
+                            ? pkg.Title + " " + pkg.Version + " is already installed, so there's nothing to update. " + Friendly.Unchanged
+                            : "You have a newer " + pkg.Title + " (" + existingVersion + ") than this one (" + pkg.Version +
+                              "), and the phone doesn't go back to older versions of this kind of app. " + Friendly.Unchanged;
+                        return outcome;
+                    }
                 }
 
                 string mode = existing != null ? PackageInstaller.Update : PackageInstaller.Deploy;
