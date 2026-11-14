@@ -16,6 +16,7 @@ namespace Retrobird
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
+            Core.InAppHelper.Log("showing " + GetType().Name + " (" + e.NavigationMode + ")");
             Query = Parse(e.Parameter as string);
         }
 
@@ -58,8 +59,10 @@ namespace Retrobird
             if (name.EndsWith(".xaml")) name = name.Substring(0, name.Length - 5);
             try
             {
-                if (!Frame.Navigate(PageType(name), q >= 0 ? target.Substring(q + 1) : null))
-                    Core.InAppHelper.Log("navigation to " + target + " refused");
+                Core.InAppHelper.Log("opening " + target);
+                bool ok = Frame.Navigate(PageType(name), q >= 0 ? target.Substring(q + 1) : null);
+                Core.InAppHelper.Log("opening " + target + (ok ? ": done" : ": refused"));
+                if (!ok) { var unused = Ui.AlertAsync("That page couldn't open.", "Retrobird"); }
             }
             catch (Exception e)
             {

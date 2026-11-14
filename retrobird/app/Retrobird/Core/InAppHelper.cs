@@ -8,6 +8,7 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.Security.Cryptography;
@@ -70,16 +71,22 @@ namespace Retrobird.Core
             }, TaskCreationOptions.LongRunning);
         }
 
+        // one write at a time: overlapping appends to the same file fail, and lines got lost
+        static readonly SemaphoreSlim _logLock = new SemaphoreSlim(1);
+
         /// <summary>App-side notes for the developer (LocalState\data\app.log), next to the engine's own log.</summary>
         public static async void Log(string line)
         {
+            line = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + " " + line + "\r\n";
+            await _logLock.WaitAsync();
             try
             {
                 var dir = await ApplicationData.Current.LocalFolder.CreateFolderAsync("data", CreationCollisionOption.OpenIfExists);
                 var f = await dir.CreateFileAsync("app.log", CreationCollisionOption.OpenIfExists);
-                await FileIO.AppendTextAsync(f, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " " + line + "\r\n");
+                await FileIO.AppendTextAsync(f, line);
             }
             catch (Exception) { }
+            finally { _logLock.Release(); }
         }
 
         /// <summary>Whether our engine answers on the port.</summary>

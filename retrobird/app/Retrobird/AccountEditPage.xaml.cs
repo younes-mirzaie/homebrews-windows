@@ -25,7 +25,12 @@ namespace Retrobird
 
         public AccountEditPage()
         {
-            InitializeComponent();
+            try { InitializeComponent(); }
+            catch (Exception ex)
+            {
+                InAppHelper.Log("account page didn't build: " + ex);
+                throw;
+            }
             Ui.Scope(EmailBox, InputScopeNameValue.EmailSmtpAddress);
             Ui.Scope(NameBox, InputScopeNameValue.Default);   // no PersonalFullName on WP 8.1
             Ui.Scope(ImapHostBox, InputScopeNameValue.Url);

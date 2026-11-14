@@ -66,7 +66,9 @@ namespace Retrobird
 
         static async Task<bool> ShowAsync(string text, string title, string ok, string cancel)
         {
-            await _dialog.WaitAsync();
+            // never wait forever behind a box that didn't close
+            bool locked = await _dialog.WaitAsync(3000);
+            if (!locked) InAppHelper.Log("message box: another one still open");
             try
             {
                 var d = new MessageDialog(text ?? "", title ?? "");
@@ -78,8 +80,12 @@ namespace Retrobird
                 var r = await d.ShowAsync();
                 return r == yes;
             }
-            catch (Exception) { return false; }
-            finally { _dialog.Release(); }
+            catch (Exception e)
+            {
+                InAppHelper.Log("message box \"" + title + "\" failed: " + e);
+                return false;
+            }
+            finally { if (locked) _dialog.Release(); }
         }
 
         public static Task AlertAsync(string text, string title) { return ShowAsync(text, title, "ok", null); }
