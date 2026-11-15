@@ -20,6 +20,10 @@ namespace Retrobird.Core
 
         public MailClient(string token, int port = DefaultPort) { _token = token; _port = port; }
 
+        /// <summary>Notes on the app-to-engine connection for the developer's log (set by the app).</summary>
+        public static Action<string> Log;
+        static void Note(string s) { var l = Log; if (l != null) l("engine link: " + s); }
+
         /// <summary>Changing it drops the current connection (the in-app helper and the separate
         /// one listen on different ports).</summary>
         public int Port
@@ -95,7 +99,11 @@ namespace Retrobird.Core
 
         static string[] Check(string line)
         {
-            if (line == null) throw new MailException("NET", "Retrobird lost touch with its mail engine. Try again.");
+            if (line == null)
+            {
+                Note("connection closed while waiting for a reply");
+                throw new MailException("NET", "Retrobird lost touch with its mail engine. Try again.");
+            }
             var f = Fields(line);
             if (f[0] == "OK") return f;
             if (f[0] == "ERR")
@@ -104,6 +112,7 @@ namespace Retrobird.Core
                 if (e.Code == "CERT") { e.Fingerprint = F(f, 3); e.Side = F(f, 4); }
                 throw e;
             }
+            Note("unexpected reply: " + (line.Length > 80 ? line.Substring(0, 80) : line));
             throw new MailException("NET", "Retrobird's mail engine gave an answer it didn't expect. Try again.");
         }
 
@@ -115,11 +124,12 @@ namespace Retrobird.Core
             if (_s != null && !_s.IsClosed) return true;
             if (_s != null) _s.Dispose();
             _s = await LineSocket.ConnectAsync(Host, _port, 1500);
-            if (_s == null) return false;
+            if (_s == null) { Note("nothing answers on port " + _port); return false; }
             await _s.SendAsync(Line("AUTH", _token));
             var r = await _s.ReadLineAsync();
             if (r == null || !r.StartsWith("OK\t"))
             {
+                Note(r == null ? "closed during the handshake" : "handshake refused: " + r);
                 _s.Dispose();
                 _s = null;
                 throw new MailException("AUTH", "Retrobird's mail engine didn't accept the app. Close Retrobird and open it again.");
@@ -133,9 +143,11 @@ namespace Retrobird.Core
         {
             if (await OpenAsync()) return;
             if (StartHelper == null) throw new MailException("NET", "Retrobird's mail engine isn't running. Close Retrobird and open it again.");
+            Note("starting the engine");
             var msg = await StartHelper();
-            if (msg != null) throw new MailException("NET", msg);
-            if (!await OpenAsync()) throw new MailException("NET", "Retrobird's mail engine didn't answer. Try again in a moment.");
+            if (msg != null) { Note("start failed: " + msg); throw new MailException("NET", msg); }
+            if (!await OpenAsync()) { Note("started, but no connection"); throw new MailException("NET", "Retrobird's mail engine didn't answer. Try again in a moment."); }
+            Note("connected after start");
         }
 
         /// <summary>Connects without starting anything (used by the launcher).</summary>
@@ -164,7 +176,7 @@ namespace Retrobird.Core
                     try { return await exchange(_s); }
                     catch (MailException e)
                     {
-                        if (attempt == 0 && _s != null && _s.IsClosed && e.Code == "NET") { Close(); continue; }
+                        if (attempt == 0 && _s != null && _s.IsClosed && e.Code == "NET") { Note("reconnecting after a lost connection"); Close(); continue; }
                         throw;
                     }
                 }

@@ -85,11 +85,15 @@ namespace Retrobird
         // only one message box can be open at a time
         static readonly SemaphoreSlim _dialog = new SemaphoreSlim(1);
 
+        static string _shownText;   // the box on screen or waiting: the same one isn't queued twice
+
         static async Task<bool> ShowAsync(string text, string title, string ok, string cancel)
         {
-            // never wait forever behind a box that didn't close
-            bool locked = await _dialog.WaitAsync(3000);
-            if (!locked) InAppHelper.Log("message box: another one still open");
+            // The phone allows one message box at a time (a second fails with access denied), so
+            // they wait their turn.
+            if (cancel == null && text == _shownText) return false;
+            await _dialog.WaitAsync();
+            _shownText = text;
             try
             {
                 var d = new MessageDialog(text ?? "", title ?? "");
@@ -106,7 +110,11 @@ namespace Retrobird
                 InAppHelper.Log("message box \"" + title + "\" failed: " + e);
                 return false;
             }
-            finally { if (locked) _dialog.Release(); }
+            finally
+            {
+                _shownText = null;
+                _dialog.Release();
+            }
         }
 
         public static Task AlertAsync(string text, string title) { return ShowAsync(text, title, "ok", null); }

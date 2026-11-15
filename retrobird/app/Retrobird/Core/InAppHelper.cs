@@ -105,7 +105,8 @@ namespace Retrobird.Core
         /// <summary>StartHelper for MailClient: null once the engine answers, else a message.</summary>
         public static async Task<string> EnsureRunningAsync(MailClient client)
         {
-            if (_ended == null || _ended.IsCompleted) Start();
+            if (_ended == null || _ended.IsCompleted) { Log(_ended == null ? "starting the engine" : "starting the engine again"); Start(); }
+            else Log("engine thread is running but didn't answer; waiting for it");
             // up to 10 s: the first start sets up NSS and the cache
             for (int i = 0; i < 40; i++)
             {
@@ -113,6 +114,7 @@ namespace Retrobird.Core
                 if (await Answers()) return null;
                 await Task.Delay(250);
             }
+            Log("engine didn't answer within 10 s");
             return "Retrobird's mail engine didn't answer. Close Retrobird and open it again.";
         }
     }

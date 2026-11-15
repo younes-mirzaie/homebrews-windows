@@ -27,11 +27,18 @@ namespace Retrobird
 
         static void Play(FrameworkElement el, bool down)
         {
-            var sb = new Storyboard();
-            Timeline t = down ? (Timeline)new PointerDownThemeAnimation() : new PointerUpThemeAnimation();
-            Storyboard.SetTarget(t, el);
-            sb.Children.Add(t);
-            sb.Begin();
+            // pointer events still arrive while a page is being left; the element may already be
+            // out of the visual tree, where Storyboard.Begin throws. A missed tilt doesn't matter.
+            if (Windows.UI.Xaml.Media.VisualTreeHelper.GetParent(el) == null) return;
+            try
+            {
+                var sb = new Storyboard();
+                Timeline t = down ? (Timeline)new PointerDownThemeAnimation() : new PointerUpThemeAnimation();
+                Storyboard.SetTarget(t, el);
+                sb.Children.Add(t);
+                sb.Begin();
+            }
+            catch (System.Exception) { }
         }
     }
 }

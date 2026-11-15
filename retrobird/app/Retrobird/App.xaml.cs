@@ -24,11 +24,12 @@ namespace Retrobird
                 // keep the app alive on a stray async failure; say what happened
                 e.Handled = true;
                 InAppHelper.Log("unhandled: " + e.Exception);
-                var unused = Ui.AlertAsync(e.Message, "Retrobird");
+                var unused = Ui.AlertAsync("Something went wrong in Retrobird. Go back and try again; if it keeps happening, close Retrobird and open it again.", "Retrobird");
             };
             // the mail engine runs inside the app (rbmail.dll)
             AppState.Client = new MailClient(InAppHelper.Token, InAppHelper.Port);
             AppState.Client.StartHelper = () => InAppHelper.EnsureRunningAsync(AppState.Client);
+            MailClient.Log = InAppHelper.Log;
             // the engine connection doesn't survive being suspended; it reconnects on the next call.
             // While the app is on screen the background check leaves the mail alone.
             Suspending += (s, e) => { AppState.Client.Close(); Notify.AppVisible(false); };
