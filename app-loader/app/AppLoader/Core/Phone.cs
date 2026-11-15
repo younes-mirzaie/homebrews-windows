@@ -414,6 +414,7 @@ namespace AppLoader.Core
             outcome.Message = string.Join("\n\n", messages.ToArray());
             Notify.Result(job.Run, all ? "done" : "not everything installed", outcome.Message);
             InstallJob.Clear();
+            Shell.Archive(job.Run, outcome.Message);
             Shell.Delete(job.Run);
             try
             {

@@ -19,8 +19,22 @@ namespace AppLoader.Core
             var e = DateTime.Now.ToString("HH:mm:ss") + "  " + what + (string.IsNullOrEmpty(detail) ? "" : "\n" + detail.Trim());
             _entries.Insert(0, e);
             if (_entries.Count > 30) _entries.RemoveAt(_entries.Count - 1);
+            Save();
             var c = Changed;
             if (c != null) c();
+        }
+
+        // Also kept in applog.txt (the last 30 entries), so the details survive a restart
+        // and can be read from the PC after a failed install.
+        static void Save()
+        {
+            try
+            {
+                using (var iso = System.IO.IsolatedStorage.IsolatedStorageFile.GetUserStoreForApplication())
+                using (var w = new System.IO.StreamWriter(iso.CreateFile("applog.txt")))
+                    w.Write(string.Join("\r\n\r\n", _entries));
+            }
+            catch (Exception) { }
         }
 
         public static string Text

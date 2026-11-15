@@ -214,6 +214,39 @@ namespace AppLoader.Core
             return result;
         }
 
+        const string LogFolder = "install-logs";
+        const int KeepLogs = 5;
+
+        /// <summary>Keeps a finished run's output and its result in install-logs\, the newest five,
+        /// so a refused install can still be read after the run's own files are gone.</summary>
+        public static void Archive(string name, string result)
+        {
+            try
+            {
+                using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
+                {
+                    string output = "";
+                    if (iso.FileExists(name + ".log"))
+                        using (var r = new StreamReader(iso.OpenFile(name + ".log", FileMode.Open, FileAccess.Read, FileShare.ReadWrite)))
+                            output = r.ReadToEnd();
+                    if (!iso.DirectoryExists(LogFolder)) iso.CreateDirectory(LogFolder);
+                    string file = LogFolder + "\\" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-" + name + ".log";
+                    using (var w = new StreamWriter(iso.CreateFile(file)))
+                    {
+                        w.WriteLine("Result:");
+                        w.WriteLine(result ?? "");
+                        w.WriteLine();
+                        w.WriteLine("Output:");
+                        w.Write(output);
+                    }
+                    var old = iso.GetFileNames(LogFolder + "\\*.log");
+                    Array.Sort(old, StringComparer.Ordinal);
+                    for (int i = 0; i < old.Length - KeepLogs; i++) iso.DeleteFile(LogFolder + "\\" + old[i]);
+                }
+            }
+            catch (Exception) { }
+        }
+
         public static void Delete(string name)
         {
             try
