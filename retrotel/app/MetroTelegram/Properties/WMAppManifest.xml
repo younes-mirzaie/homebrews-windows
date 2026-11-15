@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Deployment xmlns="http://schemas.microsoft.com/windowsphone/2014/deployment" AppPlatformVersion="8.1">
   <DefaultLanguage xmlns="" code="en-US" />
-  <App xmlns="" ProductID="{94b2811f-7863-4eea-b453-d97861fd8060}" Title="Retrogram" RuntimeType="Silverlight" Version="0.1.0.0" Genre="apps.normal" 
+  <App xmlns="" ProductID="{94b2811f-7863-4eea-b453-d97861fd8060}" Title="RetroTel" RuntimeType="Silverlight" Version="0.1.1.0" Genre="apps.normal" 
        Author="Younes" Description="Telegram client for Windows Phone 8.1" SDOptOut="false" BackUpOptOut="false" 
        Publisher="Younes" PublisherID="{a7b19ee3-c17a-4de0-a64d-0494f8810bad}">
     <IconPath IsRelative="true" IsResource="false">Assets\ApplicationIcon.png</IconPath>
@@ -19,17 +19,17 @@
       <DefaultTask Name="_default" NavigationPage="MainPage.xaml" ActivationPolicy="Resume" />
     </Tasks>
     <Tokens>
-      <PrimaryToken TokenID="RetrogramToken" TaskName="_default">
+      <PrimaryToken TokenID="RetroTelToken" TaskName="_default">
         <TemplateFlip>
           <SmallImageURI IsRelative="true" IsResource="false">Assets\Tiles\FlipCycleTileSmall.png</SmallImageURI>
           <Count>0</Count>
           <BackgroundImageURI IsRelative="true" IsResource="false">Assets\Tiles\FlipCycleTileMedium.png</BackgroundImageURI>
-          <Title>Retrogram</Title>
+          <Title>RetroTel</Title>
           <BackContent>
           </BackContent>
           <BackBackgroundImageURI>
           </BackBackgroundImageURI>
-          <BackTitle>Retrogram</BackTitle>
+          <BackTitle>RetroTel</BackTitle>
           <DeviceLockImageURI>
           </DeviceLockImageURI>
           <HasLarge>True</HasLarge>

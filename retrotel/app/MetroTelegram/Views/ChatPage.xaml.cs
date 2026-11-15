@@ -200,7 +200,7 @@ namespace MetroTelegram.Views
                 Dispatcher.BeginInvoke(() =>
                 {
                     SetLoading(false);
-                    MessageBox.Show("Couldn't load messages. " + MetroTelegram.Services.FriendlyErrors.ToText(ex), "Retrogram", MessageBoxButton.OK);
+                    MessageBox.Show("Couldn't load messages. " + MetroTelegram.Services.FriendlyErrors.ToText(ex), "RetroTel", MessageBoxButton.OK);
                 });
             }
         }
@@ -439,12 +439,12 @@ namespace MetroTelegram.Views
                                     (int)msg.Id);
 
                                 SetLoading(false);
-                                MessageBox.Show(string.Format("Forwarded to {0}.", targetChat.Title), "Retrogram", MessageBoxButton.OK);
+                                MessageBox.Show(string.Format("Forwarded to {0}.", targetChat.Title), "RetroTel", MessageBoxButton.OK);
                             }
                             catch (Exception ex)
                             {
                                 SetLoading(false);
-                                MessageBox.Show("Couldn't forward. " + MetroTelegram.Services.FriendlyErrors.ToText(ex), "Retrogram", MessageBoxButton.OK);
+                                MessageBox.Show("Couldn't forward. " + MetroTelegram.Services.FriendlyErrors.ToText(ex), "RetroTel", MessageBoxButton.OK);
                             }
                         }
                     }
@@ -515,7 +515,7 @@ namespace MetroTelegram.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Couldn't delete. " + MetroTelegram.Services.FriendlyErrors.ToText(ex), "Retrogram", MessageBoxButton.OK);
+                MessageBox.Show("Couldn't delete. " + MetroTelegram.Services.FriendlyErrors.ToText(ex), "RetroTel", MessageBoxButton.OK);
             }
         }
 
@@ -581,7 +581,7 @@ namespace MetroTelegram.Views
                 catch (Exception ex)
                 {
                     SetLoading(false);
-                    MessageBox.Show("Couldn't send the photo. " + MetroTelegram.Services.FriendlyErrors.ToText(ex), "Retrogram", MessageBoxButton.OK);
+                    MessageBox.Show("Couldn't send the photo. " + MetroTelegram.Services.FriendlyErrors.ToText(ex), "RetroTel", MessageBoxButton.OK);
                 }
             }
         }

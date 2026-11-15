@@ -35,7 +35,7 @@
     </toolkit:TransitionService.NavigationOutTransition>
 
     <Grid x:Name="LayoutRoot" Background="Transparent">
-        <phone:Pivot Title="RETROGRAM" TitleTemplate="{StaticResource MetroPivotTitleTemplate}" Loaded="Pivot_Loaded">
+        <phone:Pivot Title="RETROTEL" TitleTemplate="{StaticResource MetroPivotTitleTemplate}" Loaded="Pivot_Loaded">
 
             <phone:PivotItem Header="chats">
                 <phone:LongListSelector 

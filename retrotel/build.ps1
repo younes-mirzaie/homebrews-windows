@@ -1,9 +1,9 @@
-# Builds Retrogram (Release|ARM .xap) with Visual Studio 2015 + the Windows Phone 8.1 SDK.
+# Builds RetroTel (Release|ARM .xap) with Visual Studio 2015 + the Windows Phone 8.1 SDK.
 #
 # The Telegram api_id / api_hash are never stored in git. This script reads them from
 #   1. the TG_API_ID and TG_API_HASH environment variables (the GitHub Actions workflow sets these
 #      from repository secrets), or
-#   2. retrogram\telegram-api.local (git-ignored), two lines: TG_API_ID=12345 and TG_API_HASH=abc...
+#   2. retrotel\telegram-api.local (git-ignored), two lines: TG_API_ID=12345 and TG_API_HASH=abc...
 # and writes app\MetroTelegram\AppConfig.Secrets.cs (also git-ignored) before building.
 param(
     [string]$Configuration = "Release",
@@ -25,7 +25,7 @@ if ((-not $apiId -or -not $apiHash) -and (Test-Path $localFile)) {
     }
 }
 if (-not $apiId -or -not $apiHash) {
-    throw "Telegram API key missing. Set TG_API_ID and TG_API_HASH, or create retrogram\telegram-api.local (see README.md)."
+    throw "Telegram API key missing. Set TG_API_ID and TG_API_HASH, or create retrotel\telegram-api.local (see README.md)."
 }
 $apiId = $apiId.Trim(); $apiHash = $apiHash.Trim()
 if ($apiId -notmatch '^\d+$') { throw "TG_API_ID should be a number (from my.telegram.org)." }
@@ -61,8 +61,8 @@ if (-not (Test-Path $msbuild)) { throw "MSBuild 14.0 (Visual Studio 2015) not fo
 & $msbuild (Join-Path $app "MetroTelegram.sln") /m /nologo /v:minimal "/p:Configuration=$Configuration" "/p:Platform=$Platform"
 if ($LASTEXITCODE -ne 0) { throw "Build failed." }
 
-$xap = Get-ChildItem -Path (Join-Path $proj "Bin") -Recurse -Filter "Retrogram_*.xap" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-if (-not $xap) { throw "Build finished but no Retrogram .xap was found." }
+$xap = Get-ChildItem -Path (Join-Path $proj "Bin") -Recurse -Filter "RetroTel_*.xap" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+if (-not $xap) { throw "Build finished but no RetroTel .xap was found." }
 $out = Join-Path $root "out"
 New-Item -ItemType Directory -Force -Path $out | Out-Null
 Copy-Item $xap.FullName $out -Force

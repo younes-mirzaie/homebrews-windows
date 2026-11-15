@@ -34,6 +34,14 @@ namespace MetroTelegram
         {
             base.OnNavigatedTo(e);
 
+            // Show what went wrong last time, if the app crashed (reported as plain text, once).
+            string lastCrash = MetroTelegram.Services.CrashLog.TakeLast();
+            if (!string.IsNullOrEmpty(lastCrash))
+            {
+                string firstLines = lastCrash.Length > 600 ? lastCrash.Substring(0, 600) + "..." : lastCrash;
+                MessageBox.Show("RetroTel closed unexpectedly last time. Details for the developer:\n\n" + firstLines, "RetroTel", MessageBoxButton.OK);
+            }
+
             App.Storage.Load();
 
             if (!App.Storage.IsAuthorized)

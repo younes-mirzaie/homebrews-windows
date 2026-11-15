@@ -1,7 +1,7 @@
-# Builds Retrogram on a self-hosted Windows runner that has Visual Studio 2015 and the
+# Builds RetroTel on a self-hosted Windows runner that has Visual Studio 2015 and the
 # Windows Phone 8.1 SDK (GitHub-hosted runners don't have the WP 8.1 SDK).
 # The Telegram api_id / api_hash come from repository secrets and only exist during the build.
-name: retrogram
+name: retrotel
 
 on:
   workflow_dispatch:
@@ -18,15 +18,15 @@ jobs:
         env:
           TG_API_ID: ${{ secrets.TG_API_ID || secrets.TELEGRAM_API_ID || secrets.API_ID }}
           TG_API_HASH: ${{ secrets.TG_API_HASH || secrets.TELEGRAM_API_HASH || secrets.API_HASH }}
-        run: .\retrogram\build.ps1 -Configuration Release -Platform ARM
+        run: .\retrotel\build.ps1 -Configuration Release -Platform ARM
 
       - name: Remove generated secrets file
         if: always()
         shell: powershell
-        run: Remove-Item -ErrorAction SilentlyContinue .\retrogram\app\MetroTelegram\AppConfig.Secrets.cs
+        run: Remove-Item -ErrorAction SilentlyContinue .\retrotel\app\MetroTelegram\AppConfig.Secrets.cs
 
       - uses: actions/upload-artifact@v4
         with:
-          name: retrogram-xap
-          path: retrogram/out/*.xap
+          name: retrotel-xap
+          path: retrotel/out/*.xap
           retention-days: 14

@@ -74,12 +74,20 @@ namespace MetroTelegram
         {
             UnhandledException += Application_UnhandledException;
 
-            InitializeComponent();
-            InitializePhoneApplication();
+            try
+            {
+                InitializeComponent();
+                InitializePhoneApplication();
 
-            ViewModel = new MainViewModel();
-            Storage = new AuthKeyStorage();
-            Storage.Load();
+                ViewModel = new MainViewModel();
+                Storage = new AuthKeyStorage();
+                Storage.Load();
+            }
+            catch (Exception ex)
+            {
+                MetroTelegram.Services.CrashLog.Write("App()", ex);
+                throw;
+            }
 
             if (Debugger.IsAttached)
             {
@@ -195,11 +203,13 @@ namespace MetroTelegram
 
         private void RootFrame_NavigationFailed(object sender, NavigationFailedEventArgs e)
         {
+            MetroTelegram.Services.CrashLog.Write("NavigationFailed " + e.Uri, e.Exception);
             if (Debugger.IsAttached) Debugger.Break();
         }
 
         private void Application_UnhandledException(object sender, ApplicationUnhandledExceptionEventArgs e)
         {
+            MetroTelegram.Services.CrashLog.Write("UnhandledException", e.ExceptionObject);
             if (Debugger.IsAttached) Debugger.Break();
         }
 

@@ -10,7 +10,7 @@ namespace MetroTelegram.Crypto
     /// </summary>
     public static class SecureStore
     {
-        private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("Retrogram.AuthKey.v1");
+        private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("RetroTel.AuthKey.v1");
 
         public static byte[] Seal(byte[] plain)
         {

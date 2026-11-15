@@ -75,7 +75,7 @@ namespace MetroTelegram.Views
             catch (Exception ex)
             {
                 LoadingProgressBar.Visibility = Visibility.Collapsed;
-                MessageBox.Show("Couldn't load the picture. " + MetroTelegram.Services.FriendlyErrors.ToText(ex), "Retrogram", MessageBoxButton.OK);
+                MessageBox.Show("Couldn't load the picture. " + MetroTelegram.Services.FriendlyErrors.ToText(ex), "RetroTel", MessageBoxButton.OK);
             }
         }
 
@@ -164,7 +164,7 @@ namespace MetroTelegram.Views
         {
             if (_currentPhotoBytes == null || _currentPhotoBytes.Length == 0)
             {
-                MessageBox.Show("The picture hasn't finished loading yet.", "Retrogram", MessageBoxButton.OK);
+                MessageBox.Show("The picture hasn't finished loading yet.", "RetroTel", MessageBoxButton.OK);
                 return;
             }
 
@@ -176,11 +176,11 @@ namespace MetroTelegram.Views
                     ml.SavePicture(filename, _currentPhotoBytes);
                 }
 
-                MessageBox.Show("Saved to the Saved Pictures album.", "Retrogram", MessageBoxButton.OK);
+                MessageBox.Show("Saved to the Saved Pictures album.", "RetroTel", MessageBoxButton.OK);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Couldn't save the picture. " + MetroTelegram.Services.FriendlyErrors.ToText(ex), "Retrogram", MessageBoxButton.OK);
+                MessageBox.Show("Couldn't save the picture. " + MetroTelegram.Services.FriendlyErrors.ToText(ex), "RetroTel", MessageBoxButton.OK);
             }
         }
 

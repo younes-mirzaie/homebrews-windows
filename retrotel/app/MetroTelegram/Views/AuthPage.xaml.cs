@@ -90,7 +90,7 @@ namespace MetroTelegram.Views
 
             if (string.IsNullOrEmpty(_phoneNumber) || _phoneNumber.Length < 6)
             {
-                MessageBox.Show("Enter your phone number.", "Retrogram", MessageBoxButton.OK);
+                MessageBox.Show("Enter your phone number.", "RetroTel", MessageBoxButton.OK);
                 return;
             }
 
@@ -131,7 +131,7 @@ namespace MetroTelegram.Views
 
             if (string.IsNullOrEmpty(code))
             {
-                MessageBox.Show("Enter the code.", "Retrogram", MessageBoxButton.OK);
+                MessageBox.Show("Enter the code.", "RetroTel", MessageBoxButton.OK);
                 return;
             }
 
@@ -188,7 +188,7 @@ namespace MetroTelegram.Views
 
             if (string.IsNullOrEmpty(password))
             {
-                MessageBox.Show("Enter your password.", "Retrogram", MessageBoxButton.OK);
+                MessageBox.Show("Enter your password.", "RetroTel", MessageBoxButton.OK);
                 return;
             }
 

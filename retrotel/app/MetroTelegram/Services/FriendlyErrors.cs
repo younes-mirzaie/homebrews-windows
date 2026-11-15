@@ -29,8 +29,8 @@ namespace MetroTelegram.Services
             if (raw.Contains("PHONE_CODE_EXPIRED")) return "That code has expired. Go back and ask for a new one.";
             if (raw.Contains("PHONE_CODE_EMPTY")) return "Enter the code.";
             if (raw.Contains("PASSWORD_HASH_INVALID")) return "That password isn't right. Try again.";
-            if (raw.Contains("UPDATE_APP_TO_LOGIN")) return "Telegram says this app is too old to sign in. Retrogram needs an update.";
-            if (raw.Contains("API_ID_INVALID") || raw.Contains("API_ID_PUBLISHED_FLOOD")) return "Telegram didn't accept this app's API key. Retrogram needs a rebuild with a valid api_id.";
+            if (raw.Contains("UPDATE_APP_TO_LOGIN")) return "Telegram says this app is too old to sign in. RetroTel needs an update.";
+            if (raw.Contains("API_ID_INVALID") || raw.Contains("API_ID_PUBLISHED_FLOOD")) return "Telegram didn't accept this app's API key. RetroTel needs a rebuild with a valid api_id.";
             if (raw.Contains("AUTH_RESTART")) return "Telegram asked to start the sign-in again. Go back and enter your number.";
             if (raw.Contains("AUTH_KEY_UNREGISTERED") || raw.Contains("SESSION_REVOKED")) return "You were signed out. Sign in again.";
             if (raw.Contains("USER_DEACTIVATED")) return "This Telegram account was deleted.";

@@ -20,7 +20,7 @@
     </SupportedCultures>
     <XapOutputs>true</XapOutputs>
     <GenerateSilverlightManifest>true</GenerateSilverlightManifest>
-    <XapFilename>Retrogram_$(Configuration)_$(Platform).xap</XapFilename>
+    <XapFilename>RetroTel_$(Configuration)_$(Platform).xap</XapFilename>
     <SilverlightManifestTemplate>Properties\AppManifest.xml</SilverlightManifestTemplate>
     <SilverlightAppEntry>MetroTelegram.App</SilverlightAppEntry>
     <ValidateXaml>true</ValidateXaml>
@@ -113,6 +113,7 @@
       <DependentUpon>MainPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Services\CrashLog.cs" />
     <Compile Include="Services\FriendlyErrors.cs" />
     <Compile Include="Services\TileService.cs" />
     <Compile Include="TL\AuthService.cs" />
@@ -245,7 +246,7 @@
   -->
   <ProjectExtensions />
   <Target Name="EnsureTelegramSecrets" BeforeTargets="PrepareForBuild">
-    <Error Condition="!Exists('AppConfig.Secrets.cs')" Text="AppConfig.Secrets.cs is missing. Run retrogram\build.ps1 with TG_API_ID and TG_API_HASH set (see retrogram\README.md)." />
+    <Error Condition="!Exists('AppConfig.Secrets.cs')" Text="AppConfig.Secrets.cs is missing. Run retrotel\build.ps1 with TG_API_ID and TG_API_HASH set (see retrotel\README.md)." />
   </Target>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
