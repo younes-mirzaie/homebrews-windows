@@ -1,0 +1,7 @@
+# Telegram API key (local builds) and generated secrets
+telegram-api.local
+app/MetroTelegram/AppConfig.Secrets.cs
+# build outputs
+.tools/
+out/
+app/packages/
