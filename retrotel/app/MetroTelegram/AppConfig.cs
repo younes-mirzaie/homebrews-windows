@@ -6,7 +6,7 @@ namespace MetroTelegram
     public static partial class AppConfig
     {
         public const string AppName = "RetroTel";
-        public const string AppVersion = "0.1.2";
+        public const string AppVersion = "0.1.3";
         public const string DeviceModel = "Windows Phone";
         public const string SystemVersion = "Windows Phone 8.1";
         public const string LangCode = "en";
