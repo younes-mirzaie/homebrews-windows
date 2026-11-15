@@ -1148,12 +1148,36 @@ static void exe_dir(char *buf, size_t len)
 
 /* RetrobirdMain (built with -DRB_DLL as rbmail.dll), which the app calls on a thread of its own so
    the engine runs inside the app's process; or main, for the Linux test build. */
+/* Opens the loopback listener, retrying while an old one still holds the port. */
+static PRFileDesc *open_listener(int port)
+{
+    PRNetAddr addr;
+    PRSocketOptionData opt;
+    PRFileDesc *l = PR_OpenTCPSocket(PR_AF_INET);
+    int bound = 0;
+    if (!l) return NULL;
+    opt.option = PR_SockOpt_Reuseaddr;
+    opt.value.reuse_addr = PR_TRUE;
+    PR_SetSocketOption(l, &opt);
+    PR_InitializeNetAddr(PR_IpAddrLoopback, (PRUint16)port, &addr);
+    for (int i = 0; i < 25 && !bound; i++) {
+        bound = PR_Bind(l, &addr) == PR_SUCCESS;
+        if (!bound) PR_Sleep(PR_MillisecondsToInterval(200));
+    }
+    if (!bound || PR_Listen(l, 8) != PR_SUCCESS) {
+        rb_log("can't listen on 127.0.0.1:%d (error %d)", port, (int)PR_GetError());
+        PR_Close(l);
+        return NULL;
+    }
+    return l;
+}
+
+static int g_main_ready;   /* the app may start the engine again in the same process */
+
 static int rb_main(int argc, char **argv)
 {
     int port = RB_DEFAULT_PORT;
     char dir[512], data[600], roots[600];
-    PRNetAddr addr;
-    PRSocketOptionData opt;
     exe_dir(dir, sizeof(dir));
 #ifdef _WIN32
     snprintf(data, sizeof(data), "%s\\data", dir);
@@ -1179,35 +1203,35 @@ static int rb_main(int argc, char **argv)
         fprintf(stderr, "rbmaild: --token with at least 8 characters is required\n");
         return 2;
     }
-    if (net_init(roots) != 0) return 1;
-    g_lock = PR_NewLock();
-    store_init(data, g_token);
+    if (!g_main_ready) {
+        if (net_init(roots) != 0) return 1;
+        g_lock = PR_NewLock();
+        store_init(data, g_token);
+        g_main_ready = 1;
+    }
+    g_quit = 0;
     rb_log("rbmaild %s starting on 127.0.0.1:%d, data %s", RB_VERSION, port, data);
 
-    g_listener = PR_OpenTCPSocket(PR_AF_INET);
-    opt.option = PR_SockOpt_Reuseaddr;
-    opt.value.reuse_addr = PR_TRUE;
-    PR_SetSocketOption(g_listener, &opt);
-    PR_InitializeNetAddr(PR_IpAddrLoopback, (PRUint16)port, &addr);
-    {
-        /* a helper that was just told to QUIT may still hold the port for a moment */
-        int bound = 0;
-        for (int i = 0; i < 25 && !bound; i++) {
-            bound = PR_Bind(g_listener, &addr) == PR_SUCCESS;
-            if (!bound) PR_Sleep(PR_MillisecondsToInterval(200));
-        }
-        if (!bound || PR_Listen(g_listener, 8) != PR_SUCCESS) {
-            rb_log("can't listen on 127.0.0.1:%d (already running?)", port);
-            return 1;
-        }
-    }
+    g_listener = open_listener(port);
+    if (!g_listener) return 1;
     PR_CreateThread(PR_USER_THREAD, sync_thread, NULL, PR_PRIORITY_LOW, PR_GLOBAL_THREAD,
                     PR_UNJOINABLE_THREAD, 0);
     while (!g_quit) {
         PRNetAddr peer;
         PRFileDesc *fd = PR_Accept(g_listener, &peer, PR_SecondsToInterval(1));
         client *c;
-        if (!fd) continue;   /* timeout: check g_quit */
+        if (!fd) {
+            PRErrorCode e = PR_GetError();
+            if (e == PR_IO_TIMEOUT_ERROR) continue;   /* check g_quit */
+            /* The phone closes sockets while the app is suspended: the listener is dead after a
+               resume. Make a new one instead of failing (or spinning) forever. */
+            rb_log("listener failed (error %d); opening it again", (int)e);
+            PR_Close(g_listener);
+            g_listener = NULL;
+            while (!g_quit && !(g_listener = open_listener(port))) PR_Sleep(PR_SecondsToInterval(1));
+            if (!g_listener) break;
+            continue;
+        }
         c = xcalloc(1, sizeof(*c));
         c->fd = fd;
         if (!PR_CreateThread(PR_USER_THREAD, serve, c, PR_PRIORITY_NORMAL, PR_GLOBAL_THREAD,
@@ -1217,7 +1241,8 @@ static int rb_main(int argc, char **argv)
         }
     }
     rb_log("rbmaild stopping");
-    PR_Close(g_listener);
+    if (g_listener) PR_Close(g_listener);
+    g_listener = NULL;
     return 0;
 }
 

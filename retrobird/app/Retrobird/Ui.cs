@@ -53,6 +53,7 @@ namespace Retrobird
         {
             var m = e as MailException;
             if (m == null) return e.Message;
+            if (m.Message.StartsWith("Retrobird")) return m.Message;   // already a full sentence about the app itself
             switch (m.Code)
             {
                 case "AUTH": return "Couldn't sign in: " + m.Message;

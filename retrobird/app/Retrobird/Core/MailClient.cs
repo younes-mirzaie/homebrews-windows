@@ -95,7 +95,7 @@ namespace Retrobird.Core
 
         static string[] Check(string line)
         {
-            if (line == null) throw new MailException("NET", "connection to the mail helper was lost");
+            if (line == null) throw new MailException("NET", "Retrobird lost touch with its mail engine. Try again.");
             var f = Fields(line);
             if (f[0] == "OK") return f;
             if (f[0] == "ERR")
@@ -104,7 +104,7 @@ namespace Retrobird.Core
                 if (e.Code == "CERT") { e.Fingerprint = F(f, 3); e.Side = F(f, 4); }
                 throw e;
             }
-            throw new MailException("NET", "unexpected reply from the mail helper: " + line);
+            throw new MailException("NET", "Retrobird's mail engine gave an answer it didn't expect. Try again.");
         }
 
         // ---------------- connection ----------------
@@ -122,7 +122,7 @@ namespace Retrobird.Core
             {
                 _s.Dispose();
                 _s = null;
-                throw new MailException("AUTH", "the running mail helper has a different key (restart the phone)");
+                throw new MailException("AUTH", "Retrobird's mail engine didn't accept the app. Close Retrobird and open it again.");
             }
             var f = Fields(r);
             ServerVersion = F(f, 2);
@@ -132,10 +132,10 @@ namespace Retrobird.Core
         public async Task EnsureAsync()
         {
             if (await OpenAsync()) return;
-            if (StartHelper == null) throw new MailException("NET", "the mail helper isn't running");
+            if (StartHelper == null) throw new MailException("NET", "Retrobird's mail engine isn't running. Close Retrobird and open it again.");
             var msg = await StartHelper();
             if (msg != null) throw new MailException("NET", msg);
-            if (!await OpenAsync()) throw new MailException("NET", "the mail helper didn't answer");
+            if (!await OpenAsync()) throw new MailException("NET", "Retrobird's mail engine didn't answer. Try again in a moment.");
         }
 
         /// <summary>Connects without starting anything (used by the launcher).</summary>
@@ -187,7 +187,7 @@ namespace Retrobird.Core
             for (;;)
             {
                 var l = await s.ReadLineAsync();
-                if (l == null) throw new MailException("NET", "connection to the mail helper was lost");
+                if (l == null) throw new MailException("NET", "Retrobird lost touch with its mail engine. Try again.");
                 if (l.Length == 0) return rows;
                 rows.Add(Fields(l));
             }
