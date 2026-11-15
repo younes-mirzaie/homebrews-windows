@@ -286,7 +286,7 @@ namespace AppLoader.Core
         {
             try
             {
-                job.Run = await Shell.StartDetachedAsync(job.Commands(Shell.LocalPath, Shell.Quote, Shell.Helper("rfxfetch.exe")));
+                job.Run = await Shell.StartDetachedAsync(job.Commands(Shell.LocalPath, Shell.JobDir, Shell.Quote, Shell.Helper("rfxfetch.exe")));
             }
             catch (Exception e)
             {
