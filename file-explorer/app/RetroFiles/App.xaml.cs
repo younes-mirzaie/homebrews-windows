@@ -22,7 +22,8 @@ namespace RetroFiles
             InitializeComponent();
             AppState.Client = new RfxClient(HelperLauncher.Token);
 
-            RootFrame = new PhoneApplicationFrame();
+            // the theme's background (white in the light theme), not whatever the frame defaults to
+            RootFrame = new PhoneApplicationFrame { Background = (System.Windows.Media.Brush)Resources["PhoneBackgroundBrush"] };
             RootFrame.Navigated += CompleteInit;
             RootFrame.NavigationFailed += (s, e) =>
             {
