@@ -21,7 +21,9 @@ namespace MetroTelegram
 
         public MainPage()
         {
+            MetroTelegram.Services.CrashLog.Mark("MainPage() start");
             InitializeComponent();
+            MetroTelegram.Services.CrashLog.Mark("MainPage.xaml loaded");
             DataContext = App.ViewModel;
 
             _progressIndicator = new ProgressIndicator();

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.IO.IsolatedStorage;
 
@@ -28,6 +28,26 @@ namespace MetroTelegram.Services
             catch
             {
                 // Never let logging crash the app.
+            }
+        }
+
+        /// <summary>
+        /// Startup breadcrumb (boot.txt): shows how far the app got before closing.
+        /// Temporary while the close-on-launch crash on the Lumia 820 is diagnosed.
+        /// </summary>
+        public static void Mark(string step)
+        {
+            try
+            {
+                using (var store = IsolatedStorageFile.GetUserStoreForApplication())
+                using (var stream = store.OpenFile("boot.txt", FileMode.Append, FileAccess.Write))
+                using (var writer = new StreamWriter(stream))
+                {
+                    writer.WriteLine(DateTime.Now.ToString("HH:mm:ss.fff") + " " + step);
+                }
+            }
+            catch
+            {
             }
         }
 

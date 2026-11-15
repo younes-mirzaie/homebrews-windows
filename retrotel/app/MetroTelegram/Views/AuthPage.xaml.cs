@@ -25,7 +25,9 @@ namespace MetroTelegram.Views
 
         public AuthPage()
         {
+            MetroTelegram.Services.CrashLog.Mark("AuthPage() start");
             InitializeComponent();
+            MetroTelegram.Services.CrashLog.Mark("AuthPage.xaml loaded");
 
             _storage = new AuthKeyStorage();
             _storage.Load();

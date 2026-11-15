@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/2010/manifest" xmlns:m2="http://schemas.microsoft.com/appx/2013/manifest" xmlns:m3="http://schemas.microsoft.com/appx/2014/manifest" xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest">
 
-  <Identity Name="2e9ece9b-fc36-4fb9-8851-6c9b8d5353bb" Publisher="CN=Younes" Version="0.1.1.0"/>
+  <Identity Name="2e9ece9b-fc36-4fb9-8851-6c9b8d5353bb" Publisher="CN=Younes" Version="0.1.2.0"/>
 
   <mp:PhoneIdentity PhoneProductId="94b2811f-7863-4eea-b453-d97861fd8060" PhonePublisherId="a7b19ee3-c17a-4de0-a64d-0494f8810bad"/>
 
@@ -38,6 +38,8 @@
     </Application>
   </Applications>
   <Capabilities>
+    <Capability Name="internetClientServer"/>
+    <Capability Name="privateNetworkClientServer"/>
   </Capabilities>
 
   <Extensions>

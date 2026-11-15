@@ -72,16 +72,20 @@ namespace MetroTelegram
 
         public App()
         {
+            MetroTelegram.Services.CrashLog.Mark("App() start");
             UnhandledException += Application_UnhandledException;
 
             try
             {
                 InitializeComponent();
+                MetroTelegram.Services.CrashLog.Mark("App.xaml loaded");
                 InitializePhoneApplication();
+                MetroTelegram.Services.CrashLog.Mark("frame ready");
 
                 ViewModel = new MainViewModel();
                 Storage = new AuthKeyStorage();
                 Storage.Load();
+                MetroTelegram.Services.CrashLog.Mark("storage loaded");
             }
             catch (Exception ex)
             {
@@ -231,6 +235,7 @@ namespace MetroTelegram
 
         private void CompleteInitializePhoneApplication(object sender, NavigationEventArgs e)
         {
+            MetroTelegram.Services.CrashLog.Mark("first navigation done: " + e.Uri);
             if (RootVisual != RootFrame) RootVisual = RootFrame;
             RootFrame.Navigated -= CompleteInitializePhoneApplication;
         }
