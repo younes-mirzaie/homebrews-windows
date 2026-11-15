@@ -16,7 +16,7 @@
         <shell:ProgressIndicator x:Name="Progress" IsIndeterminate="True" IsVisible="False" />
     </shell:SystemTray.ProgressIndicator>
 
-    <Grid x:Name="LayoutRoot" Background="Transparent">
+    <Grid x:Name="LayoutRoot" Background="{StaticResource PhoneBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />

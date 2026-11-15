@@ -16,7 +16,7 @@
         <shell:ProgressIndicator x:Name="Progress" IsIndeterminate="True" IsVisible="False" />
     </shell:SystemTray.ProgressIndicator>
 
-    <phone:Pivot x:Name="Pivots" Title="UNESBREWS">
+    <phone:Pivot x:Name="Pivots" Title="UNESBREWS" Background="{StaticResource PhoneBackgroundBrush}">
         <phone:PivotItem Header="catalog">
             <Grid>
                 <Grid.RowDefinitions>

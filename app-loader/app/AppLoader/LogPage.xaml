@@ -11,7 +11,7 @@
     shell:SystemTray.IsVisible="True">
 
     <!-- Technical details of recent installs and downloads, off the pivot (a pivot has four pages at most) -->
-    <Grid x:Name="LayoutRoot" Background="Transparent">
+    <Grid x:Name="LayoutRoot" Background="{StaticResource PhoneBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />

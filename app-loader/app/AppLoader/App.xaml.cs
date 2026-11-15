@@ -18,7 +18,8 @@ namespace AppLoader
                 Deployment.Current.Dispatcher.BeginInvoke(() => MessageBox.Show(msg, AppLoader.Core.AppInfo.Name, MessageBoxButton.OK));
             };
             InitializeComponent();
-            RootFrame = new PhoneApplicationFrame();
+            // the theme's background (white in the light theme), not whatever the frame defaults to
+            RootFrame = new PhoneApplicationFrame { Background = (System.Windows.Media.Brush)Resources["PhoneBackgroundBrush"] };
             RootFrame.Navigated += CompleteInit;
             RootFrame.NavigationFailed += (s, e) =>
             {
