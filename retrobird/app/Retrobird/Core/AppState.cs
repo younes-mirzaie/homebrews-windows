@@ -53,9 +53,26 @@ namespace Retrobird.Core
             }
         }
 
+        /// <summary>The list shows every account's inbox together (only with two or more accounts).
+        /// The current account is then the one last opened or written from.</summary>
+        public static bool AllInboxes
+        {
+            get { return Get("allInboxes", false) && Accounts.Count > 1; }
+            set { Set("allInboxes", value ? (object)true : null); }
+        }
+
+        /// <summary>Shows one account's inbox (leaves all inboxes).</summary>
         public static void SelectAccount(AccountInfo a)
         {
-            CurrentAccountId = a == null ? null : a.Id;
+            AllInboxes = false;
+            UseAccount(a == null ? null : a.Id);
+        }
+
+        /// <summary>Makes this the account messages are read and sent with, inbox selected, without
+        /// changing what the list shows.</summary>
+        public static void UseAccount(string id)
+        {
+            CurrentAccountId = id;
             CurrentFolder = "INBOX";
             CurrentFolderLabel = "inbox";
             CurrentFolderRole = "inbox";

@@ -66,6 +66,7 @@ namespace Retrobird.Core
         public DateTime Date;
         string _flags = "";
         public bool ShowRecipient;   // Sent/Drafts lists show who it went to
+        public string AccountId, AccountLabel;   // set in all inboxes
 
         public string Flags
         {
@@ -98,6 +99,7 @@ namespace Retrobird.Core
         }
 #if WINDOWS_PHONE_APP
         public Visibility UnreadVisibility { get { return IsUnread ? Visibility.Visible : Visibility.Collapsed; } }
+        public Visibility AccountVisibility { get { return string.IsNullOrEmpty(AccountLabel) ? Visibility.Collapsed : Visibility.Visible; } }
         public FontWeight SenderWeight { get { return IsUnread ? FontWeights.SemiBold : FontWeights.Normal; } }
 #endif
 

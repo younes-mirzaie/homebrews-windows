@@ -52,6 +52,7 @@ namespace Retrobird
             if (_pick) AppState.PickedFolder = f;
             else
             {
+                AppState.AllInboxes = false;   // a folder of one account
                 AppState.CurrentFolder = f.Name;
                 AppState.CurrentFolderLabel = f.Label.Trim();
                 AppState.CurrentFolderRole = f.Role;

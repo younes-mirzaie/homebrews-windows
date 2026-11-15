@@ -1,6 +1,7 @@
-// The message list of the current account and folder. Shows the local cache at once, then
-// checks the server for new mail.
+// The message list of the current account and folder, or of all inboxes together. Shows the
+// local cache at once, then checks the server for new mail.
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -22,6 +23,14 @@ namespace Retrobird
         bool _busy, _started;
         string _listKey;   // account + folder the list shows
         ObservableCollection<MessageSummary> _items = new ObservableCollection<MessageSummary>();
+        AppBarButton _inboxes, _folders;
+
+        static string ListKey()
+        {
+            if (AppState.AllInboxes) return "*/INBOX";
+            var acct = AppState.CurrentAccount;
+            return acct == null ? "" : acct.Id + "/" + AppState.CurrentFolder;
+        }
 
         public MainPage()
         {
@@ -29,7 +38,8 @@ namespace Retrobird
             Items.ItemsSource = _items;
             Ui.Button(this, Symbol.Add, "new", (s, e) => Compose());
             Ui.Button(this, Symbol.Refresh, "check", async (s, e) => await SyncNow(true));
-            Ui.Button(this, Symbol.Folder, "folders", (s, e) => Go("/FoldersPage.xaml"));
+            _inboxes = Ui.Button(this, Symbol.Mail, "inboxes", async (s, e) => await PickInbox());
+            _folders = Ui.Button(this, Symbol.Folder, "folders", (s, e) => Go("/FoldersPage.xaml"));
             Ui.Menu(this, "settings", (s, e) => Go("/AccountsPage.xaml"));
         }
 
@@ -42,9 +52,7 @@ namespace Retrobird
                 await Start();
                 return;
             }
-            var acct = AppState.CurrentAccount;
-            var key = acct == null ? "" : acct.Id + "/" + AppState.CurrentFolder;
-            if (key != _listKey)
+            if (ListKey() != _listKey)
             {
                 _shown = PageSize;
                 await Start();
@@ -87,14 +95,27 @@ namespace Retrobird
                 ShowEmpty("Add a mail account to get started. Retrobird works with any IMAP mail service.", false);
                 return;
             }
-            if (AppState.CurrentAccountId != acct.Id) AppState.SelectAccount(acct);
+            if (AppState.CurrentAccountId != acct.Id) AppState.UseAccount(acct.Id);
             EmptyPanel.Visibility = Visibility.Collapsed;
             Items.Visibility = Visibility.Visible;
             BottomAppBar.Visibility = Visibility.Visible;
-            AccountText.Text = "RETROBIRD · " + acct.Title.ToUpperInvariant();
-            FolderText.Text = AppState.CurrentFolderLabel;
-            _listKey = acct.Id + "/" + AppState.CurrentFolder;
-            if (!acct.HasPassword) Status("This account needs you to sign in again (tap here).");
+            _inboxes.Visibility = AppState.Accounts.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+            _folders.Visibility = AppState.AllInboxes ? Visibility.Collapsed : Visibility.Visible;
+            Status(null);
+            if (AppState.AllInboxes)
+            {
+                AccountText.Text = "RETROBIRD";
+                FolderText.Text = "all inboxes";
+                var stale = AppState.Accounts.FirstOrDefault(a => !a.HasPassword);
+                if (stale != null) Status(stale.Title + " needs you to sign in again (tap here).");
+            }
+            else
+            {
+                AccountText.Text = "RETROBIRD · " + acct.Title.ToUpperInvariant();
+                FolderText.Text = AppState.CurrentFolderLabel;
+                if (!acct.HasPassword) Status("This account needs you to sign in again (tap here).");
+            }
+            _listKey = ListKey();
             await LoadFromCache();
             await SyncNow(false);
         }
@@ -119,6 +140,7 @@ namespace Retrobird
 
         async Task LoadFromCache()
         {
+            if (AppState.AllInboxes) { await LoadAllFromCache(); return; }
             var acct = AppState.CurrentAccount;
             if (acct == null) return;
             try
@@ -138,10 +160,90 @@ namespace Retrobird
             catch (Exception ex) { Status(Ui.Describe(ex)); }
         }
 
+        /// <summary>Every account's cached inbox, merged newest first.</summary>
+        async Task LoadAllFromCache()
+        {
+            var all = new List<MessageSummary>();
+            bool more = false;
+            foreach (var a in AppState.Accounts.ToList())
+            {
+                try
+                {
+                    var list = await AppState.Client.ListAsync(a.Id, "INBOX", 0, _shown);
+                    foreach (var m in list.Items)
+                    {
+                        m.AccountId = a.Id;
+                        m.AccountLabel = a.Title;
+                        all.Add(m);
+                    }
+                    if (list.Cached > list.Items.Count || list.Exists > list.Cached) more = true;
+                }
+                catch (Exception ex) { Status(a.Title + ": " + Ui.Describe(ex)); }
+            }
+            _items.Clear();
+            foreach (var m in all.OrderByDescending(m => m.Date).Take(_shown)) _items.Add(m);
+            MoreButton.Visibility = more || all.Count > _items.Count ? Visibility.Visible : Visibility.Collapsed;
+            if (_items.Count == 0 && StatusText.Visibility == Visibility.Collapsed) Status("No messages here.");
+        }
+
+        async Task SyncAll(bool userAsked)
+        {
+            _busy = true;
+            Busy("checking for mail");
+            var problems = new List<string>();
+            try
+            {
+                foreach (var a in AppState.Accounts.ToList())
+                {
+                    try { await AppState.Client.SyncAsync(a.Id, "INBOX"); }
+                    catch (Exception ex) { problems.Add(a.Title + ": " + Ui.Describe(ex)); }
+                }
+                try { AppState.Accounts = await AppState.Client.GetAccountsAsync(); } catch (Exception) { }
+                Status(problems.Count > 0 ? string.Join("\n", problems) : null);
+                await LoadAllFromCache();
+                UpdateTileAll();
+            }
+            finally
+            {
+                _busy = false;
+                Busy(null);
+            }
+        }
+
+        void UpdateTileAll()
+        {
+            var latest = _items.Where(m => m.IsUnread).Take(3)
+                               .Select(m => new NewMail { AccountId = m.AccountId, Uid = m.Uid, Date = Notify.ToUnix(m.Date), From = m.From, Subject = m.Subject })
+                               .ToList();
+            Notify.UpdateTile(AppState.Accounts.Sum(a => Math.Max(0, a.Unseen)), latest);
+            foreach (var g in _items.GroupBy(m => m.AccountId)) Notify.SetLastNotified(g.Key, g.Max(m => m.Uid));
+        }
+
+        /// <summary>Switches between all inboxes and each account's inbox.</summary>
+        async Task PickInbox()
+        {
+            var accounts = AppState.Accounts;
+            if (accounts.Count == 0) { Go("/AccountsPage.xaml"); return; }
+            var items = new List<Tuple<string, object>>();
+            Func<int, string> count = n => n > 0 ? " (" + n + ")" : "";
+            if (accounts.Count > 1) items.Add(Tuple.Create("all inboxes" + count(accounts.Sum(a => Math.Max(0, a.Unseen))), (object)"*"));
+            foreach (var a in accounts) items.Add(Tuple.Create(a.Title + count(a.Unseen), (object)a.Id));
+            items.Add(Tuple.Create("settings", (object)"settings"));
+            var picked = await Ui.PickAsync(AccountText, "show", items) as string;
+            if (picked == null) return;
+            if (picked == "settings") { Go("/AccountsPage.xaml"); return; }
+            if (picked == "*") AppState.AllInboxes = true;
+            else AppState.SelectAccount(accounts.First(a => a.Id == picked));
+            _shown = PageSize;
+            await Start();
+        }
+
         async Task SyncNow(bool userAsked)
         {
+            if (_busy) return;
+            if (AppState.AllInboxes) { await SyncAll(userAsked); return; }
             var acct = AppState.CurrentAccount;
-            if (acct == null || _busy) return;
+            if (acct == null) return;
             _busy = true;
             Busy("checking for mail");
             try
@@ -189,6 +291,24 @@ namespace Retrobird
             var acct = AppState.CurrentAccount;
             if (acct == null || _busy) return;
             _shown += PageSize;
+            if (AppState.AllInboxes)
+            {
+                _busy = true;
+                Busy("loading older messages");
+                try
+                {
+                    foreach (var a in AppState.Accounts.ToList())
+                    {
+                        var list = await AppState.Client.ListAsync(a.Id, "INBOX", 0, 0);
+                        if (list.Cached < _shown && list.Exists > list.Cached)
+                            await AppState.Client.MoreAsync(a.Id, "INBOX", _shown - list.Cached);
+                    }
+                }
+                catch (Exception ex) { Status(Ui.Describe(ex)); }
+                finally { _busy = false; Busy(null); }
+                await LoadAllFromCache();
+                return;
+            }
             _busy = true;
             Busy("loading older messages");
             try
@@ -211,6 +331,8 @@ namespace Retrobird
                 OpenDraft(m);
                 return;
             }
+            // in all inboxes, the message's own account is the one to read and reply with
+            if (AppState.AllInboxes && m.AccountId != null) AppState.UseAccount(m.AccountId);
             if (m.IsUnread) m.Flags += "S";   // the engine marks it read when it opens
             Go("/MessagePage.xaml?uid=" + m.Uid + "&f=" + Uri.EscapeDataString(m.Flags));
         }
@@ -236,16 +358,17 @@ namespace Retrobird
             Go("/ComposePage.xaml");
         }
 
-        void FolderText_Tapped(object sender, TappedRoutedEventArgs e)
+        async void FolderText_Tapped(object sender, TappedRoutedEventArgs e)
         {
-            if (AppState.CurrentAccount != null) Go("/FoldersPage.xaml");
+            if (AppState.AllInboxes) await PickInbox();
+            else if (AppState.CurrentAccount != null) Go("/FoldersPage.xaml");
         }
 
-        void AccountText_Tapped(object sender, TappedRoutedEventArgs e) { Go("/AccountsPage.xaml"); }
+        async void AccountText_Tapped(object sender, TappedRoutedEventArgs e) { await PickInbox(); }
 
         void StatusText_Tapped(object sender, TappedRoutedEventArgs e)
         {
-            var acct = AppState.CurrentAccount;
+            var acct = AppState.AllInboxes ? AppState.Accounts.FirstOrDefault(a => !a.HasPassword) : AppState.CurrentAccount;
             if (acct != null && !acct.HasPassword) Go("/AccountEditPage.xaml?id=" + acct.Id);
         }
 

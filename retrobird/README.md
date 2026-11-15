@@ -7,6 +7,8 @@ IMAP/SMTP mail service, runs entirely inside the app, modern TLS.
   iCloud, GMX, WEB.DE, Fastmail, Yandex, Zoho) or guessed, editable by hand.
 - TLS 1.2/1.3 (SSL/TLS or STARTTLS) through NSS, the same library as the Retrofox browser.
   A self-signed certificate can be trusted by its exact SHA-256 fingerprint.
+- All inboxes (every account's inbox merged, newest first); switch inboxes by tapping the
+  account name or the inboxes button; new mail can go out from any account.
 - Folder list with unread counts, offline cache of headers and opened messages, "load older".
 - Reader: sanitized HTML (no scripts, remote images blocked until you allow them), plain text
   view, inline images, attachments open in the phone's app for their type.

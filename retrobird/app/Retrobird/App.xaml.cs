@@ -73,10 +73,8 @@ namespace Retrobird
             // a new-mail notification opens that account's inbox
             if (!string.IsNullOrEmpty(e.Arguments) && e.Arguments.StartsWith("account="))
             {
-                AppState.CurrentAccountId = Uri.UnescapeDataString(e.Arguments.Substring(8));
-                AppState.CurrentFolder = "INBOX";
-                AppState.CurrentFolderLabel = "inbox";
-                AppState.CurrentFolderRole = "inbox";
+                // all inboxes stays as it is (it includes this account); otherwise show this one
+                AppState.UseAccount(Uri.UnescapeDataString(e.Arguments.Substring(8)));
             }
             RootFrame = Window.Current.Content as Frame;
             if (RootFrame == null)

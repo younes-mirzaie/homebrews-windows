@@ -12,7 +12,7 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- account and folder; tap the folder name to switch folders -->
+        <!-- account and folder: tap the account to switch inboxes, the folder name to switch folders -->
         <StackPanel Style="{StaticResource RbHeaderPanel}">
             <TextBlock x:Name="AccountText" Text="RETROBIRD" Style="{StaticResource RbAppTitle}"
                        Tapped="AccountText_Tapped" local:Motion.Tilt="True"/>
@@ -58,10 +58,14 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="{Binding SubjectText}" Style="{StaticResource RbSubtle}" TextWrapping="NoWrap"
                                            TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Grid.Column="1" Text="{Binding Glyphs}" FontFamily="Segoe UI Symbol" Margin="10,0,0,0"
+                                <TextBlock Grid.Column="1" Text="{Binding AccountLabel}" Visibility="{Binding AccountVisibility}"
+                                           Margin="10,0,0,0" Style="{StaticResource RbSmall}" TextWrapping="NoWrap"
+                                           Foreground="{ThemeResource PhoneAccentBrush}" MaxWidth="120" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Grid.Column="2" Text="{Binding Glyphs}" FontFamily="Segoe UI Symbol" Margin="10,0,0,0"
                                            Style="{StaticResource RbSubtle}" TextWrapping="NoWrap"/>
                             </Grid>
                         </StackPanel>

@@ -33,8 +33,7 @@ namespace Retrobird
             if (_draft != null) return;   // coming back from somewhere: keep what's typed
             _draft = AppState.PendingDraft ?? new Draft();
             AppState.PendingDraft = null;
-            var acct = AppState.CurrentAccount;
-            FromText.Text = acct == null ? "NEW MESSAGE" : "FROM " + acct.Email.ToUpperInvariant();
+            ShowFrom();
             ToBox.Text = _draft.To ?? "";
             CcBox.Text = _draft.Cc ?? "";
             BccBox.Text = _draft.Bcc ?? "";
@@ -75,6 +74,26 @@ namespace Retrobird
                 _sent = true;   // nothing left to keep
                 GoBack();
             }
+        }
+
+        // a new message can go out from any account (tap the FROM line); a reply stays with its own
+        bool CanPickFrom { get { return AppState.Accounts.Count > 1 && _draft != null && _draft.ReplyUid == 0 && string.IsNullOrEmpty(_draft.InReplyTo); } }
+
+        void ShowFrom()
+        {
+            var acct = AppState.CurrentAccount;
+            FromText.Text = acct == null ? "NEW MESSAGE" : "FROM " + acct.Email.ToUpperInvariant() + (CanPickFrom ? " \u25BE" : "");
+        }
+
+        async void FromText_Tapped(object sender, TappedRoutedEventArgs e)
+        {
+            if (!CanPickFrom) return;
+            var items = new System.Collections.Generic.List<Tuple<string, object>>();
+            foreach (var a in AppState.Accounts) items.Add(Tuple.Create(a.Email, (object)a.Id));
+            var id = await Ui.PickAsync(FromText, "send from", items) as string;
+            if (id == null || id == AppState.CurrentAccountId) return;
+            AppState.UseAccount(id);
+            ShowFrom();
         }
 
         async Task Send()

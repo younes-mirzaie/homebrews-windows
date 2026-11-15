@@ -23,6 +23,25 @@ namespace Retrobird
             return bar;
         }
 
+        sealed class PickItem
+        {
+            public string Label;
+            public object Value;
+            public override string ToString() { return Label; }
+        }
+
+        /// <summary>The phone's full-screen list picker; returns the chosen value, or null.</summary>
+        public static async Task<object> PickAsync(FrameworkElement at, string title, System.Collections.Generic.IEnumerable<Tuple<string, object>> items)
+        {
+            var list = new System.Collections.Generic.List<PickItem>();
+            foreach (var i in items) list.Add(new PickItem { Label = i.Item1, Value = i.Item2 });
+            var f = new ListPickerFlyout { ItemsSource = list, SelectionMode = ListPickerFlyoutSelectionMode.Single };
+            Windows.UI.Xaml.Controls.Primitives.PickerFlyoutBase.SetTitle(f, title.ToUpperInvariant());
+            var picked = await f.ShowAtAsync(at);
+            var p = picked != null && picked.Count > 0 ? picked[0] as PickItem : null;
+            return p == null ? null : p.Value;
+        }
+
         /// <summary>An icon button (at most four per page; label lowercase).</summary>
         public static AppBarButton Button(Page page, Symbol icon, string label, RoutedEventHandler click)
         {
