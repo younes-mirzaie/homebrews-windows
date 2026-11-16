@@ -6,7 +6,7 @@ CMD Injector. Everything runs on the phone itself. The Gecko browser port lives 
 
 | folder | what |
 |---|---|
-| [file-explorer](file-explorer) | **File Explorer**: root file manager (whole filesystem as SYSTEM, copy/move/delete, attributes, text/hex/image viewer, web access over Wi-Fi) |
+| [file-explorer](file-explorer) | **Root Explorer**: root file manager (whole filesystem as SYSTEM, copy/move/delete, attributes, text/hex/image viewer, web access over Wi-Fi) |
 
 ## Building
 

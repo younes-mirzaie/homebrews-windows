@@ -397,7 +397,7 @@ static void web_handle(Req *r)
     if (!web_authorized(r)) {
         LONG f = InterlockedIncrement(&gWebFailures);
         if (f > 5) Sleep(f > 50 ? 5000 : 1000);   /* slow down guessing */
-        web_reply(r->s, 401, "text/plain", "password needed", 15, "WWW-Authenticate: Basic realm=\"File Explorer\", charset=\"UTF-8\"\r\n");
+        web_reply(r->s, 401, "text/plain", "password needed", 15, "WWW-Authenticate: Basic realm=\"Root Explorer\", charset=\"UTF-8\"\r\n");
         return;
     }
     gWebFailures = 0;

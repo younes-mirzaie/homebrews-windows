@@ -21,7 +21,7 @@
         <!-- app title in caps, then the folder's name as a big light page title and its full path
              (tap either to type a path) -->
         <StackPanel Grid.Row="0" Margin="12,16,0,28">
-            <TextBlock Text="FILE EXPLORER" Style="{StaticResource PhoneTextNormalStyle}" FontFamily="{StaticResource PhoneFontFamilySemiBold}"/>
+            <TextBlock Text="ROOT EXPLORER" Style="{StaticResource PhoneTextNormalStyle}" FontFamily="{StaticResource PhoneFontFamilySemiBold}"/>
             <TextBlock x:Name="PageTitle" Text="places" Tap="PathText_Tap" TextTrimming="WordEllipsis"
                        Style="{StaticResource PhoneTextTitle1Style}" Margin="9,-10,12,0"/>
             <TextBlock x:Name="PathText" Text="" Tap="PathText_Tap" TextWrapping="Wrap" Visibility="Collapsed"

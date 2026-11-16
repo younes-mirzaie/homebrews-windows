@@ -17,7 +17,7 @@ namespace RetroFiles
                 // keep the app alive on a stray async failure; show what happened
                 e.Handled = true;
                 var msg = e.ExceptionObject.Message;
-                Deployment.Current.Dispatcher.BeginInvoke(() => MessageBox.Show(msg, "File Explorer", MessageBoxButton.OK));
+                Deployment.Current.Dispatcher.BeginInvoke(() => MessageBox.Show(msg, "Root Explorer", MessageBoxButton.OK));
             };
             InitializeComponent();
             AppState.Client = new RfxClient(HelperLauncher.Token);
@@ -29,7 +29,7 @@ namespace RetroFiles
             {
                 e.Handled = true;
                 var msg = e.Exception != null ? e.Exception.Message : "something went wrong";
-                Deployment.Current.Dispatcher.BeginInvoke(() => MessageBox.Show("Couldn't open " + e.Uri + ":\n" + msg, "File Explorer", MessageBoxButton.OK));
+                Deployment.Current.Dispatcher.BeginInvoke(() => MessageBox.Show("Couldn't open " + e.Uri + ":\n" + msg, "Root Explorer", MessageBoxButton.OK));
             };
         }
 

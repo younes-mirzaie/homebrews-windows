@@ -1,6 +1,6 @@
-# File Explorer (RetroFiles)
+# Root Explorer (RetroFiles)
 
-Shows up on the phone as **File Explorer**; the project, helper and folders keep the RetroFiles name.
+Shows up on the phone as **Root Explorer**; the project, helper and folders keep the RetroFiles name.
 
 A root file manager for Windows Phone 8.1 (made for an interop-unlocked Lumia 820 with CMD Injector).
 

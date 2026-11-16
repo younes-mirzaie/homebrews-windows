@@ -509,11 +509,11 @@ namespace RetroFiles
 
         void About_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("File Explorer browses the whole phone through rfxfsd, a small helper started as SYSTEM via CMD Injector. " +
+            MessageBox.Show("Root Explorer browses the whole phone through rfxfsd, a small helper started as SYSTEM via CMD Injector. " +
                             "It listens on 127.0.0.1:" + RfxClient.Port + " only and needs this app's key.\n\n" +
                             "Helper: " + (_helperReady ? "running, version " + Client.ServerVersion : "not running") +
                             "\nHelper folder: " + HelperLauncher.HelperDir +
-                            "\n\nTips: tap the folder name to type a path; press and hold an item to select.", "About File Explorer", MessageBoxButton.OK);
+                            "\n\nTips: tap the folder name to type a path; press and hold an item to select.", "About Root Explorer", MessageBoxButton.OK);
         }
 
         // ---------- file operations ----------

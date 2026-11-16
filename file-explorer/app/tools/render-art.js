@@ -1,4 +1,4 @@
-// Renders File Explorer's tile, icon and splash PNGs from Younes's art in ../art (needs Playwright's
+// Renders Root Explorer's tile, icon and splash PNGs from Younes's art in ../art (needs Playwright's
 // Chromium):  node render-art.js
 //   file-explorer-tile.svg    dark folder with a padlock on yellow: store logo and splash screen
 //   file-explorer-glyph.svg   the same glyph in white on transparent: tiles and app icon take the
