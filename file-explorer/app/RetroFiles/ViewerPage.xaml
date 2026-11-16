@@ -1,0 +1,35 @@
+<phone:PhoneApplicationPage
+    x:Class="RetroFiles.ViewerPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    FontFamily="{StaticResource PhoneFontFamilyNormal}"
+    FontSize="{StaticResource PhoneFontSizeNormal}"
+    Foreground="{StaticResource PhoneForegroundBrush}"
+    SupportedOrientations="PortraitOrLandscape" Orientation="Portrait"
+    shell:SystemTray.IsVisible="True">
+    <Grid x:Name="LayoutRoot" Background="{StaticResource PhoneBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <StackPanel Margin="12,16,0,12">
+            <TextBlock Text="FILE EXPLORER" Style="{StaticResource PhoneTextNormalStyle}" FontFamily="{StaticResource PhoneFontFamilySemiBold}"/>
+            <TextBlock x:Name="TitleText" Style="{StaticResource PhoneTextTitle1Style}" Margin="9,-10,12,0" TextTrimming="WordEllipsis"/>
+            <TextBlock x:Name="InfoText" Style="{StaticResource PhoneTextSmallStyle}" TextWrapping="Wrap"/>
+            <ProgressBar x:Name="Busy" IsIndeterminate="True" Visibility="Collapsed" Margin="12,0"/>
+        </StackPanel>
+        <!-- text and hex are line lists: a single huge TextBlock would be cut off at 2048 px -->
+        <ListBox x:Name="Lines" Grid.Row="1" Margin="24,0,0,0" SelectionChanged="Lines_SelectionChanged">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding}" FontFamily="Courier New" FontSize="18" Margin="0,1"/>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+        <ScrollViewer x:Name="ImageView" Grid.Row="1" Visibility="Collapsed" HorizontalScrollBarVisibility="Auto">
+            <Image x:Name="Picture" Stretch="Uniform"/>
+        </ScrollViewer>
+    </Grid>
+</phone:PhoneApplicationPage>
