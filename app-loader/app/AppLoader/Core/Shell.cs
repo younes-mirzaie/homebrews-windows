@@ -70,14 +70,22 @@ namespace AppLoader.Core
                    " >nul && > " + Quote(stamp) + " echo staged\r\n";
         }
 
+        // Detached jobs run from a copy of their batch here, outside the app's own folders: an
+        // update of Unesbrews itself may replace those folders while the job is still running
+        // (seen on a low-end Lumia: "The batch file cannot be found" partway through a self-update).
+        // Downloaded packages for a job go here too.
+        public const string JobDir = HelperDir + "\\jobs";
+
         static string Batch(string name, string commands)
         {
+            // the log and done marker go to the app's folder by full path, wherever the batch runs
+            string at = LocalPath + "\\";
             var bat = new StringBuilder();
             bat.Append("@echo off\r\n");
-            bat.Append("call :main > \"%~dp0" + name + ".log\" 2>&1\r\n");
+            bat.Append("call :main > \"" + at + name + ".log\" 2>&1\r\n");
             // redirection first: "echo exit=1>> f" would read "1>>" as a redirection of stream 1
-            bat.Append(">> \"%~dp0" + name + ".log\" echo exit=%errorlevel%\r\n");
-            bat.Append("> \"%~dp0" + name + ".done\" echo done\r\n");
+            bat.Append(">> \"" + at + name + ".log\" echo exit=%errorlevel%\r\n");
+            bat.Append("> \"" + at + name + ".done\" echo done\r\n");
             bat.Append("echo " + Marker + "\r\n");
             bat.Append("goto :eof\r\n:main\r\n");
             bat.Append(StageLines());
@@ -154,8 +162,12 @@ namespace AppLoader.Core
                 // A small batch puts the helpers in place and starts aldetach from there; only its
                 // path is typed
                 string launch = "launch-" + name;
+                string copy = JobDir + "\\" + name + ".cmd";
                 WriteFile(launch + ".cmd", "@echo off\r\n" + StageLines() +
-                          Quote(Helper("aldetach.exe")) + " " + Quote(LocalPath + "\\" + name + ".cmd") + "\r\n" +
+                          "if not exist " + Quote(JobDir) + " mkdir " + Quote(JobDir) + "\r\n" +
+                          "del /f /q " + Quote(JobDir + "\\run-*.cmd") + " >nul 2>&1\r\n" +
+                          "copy /y " + Quote(LocalPath + "\\" + name + ".cmd") + " " + Quote(copy) + " >nul\r\n" +
+                          Quote(Helper("aldetach.exe")) + " " + Quote(copy) + "\r\n" +
                           "echo aldetach: finished\r\n");
                 string line = Quote(LocalPath + "\\" + launch + ".cmd");
                 var typed = await TypeAsync(line, "aldetach: ", 60);

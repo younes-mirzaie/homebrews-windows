@@ -17,7 +17,7 @@ namespace AppLoader.Core
         public string ProductId;     // upper case, no braces
         public string Title, Version;
         public string Mode;          // "uda" (update) or "di" (deploy)
-        public string File;          // the package in the app's folder (download target or staged copy)
+        public string File;          // the package: staged copy in the app's folder, or download in the job folder
         public string Url, Sha256;   // set for catalog items: downloaded first
         public long Size;
         public string ExistingTitle;
@@ -47,13 +47,15 @@ namespace AppLoader.Core
         }
 
         /// <summary>The batch lines that download and install every item in turn.</summary>
-        public string Commands(string localPath, Func<string, string> quote, string fetchExe)
+        public string Commands(string localPath, string jobDir, Func<string, string> quote, string fetchExe)
         {
             var b = new StringBuilder();
+            b.Append("if not exist " + quote(jobDir) + " mkdir " + quote(jobDir) + "\n");
             for (int n = 0; n < Items.Count; n++)
             {
                 var it = Items[n];
-                string pkg = quote(localPath + "\\" + it.File);
+                // downloads go to the job folder, outside the app, so a self-update can't take them away
+                string pkg = quote((it.Downloads ? jobDir : localPath) + "\\" + it.File);
                 b.Append("echo UB " + n + " begin\n");
                 if (it.Downloads)
                 {
