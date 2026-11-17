@@ -484,7 +484,11 @@ namespace AppLoader.Core
 
         static string Sha256Hex(Stream s)
         {
+#if WINDOWS_UWP
+            using (var sha = SHA256.Create())
+#else
             using (var sha = new SHA256Managed())
+#endif
             {
                 var hash = sha.ComputeHash(s);
                 var sb = new StringBuilder();

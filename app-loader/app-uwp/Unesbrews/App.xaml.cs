@@ -1,5 +1,6 @@
 using System;
 using AppLoader.Core;
+using AppInfo = AppLoader.Core.AppInfo;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.UI.Core;

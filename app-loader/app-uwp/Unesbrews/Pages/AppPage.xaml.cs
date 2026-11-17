@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using AppLoader.Catalog;
 using AppLoader.Core;
+using AppInfo = AppLoader.Core.AppInfo;
 using Windows.ApplicationModel;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;

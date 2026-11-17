@@ -130,7 +130,11 @@ namespace AppLoader.Core
         {
             _closed = true;
             try { _socket.Shutdown(SocketShutdown.Both); } catch { }
+#if WINDOWS_UWP
+            try { _socket.Dispose(); } catch { }   // .NET for UWP has no Close
+#else
             try { _socket.Close(); } catch { }
+#endif
         }
     }
 
