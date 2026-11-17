@@ -52,8 +52,12 @@ namespace AppLoader.Core
 
     public static class Phone
     {
-        // App Loader's own product ID: updating it ends this app while TH runs
+        // This app's own product ID: updating it ends this app while the installer runs
+#if WINDOWS_UWP
+        public const string OwnProductId = Installer10.ProductId;
+#else
         public const string OwnProductId = "0145BB18-825E-4266-9094-5CA73FEF56A9";
+#endif
 
         // Where downloads and copied files usually land
         static readonly string[] Roots =
@@ -89,6 +93,10 @@ namespace AppLoader.Core
         /// <summary>The installed apps, from the list TH.exe prints with its help.</summary>
         public static async Task<List<InstalledApp>> InstalledAppsAsync()
         {
+#if WINDOWS_UWP
+            // no TH.exe on Windows 10 Mobile: read the installed manifests instead
+            return await Installer10.InstalledAppsAsync();
+#else
             var r = await Shell.RunAsync("TH.exe -?", 90);
             if (!r.Reached) throw new IOException(r.Problem ?? Friendly.Slow);
             var apps = new Dictionary<string, InstalledApp>();
@@ -109,6 +117,7 @@ namespace AppLoader.Core
             foreach (var n in order)
                 if (apps[n].ProductId != null) list.Add(apps[n]);
             return list;
+#endif
         }
 
         public static Task<InstallOutcome> InstallAsync(FoundPackage found, Action<string> status)

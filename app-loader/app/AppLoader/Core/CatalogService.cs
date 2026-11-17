@@ -147,6 +147,7 @@ namespace AppLoader.Core
             if (!r.Reached || r.Output.Contains("ERROR ")) AppLog.Add("some app icons didn't download", r.Problem ?? r.Output);
         }
 
+#if !WINDOWS_UWP
         /// <summary>The cached icon as an image, or null.</summary>
         public static System.Windows.Media.Imaging.BitmapImage LoadIcon(CatalogApp app)
         {
@@ -167,6 +168,38 @@ namespace AppLoader.Core
             }
             catch (Exception) { return null; }
         }
+#endif
+
+        /// <summary>Whether a release can run on this phone's OS (its min_os, e.g. 10.0.15063.0 for
+        /// a Windows 10 app). A release without min_os runs everywhere.</summary>
+        public static bool RunsHere(CatalogRelease r)
+        {
+            if (string.IsNullOrEmpty(r.MinOs)) return true;
+            Version need, have = OsVersion;
+            try { need = new Version(r.MinOs); } catch (Exception) { return true; }
+            return have == null || have >= need;
+        }
+
+        static Version _os;
+        /// <summary>The phone's OS version, or null when it can't be read.</summary>
+        public static Version OsVersion
+        {
+            get
+            {
+                if (_os != null) return _os;
+                try
+                {
+#if WINDOWS_UWP
+                    ulong v = ulong.Parse(Windows.System.Profile.AnalyticsInfo.VersionInfo.DeviceFamilyVersion);
+                    _os = new Version((int)(v >> 48), (int)((v >> 32) & 0xFFFF), (int)((v >> 16) & 0xFFFF), (int)(v & 0xFFFF));
+#else
+                    _os = Environment.OSVersion.Version;
+#endif
+                }
+                catch (Exception) { }
+                return _os;
+            }
+        }
 
         /// <summary>Joins the catalog with the installed apps and their versions.</summary>
         public static async Task<List<CatalogEntry>> EntriesAsync(CatalogIndex idx, List<InstalledApp> installed)
@@ -177,6 +210,12 @@ namespace AppLoader.Core
             var wanted = new List<string>();
             foreach (var app in idx.Apps)
             {
+                // apps made for a newer OS (Windows 10 versions on an 8.1 phone) aren't shown
+                if (!RunsHere(app.Latest)) continue;
+#if WINDOWS_UWP
+                // the Windows Phone 8.1 Unesbrews: this app replaces it here
+                if (app.ProductId == Installer10.ProductId81) continue;
+#endif
                 InstalledApp inst;
                 byId.TryGetValue(app.ProductId, out inst);
                 list.Add(new CatalogEntry { App = app, Installed = inst });

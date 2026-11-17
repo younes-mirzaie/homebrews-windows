@@ -47,9 +47,17 @@ namespace AppLoader.Core
     {
         public const string Unchanged = "Nothing on the phone was changed.";
 
+#if WINDOWS_UWP
+        // Windows 10 apps may not connect to the phone itself until they are allowed to ("loopback")
+        public const string NoShell =
+            AppInfo.Name + " can't reach the phone's system shell. If this is the first time: open CMD Injector, " +
+            "go to the app manager, pick " + AppInfo.Name + " and tap Enable Loopback, then try again. " +
+            "Otherwise try again in a moment; restarting the phone brings the shell back.";
+#else
         public const string NoShell =
             "The phone's system shell didn't answer. Try again in a moment. If it never answers, " + AppInfo.Name +
             " needs a phone unlocked with CMD Injector, and restarting the phone brings the shell back.";
+#endif
 
         public const string Slow = "The phone took too long to answer. Try again in a moment.";
 

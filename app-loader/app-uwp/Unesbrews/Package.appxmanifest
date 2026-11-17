@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Unesbrews for Windows 10 Mobile. A separate app from the Windows Phone 8.1 version (its own
+     product ID and package name), so both can be on a phone without one replacing the other.
+     The Publisher must match the certificate the package is signed with (build-uwp.ps1); the
+     package family name, Unesbrews_1mwg862xgfggy, depends on it and is what Enable Loopback uses. -->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap mp rescap">
+
+  <Identity Name="Unesbrews" Publisher="CN=Unesbrews" Version="0.2.0.0" />
+
+  <mp:PhoneIdentity PhoneProductId="8524ebd4-8e06-4f85-b48a-9165c43837ef" PhonePublisherId="e1e99522-17c9-4cc7-a879-b7ccf6aecc53" />
+
+  <Properties>
+    <DisplayName>Unesbrews</DisplayName>
+    <PublisherDisplayName>Unesbrews</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <!-- Windows 10 Mobile's last builds (15063 to 15254) and anything newer -->
+    <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.15063.0" MaxVersionTested="10.0.22621.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-US" />
+  </Resources>
+
+  <Applications>
+    <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="Unesbrews.App">
+      <uap:VisualElements
+        DisplayName="Unesbrews"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png"
+        Description="Homebrew apps by Younes"
+        BackgroundColor="#77FA81">
+        <uap:DefaultTile Square71x71Logo="Assets\Square71x71Logo.png" />
+        <uap:SplashScreen Image="Assets\SplashScreen.png" BackgroundColor="#77FA81" />
+        <uap:InitialRotationPreference>
+          <uap:Rotation Preference="portrait" />
+          <uap:Rotation Preference="landscape" />
+          <uap:Rotation Preference="landscapeFlipped" />
+        </uap:InitialRotationPreference>
+      </uap:VisualElements>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <Capability Name="internetClient" />
+    <!-- the phone's system shell on 127.0.0.1 (needs the loopback exemption as well) -->
+    <Capability Name="privateNetworkClientServer" />
+    <!-- the installed apps list, with names and icons, and opening an app -->
+    <rescap:Capability Name="packageManagement" />
+    <rescap:Capability Name="packageQuery" />
+  </Capabilities>
+</Package>

@@ -1,0 +1,6 @@
+Unesbrews/bin/
+Unesbrews/obj/
+Unesbrews/AppPackages/
+Unesbrews/BundleArtifacts/
+*.user
+.vs/

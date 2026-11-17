@@ -64,6 +64,15 @@ To publish: `catalog/tools/catalog.py` (`keygen` once, then `add` and `build`), 
 `wp-homebrew` README. Until `CatalogConfig.PublicKey` is filled in, the catalog panes say the
 catalog isn't set up.
 
+## Windows 10 Mobile
+
+[app-uwp/](app-uwp) is the Windows 10 version: a native UWP app on the same core (linked, not
+copied), with a UI built to the Windows 10 guidelines. It installs with MinDeployAppX.exe instead
+of TH.exe. See its README for how it differs and how to install it by hand.
+
+From 0.1.16.0 the 8.1 app hides catalog apps whose `min_os` is newer than the phone (the Windows 10
+version of Unesbrews, for example).
+
 ## Build
 
 `.\build.ps1` (VS 2015 / MSBuild 14, Windows Phone 8.1 SDK). The first install needs the PC
