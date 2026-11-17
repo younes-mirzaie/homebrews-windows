@@ -6,10 +6,13 @@
 # can be passed with -Sdk).
 # The native helpers (aldetach, rfxfetch) are the 8.1 app's; when they aren't built yet, the 8.1
 # build (build.ps1) runs first to make them.
-# The package is not signed. Windows 10 Mobile installs it with signature checks skipped:
-# MinDeployAppX.exe /Add /PackagePath:<appx> /DeploymentOption:32768 (CMD Injector's app manager
-# does the same). See app-uwp\README.md.
-param([string]$Configuration = "Release", [string]$Sdk = "10.0.22621.0")
+# Signing: the phone refuses a package with no signature at all (0x800B0100), even with signature
+# checks skipped. So the package is signed with a self-signed "CN=Unesbrews" certificate (it must
+# match the manifest's Publisher). The certificate and its private key stay OUT of the repo, by
+# default in C:\rfx\keys\unesbrews-signing.pfx (made on first run, no password, current user only);
+# only the public .cer goes into release\, for phones that want to trust it. See app-uwp\README.md.
+param([string]$Configuration = "Release", [string]$Sdk = "10.0.17763.0",
+      [string]$CertPfx = "C:\rfx\keys\unesbrews-signing.pfx")
 $ErrorActionPreference = "Stop"
 $here = $PSScriptRoot
 $proj = "$here\app-uwp\Unesbrews\Unesbrews.csproj"
@@ -38,6 +41,24 @@ New-Item -ItemType Directory -Force "$out\Dependencies" | Out-Null
 Copy-Item -Force $appx.FullName $out
 $deps = Join-Path $appx.DirectoryName "Dependencies\ARM"
 if (Test-Path $deps) { Copy-Item -Force "$deps\*.appx" "$out\Dependencies" }
+# ---- sign ----
+if (-not (Test-Path $CertPfx)) {
+    Write-Host "Making the signing certificate (CN=Unesbrews) at $CertPfx ..." -ForegroundColor Cyan
+    New-Item -ItemType Directory -Force (Split-Path $CertPfx) | Out-Null
+    $cert = New-SelfSignedCertificate -Type Custom -Subject "CN=Unesbrews" -KeyUsage DigitalSignature `
+        -FriendlyName "Unesbrews package signing" -CertStoreLocation "Cert:\CurrentUser\My" `
+        -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}") -NotAfter (Get-Date).AddYears(20)
+    Export-PfxCertificate -Cert $cert -FilePath $CertPfx -Password (New-Object System.Security.SecureString) | Out-Null
+}
+$pfx = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($CertPfx, "")
+if ($pfx.Subject -ne "CN=Unesbrews") { throw "$CertPfx is for '$($pfx.Subject)', the manifest needs CN=Unesbrews." }
+$signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+            Where-Object { $_.FullName -match "\\x64\\" } | Sort-Object FullName -Descending | Select-Object -First 1
+if (-not $signtool) { throw "signtool.exe not found (Windows 10 SDK)." }
+& $signtool.FullName sign /fd SHA256 /f $CertPfx "$out\$($appx.Name)"
+if ($LASTEXITCODE -ne 0) { throw "Signing failed." }
+[System.IO.File]::WriteAllBytes("$out\Unesbrews.cer", $pfx.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert))
+
 $hash = (Get-FileHash -Algorithm SHA256 "$out\$($appx.Name)").Hash.ToLowerInvariant()
 Write-Host "Package: $out\$($appx.Name)" -ForegroundColor Green
 Write-Host "SHA-256: $hash  size: $((Get-Item "$out\$($appx.Name)").Length)" -ForegroundColor Green

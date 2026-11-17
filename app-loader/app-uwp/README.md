@@ -42,7 +42,8 @@ You need a Windows 10 Mobile phone unlocked with CMD Injector.
 2. If the app doesn't install, or doesn't start, install the files from `Dependencies` first
    (most phones already have them from Store apps).
 3. In CMD Injector, open the app manager, install the .appx with the "skip signature check"
-   deployment option (the package is not signed).
+   deployment option. The package is signed with a self-signed certificate (`release\Unesbrews.cer`),
+   which phones don't trust by default, so the check has to be skipped (or the certificate trusted).
 4. Still in CMD Injector's app manager: pick Unesbrews and tap **Enable Loopback**. Windows 10 apps
    may not connect to the phone itself until they are allowed to, and Unesbrews works through the
    phone's system shell. This is needed once; after that, Unesbrews keeps the exemption when it
@@ -58,4 +59,13 @@ CheckNetIsolation.exe loopbackexempt -a -n=Unesbrews_1mwg862xgfggy
 ## Build
 
 `..\build-uwp.ps1` (Visual Studio 2017 or later, or its Build Tools, with the Universal Windows
-Platform build tools). It writes the package and its framework packages to `release\`.
+Platform build tools) and the Windows 10 SDK 10.0.17763.0. It writes the package, its public
+certificate and any framework packages to `release\`.
+
+Why SDK 17763: the app's minimum version is 15063 (Windows 10 Mobile), which ties it to .NET
+Native 1.7, and that compiler crashes with newer SDKs.
+
+Signing: Windows 10 Mobile refuses a package with no signature at all (0x800B0100), even with
+signature checks skipped. The script signs with a self-signed `CN=Unesbrews` certificate whose
+private key stays outside the repository (`C:\rfx\keys\unesbrews-signing.pfx` by default, made on
+the first run). Never commit the .pfx.
