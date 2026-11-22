@@ -5,7 +5,7 @@
     xmlns:local="using:Unesbrews.Pages"
     NavigationCacheMode="Required">
 
-    <!-- The phone's apps with their icons, version and where they live. Tap one to open it. -->
+    <!-- The apps installed with Unesbrews, updates first, with Update all. Tap one for its details. -->
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -41,7 +41,9 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <Grid Width="40" Height="40" Background="{ThemeResource SystemControlBackgroundAccentBrush}">
-                            <Image Source="{x:Bind Logo}" Stretch="Uniform" />
+                            <TextBlock Text="{x:Bind Letter}" Foreground="White" FontSize="20" FontWeight="SemiLight"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <Image Source="{x:Bind Icon}" Stretch="UniformToFill" />
                         </Grid>
                         <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
                             <TextBlock Text="{x:Bind Name}" Style="{StaticResource BodyTextBlockStyle}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
@@ -53,6 +55,9 @@
         </ListView>
 
         <CommandBar x:Name="Bar" Grid.Row="3">
+            <AppBarButton x:Name="UpdateAllButton" Label="Update all" Click="UpdateAll_Click" Visibility="Collapsed">
+                <AppBarButton.Icon><FontIcon FontFamily="{StaticResource IconFont}" Glyph="&#xE896;" /></AppBarButton.Icon>
+            </AppBarButton>
             <AppBarButton x:Name="RefreshButton" Label="Refresh" Click="Refresh_Click">
                 <AppBarButton.Icon><FontIcon FontFamily="{StaticResource IconFont}" Glyph="&#xE72C;" /></AppBarButton.Icon>
             </AppBarButton>

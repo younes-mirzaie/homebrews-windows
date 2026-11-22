@@ -408,7 +408,9 @@ namespace AppLoader.Core
             var installed = await CatalogService.InstalledVersionsAsync(ids);
 
             var messages = new List<string>();
+            var briefs = new List<string>();
             bool all = true;
+            int done = 0;
             for (int n = 0; n < job.Items.Count; n++)
             {
                 var it = job.Items[n];
@@ -416,12 +418,33 @@ namespace AppLoader.Core
                 string v;
                 installed.TryGetValue(it.ProductId, out v);
                 bool ok;
-                messages.Add(Explain(it, st, v, out ok));
+                string brief;
+                messages.Add(Explain(it, st, v, out ok, out brief));
+                briefs.Add(brief);
                 all &= ok;
+                if (ok)
+                {
+                    done++;
+                    // installed through Unesbrews: it's in the library from now on
+                    Library.Add(it.ProductId, it.Title, v ?? it.Version);
+                }
             }
             outcome.Succeeded = all;
             outcome.Message = string.Join("\n\n", messages.ToArray());
-            Notify.Result(job.Run, all ? "done" : "not everything installed", outcome.Message);
+            if (job.Items.Count == 1)
+            {
+                // "Couldn't update Retrobird: the app is running." -> title and reason
+                string b = briefs[0];
+                int colon = b.IndexOf(": ", StringComparison.Ordinal);
+                if (colon > 0) Notify.Result(job.Run, b.Substring(0, colon), Capital(b.Substring(colon + 2)));
+                else Notify.Result(job.Run, b.TrimEnd('.'), all ? "Ready to use." : "");
+            }
+            else
+            {
+                string title = all ? (job.Items.TrueForAll(i => i.IsUpdate) ? job.Items.Count + " apps updated" : job.Items.Count + " apps installed")
+                                   : done + " of " + job.Items.Count + " apps installed";
+                Notify.Result(job.Run, title, string.Join(" ", briefs.ToArray()));
+            }
             InstallJob.Clear();
             Shell.Archive(job.Run, outcome.Message);
             Shell.Delete(job.Run);
@@ -439,6 +462,17 @@ namespace AppLoader.Core
         }
 
         /// <summary>One item's result in plain words; what's installed now decides, not only TH.</summary>
+        static string Explain(InstallItem it, ItemState st, string installed, out bool ok, out string brief)
+        {
+            string text = Explain(it, st, installed, out ok);
+            if (ok) brief = it.What + (it.IsUpdate ? " updated." : " installed.");
+            else if (st.Phase == "failed-download") brief = "Couldn't download " + it.Title + ": " + Friendly.DownloadBrief(st.Output) + ".";
+            else if (st.Phase != "finished") brief = "Couldn't " + (it.IsUpdate ? "update " : "install ") + it.Title + ": the installer stopped early.";
+            else if (st.ThExit == 0) brief = "Couldn't " + (it.IsUpdate ? "update " : "install ") + it.Title + ": close it and try again.";
+            else brief = Friendly.InstallFailedBrief(st.ThExit, st.Output, it);
+            return text;
+        }
+
         static string Explain(InstallItem it, ItemState st, string installed, out bool ok)
         {
             ok = false;
@@ -474,6 +508,11 @@ namespace AppLoader.Core
                 return all.TryGetValue(productId, out v) ? v : null;
             }
             catch (Exception) { return null; }
+        }
+
+        static string Capital(string s)
+        {
+            return string.IsNullOrEmpty(s) ? s : char.ToUpperInvariant(s[0]) + s.Substring(1);
         }
 
         static bool SameVersion(string a, string b)

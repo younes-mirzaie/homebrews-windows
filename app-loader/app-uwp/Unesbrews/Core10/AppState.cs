@@ -41,10 +41,15 @@ namespace Unesbrews
 
         static void Raise() { Changed?.Invoke(); }
 
-        public static int UpdateCount
+        /// <summary>Updates ready for the apps in the library (the installed section).</summary>
+        public static List<CatalogEntry> PendingUpdates
         {
-            get { return Entries == null ? 0 : Entries.Count(e => e.UpdateAvailable); }
+            get { return Entries == null ? new List<CatalogEntry>() : Updates.Pending(Entries); }
         }
+
+        /// <summary>The app is on screen (set by App), so the installed section shows updates
+        /// instead of a notification.</summary>
+        public static bool InFront;
 
         /// <summary>Started at launch and when the app comes back: picks up a job that was running,
         /// or does the first refresh.</summary>
@@ -93,6 +98,21 @@ namespace Unesbrews
                 SetStatus(null);
                 Raise();
             }
+            await CheckUpdatesAsync();
+        }
+
+        /// <summary>Automatic updates (when they're on) of the apps in the library.</summary>
+        public static async Task CheckUpdatesAsync()
+        {
+            if (Entries == null || Busy || Waiting) return;
+            var now = Updates.Check(Entries, InFront);
+            if (now.Count == 0) return;
+            InstallOutcome outcome;
+            try { outcome = await Phone.StartCatalogAsync(now, now.Select(e => e.App.Latest).ToList(), s => SetStatus(Capital(s))); }
+            catch (Exception e) { outcome = new InstallOutcome { Message = Friendly.Of(e) }; }
+            finally { SetStatus(null); }
+            if (!outcome.Started) { AppLog.Add("automatic update didn't start", outcome.Message); return; }
+            await FinishAsync(outcome.Job, true);
         }
 
         static async Task RefreshCatalogAsync()
@@ -120,6 +140,7 @@ namespace Unesbrews
             if (problem != null) CatalogNote = "You're seeing the catalog from your last visit. " + problem;
             SetStatus("Checking installed versions...");
             Entries = await CatalogService.EntriesAsync(idx, Installed ?? new List<InstalledApp>());
+            if (Installed != null) Library.StartWith(Entries);
             Raise();
             SetStatus("Getting app icons...");
             await CatalogService.FetchIconsAsync(idx);
@@ -183,11 +204,12 @@ namespace Unesbrews
         {
             if (outcome.Job.Includes(Phone.OwnProductId) && outcome.Job.Items.Count == 1)
                 await Dialogs.TellAsync("Updating " + AppInfo.Name, AppInfo.Name + " is updating itself, so it will close in a moment. Open it again afterwards to see how it went.");
-            await FinishAsync(outcome.Job);
+            await FinishAsync(outcome.Job, false);
         }
 
-        /// <summary>Follows a running job to its end, then says how it went and refreshes.</summary>
-        static async Task FinishAsync(InstallJob job)
+        /// <summary>Follows a running job to its end, then says how it went and refreshes.
+        /// Automatic updates (quiet) only say something when one didn't work.</summary>
+        static async Task FinishAsync(InstallJob job, bool quiet = false)
         {
             Waiting = true;
             Raise();
@@ -197,8 +219,64 @@ namespace Unesbrews
             catch (Exception e) { outcome = new InstallOutcome { Job = job, Message = Friendly.Of(e) }; }
             finally { SetStatus(null); Waiting = false; Raise(); }
             if (outcome.Succeeded) AppLog.Add(outcome.Message, null);
-            await Dialogs.TellAsync(outcome.Succeeded ? "Done" : outcome.StillRunning ? "Still working" : "Not everything was installed", outcome.Message);
+            if (!(quiet && outcome.Succeeded))
+                await Dialogs.TellAsync(outcome.Succeeded ? "Done" : outcome.StillRunning ? "Still working" : "Not everything was installed", outcome.Message);
             if (!outcome.StillRunning) await RefreshAsync();
+        }
+
+        /// <summary>Saves a release's package file to Downloads (for sideloading it another way).</summary>
+        public static async Task SavePackageAsync(CatalogApp app, CatalogRelease r)
+        {
+            if (Busy || Waiting) { await Dialogs.TellAsync("Please wait", Friendly.Busy); return; }
+            string path;
+            try
+            {
+                SetStatus("Downloading " + app.Name + " " + r.Version + "...");
+                path = await CatalogService.SaveAsync(app, r);
+            }
+            catch (Exception e)
+            {
+                SetStatus(null);
+                await Dialogs.TellAsync("Not downloaded", Friendly.Of(e));
+                return;
+            }
+            SetStatus(null);
+            await Dialogs.TellAsync("Downloaded", app.Name + " " + r.Version + " is in Downloads as " + System.IO.Path.GetFileName(path) +
+                ". It was checked against the signed catalog. You can install it from Sideload, or with any other tool.");
+        }
+
+        /// <summary>Installs a package file chosen with the file picker: copied into the app's
+        /// folder first, so the installer can read it wherever it was.</summary>
+        public static async Task InstallPickedAsync(StorageFile file)
+        {
+            if (Busy || Waiting) { await Dialogs.TellAsync("Please wait", Friendly.Busy); return; }
+            StorageFile copy;
+            try
+            {
+                SetStatus("Copying " + file.Name + "...");
+                var folder = await ApplicationData.Current.LocalFolder.CreateFolderAsync("picked", CreationCollisionOption.OpenIfExists);
+                var name = new System.Text.StringBuilder();
+                foreach (char c in file.Name)
+                    name.Append(c < 127 && (char.IsLetterOrDigit(c) || c == '.' || c == '_' || c == '-') ? c : '_');
+                copy = await file.CopyAsync(folder, name.ToString(), NameCollisionOption.ReplaceExisting);
+            }
+            catch (Exception e)
+            {
+                SetStatus(null);
+                AppLog.Add("couldn't copy the chosen file", e.Message);
+                await Dialogs.TellAsync("Not installed", "Couldn't read " + file.Name + ". The phone may be out of storage space. " + Friendly.Unchanged);
+                return;
+            }
+            SetStatus(null);
+            try
+            {
+                var props = await copy.GetBasicPropertiesAsync();
+                await InstallFileAsync(new FoundPackage { Path = copy.Path, Size = (long)props.Size });
+            }
+            finally
+            {
+                try { await copy.DeleteAsync(); } catch (Exception) { }
+            }
         }
 
         /// <summary>The shared core writes status in lower case (8.1 style); Windows 10 uses sentence case.</summary>

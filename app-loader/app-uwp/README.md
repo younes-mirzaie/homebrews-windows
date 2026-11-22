@@ -1,8 +1,9 @@
 # Unesbrews for Windows 10 Mobile
 
 The Windows 10 version of Unesbrews: a native UWP app with the same functions as the Windows Phone
-8.1 app (online catalog, updates, installing package files from the phone, the installed apps list,
-the activity log), and a UI built to the Windows 10 (MDL2) design guidelines:
+8.1 app (Catalog, Installed with its updates, Sideload, Settings with notifications and automatic
+updates, the activity log; see ../README.md), and a UI built to the Windows 10 (MDL2) design
+guidelines:
 
 - a navigation pane behind the hamburger button (overlay on phones, a 48 px rail from 641 px, docked
   open from 1008 px, so it also works on a desktop or with Continuum);
@@ -24,7 +25,7 @@ apps. What differs on Windows 10 is small:
 | Installer | `TH.exe <pkg> -uda` / `-di` | `MinDeployAppX.exe /Update` / `/Add /PackagePath:<pkg> /DeploymentOption:32768` |
 | Installed apps | TH's app list | the installed manifests, plus Windows' package list for names and icons |
 | Files and settings | Silverlight isolated storage | the app's local folder (`Compat\IsolatedStorage.cs` gives the shared code the same calls) |
-| Background | a scheduled agent | an extended execution session |
+| Background | a scheduled agent | an extended execution session while an install runs, and a timer task (every 4 hours, in-process) for update checks |
 | Reaching the shell | always allowed | needs a loopback exemption (below) |
 
 Those places are marked `#if WINDOWS_UWP` in the shared files, or live in `Unesbrews\Core10`.
@@ -52,7 +53,7 @@ You need a Windows 10 Mobile phone unlocked with CMD Injector.
 The same from a shell on the phone:
 
 ```
-MinDeployAppX.exe /Add /PackagePath:"C:\Data\Users\Public\Downloads\Unesbrews_0.2.0.0_ARM.appx" /DeploymentOption:32768
+MinDeployAppX.exe /Add /PackagePath:"C:\Data\Users\Public\Downloads\Unesbrews_0.3.0.0_ARM.appx" /DeploymentOption:32768
 CheckNetIsolation.exe loopbackexempt -a -n=Unesbrews_1mwg862xgfggy
 ```
 

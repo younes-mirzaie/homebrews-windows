@@ -57,10 +57,16 @@ namespace AppLoader
             var d = new StringBuilder();
             if (!string.IsNullOrEmpty(_app.Author)) d.AppendLine("by " + _app.Author);
             if (!string.IsNullOrEmpty(_app.License)) d.AppendLine("license: " + _app.License);
-            if (!string.IsNullOrEmpty(_app.Source)) d.AppendLine("source: " + _app.Source);
             d.AppendLine("latest: " + latest.Version + ", " + MainPage.Size(latest.Size) + ", " + latest.Arch);
             d.Append("product ID: " + _app.ProductId);
             Details.Text = d.ToString();
+            Uri source;
+            if (!string.IsNullOrEmpty(_app.Source) && Uri.TryCreate(_app.Source, UriKind.Absolute, out source) && source.Scheme == "https")
+            {
+                SourceLink.NavigateUri = source;
+                SourceLink.Content = source.Host.EndsWith("github.com", StringComparison.OrdinalIgnoreCase) ? "source code on GitHub" : "source code";
+                SourceLink.Visibility = Visibility.Visible;
+            }
 
             string installed = _entry == null || _entry.Installed == null ? null
                 : (_entry.InstalledVersion ?? "a version " + AppInfo.Name + " can't read");
@@ -170,6 +176,27 @@ namespace AppLoader
             Progress.IsVisible = _busy;
             Progress.Text = text ?? "";
             InstallBar.IsEnabled = !_busy && _installLabel != null;
+        }
+
+        /// <summary>The latest package file to Downloads, for sideloading it another way.</summary>
+        async void Save_Click(object sender, EventArgs e)
+        {
+            if (_busy) return;
+            var r = _app.Latest;
+            try
+            {
+                Busy("downloading " + _app.Name + " " + r.Version + "...");
+                string path = await CatalogService.SaveAsync(_app, r);
+                Busy(null);
+                MessageBox.Show(_app.Name + " " + r.Version + " is in Downloads as " + System.IO.Path.GetFileName(path) +
+                                ". It was checked against the signed catalog. You can install it from the sideload page, or with any other tool.",
+                                "downloaded", MessageBoxButton.OK);
+            }
+            catch (Exception ex)
+            {
+                Busy(null);
+                MessageBox.Show(Friendly.Of(ex), "not downloaded", MessageBoxButton.OK);
+            }
         }
 
         async void Install_Click(object sender, EventArgs e)

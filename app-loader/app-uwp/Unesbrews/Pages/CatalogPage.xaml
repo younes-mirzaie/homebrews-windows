@@ -5,7 +5,7 @@
     xmlns:local="using:Unesbrews.Pages"
     NavigationCacheMode="Required">
 
-    <!-- The catalog, or (UpdatesMode) only the apps with an update. Two-line rows of 64 px with a
+    <!-- The catalog. Two-line rows of 64 px with a
          40 px icon, a note at the top, and the command bar at the bottom on phones (top from 641 px). -->
     <Grid>
         <Grid.RowDefinitions>
@@ -56,9 +56,6 @@
         </ListView>
 
         <CommandBar x:Name="Bar" Grid.Row="3">
-            <AppBarButton x:Name="UpdateAllButton" Label="Update all" Click="UpdateAll_Click" Visibility="Collapsed">
-                <AppBarButton.Icon><FontIcon FontFamily="{StaticResource IconFont}" Glyph="&#xE896;" /></AppBarButton.Icon>
-            </AppBarButton>
             <AppBarButton x:Name="RefreshButton" Label="Refresh" Click="Refresh_Click">
                 <AppBarButton.Icon><FontIcon FontFamily="{StaticResource IconFont}" Glyph="&#xE72C;" /></AppBarButton.Icon>
             </AppBarButton>

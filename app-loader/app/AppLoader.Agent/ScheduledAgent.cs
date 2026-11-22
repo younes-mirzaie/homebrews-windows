@@ -29,7 +29,7 @@ namespace AppLoader.Agent
                         var states = JobLog.Parse(job, JobLog.Read(job));
                         if (JobLog.IsDone(job))
                         {
-                            Notify.Result(job.Run, JobLog.AllOk(states) ? "done" : "not everything installed",
+                            Notify.Result(job.Run, JobLog.Title(job, states),
                                           JobLog.Summary(job, states) + " Open " + AppInfo.Name + " for details.");
                             done = true;
                             break;

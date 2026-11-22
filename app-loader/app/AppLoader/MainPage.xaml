@@ -55,19 +55,19 @@
             </Grid>
         </phone:PivotItem>
 
-        <phone:PivotItem Header="updates">
+        <phone:PivotItem Header="installed">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
                 <StackPanel>
-                    <TextBlock x:Name="UpdatesNote" TextWrapping="Wrap" Margin="12,0,12,12"
+                    <TextBlock x:Name="InstalledNote" TextWrapping="Wrap" Margin="12,0,12,12"
                                Style="{StaticResource PhoneTextSubtleStyle}" Text="" />
                     <Button x:Name="UpdateAllButton" Content="update all" HorizontalAlignment="Left"
                             Visibility="Collapsed" Click="UpdateAll_Click" Margin="0,0,0,12" />
                 </StackPanel>
-                <ListBox x:Name="UpdatesList" Grid.Row="1" SelectionChanged="CatalogList_SelectionChanged">
+                <ListBox x:Name="InstalledList" Grid.Row="1" SelectionChanged="InstalledList_SelectionChanged">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Grid Margin="12,0,0,24">
@@ -95,7 +95,7 @@
             </Grid>
         </phone:PivotItem>
 
-        <phone:PivotItem Header="packages">
+        <phone:PivotItem Header="sideload">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -119,35 +119,13 @@
             </Grid>
         </phone:PivotItem>
 
-        <phone:PivotItem Header="installed">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <TextBlock x:Name="InstalledNote" TextWrapping="Wrap" Margin="12,0,12,12"
-                           Style="{StaticResource PhoneTextSubtleStyle}" Text="" />
-                <ListBox x:Name="InstalledList" Grid.Row="1">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Margin="12,0,0,24">
-                                <TextBlock Text="{Binding Title}" Style="{StaticResource PhoneTextLargeStyle}"
-                                           Margin="0" TextTrimming="WordEllipsis" />
-                                <TextBlock Text="{Binding Detail}" Style="{StaticResource PhoneTextSubtleStyle}"
-                                           Margin="0" TextTrimming="WordEllipsis" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </Grid>
-        </phone:PivotItem>
-
     </phone:Pivot>
 
     <phone:PhoneApplicationPage.ApplicationBar>
         <shell:ApplicationBar Opacity="1">
             <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/refresh.png" Text="refresh" Click="Refresh_Click" />
             <shell:ApplicationBar.MenuItems>
+                <shell:ApplicationBarMenuItem Text="settings" Click="Settings_Click" />
                 <shell:ApplicationBarMenuItem Text="log" Click="Log_Click" />
             </shell:ApplicationBar.MenuItems>
         </shell:ApplicationBar>

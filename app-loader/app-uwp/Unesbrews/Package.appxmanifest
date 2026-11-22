@@ -10,7 +10,7 @@
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
   IgnorableNamespaces="uap mp rescap">
 
-  <Identity Name="Unesbrews" Publisher="CN=Unesbrews" Version="0.2.0.0" />
+  <Identity Name="Unesbrews" Publisher="CN=Unesbrews" Version="0.3.0.0" />
 
   <mp:PhoneIdentity PhoneProductId="8524ebd4-8e06-4f85-b48a-9165c43837ef" PhonePublisherId="e1e99522-17c9-4cc7-a879-b7ccf6aecc53" />
 
@@ -45,6 +45,14 @@
           <uap:Rotation Preference="landscapeFlipped" />
         </uap:InitialRotationPreference>
       </uap:VisualElements>
+      <Extensions>
+        <!-- the update check every few hours, run in the app's own process (no EntryPoint) -->
+        <Extension Category="windows.backgroundTasks">
+          <BackgroundTasks>
+            <Task Type="timer" />
+          </BackgroundTasks>
+        </Extension>
+      </Extensions>
     </Application>
   </Applications>
 

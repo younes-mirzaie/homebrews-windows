@@ -260,6 +260,19 @@ namespace AppLoader.Core
             return string.Join(", ", parts.ToArray()) + ".";
         }
 
+        /// <summary>The result's headline, e.g. "Retrobird 0.4 updated" or "Couldn't install Retrobird".</summary>
+        public static string Title(InstallJob job, List<ItemState> states)
+        {
+            bool ok = AllOk(states);
+            if (job.Items.Count == 1)
+            {
+                var it = job.Items[0];
+                return ok ? it.What + (it.IsUpdate ? " updated" : " installed")
+                          : (it.IsUpdate ? "Couldn't update " : "Couldn't install ") + it.Title;
+            }
+            return ok ? job.Items.Count + " apps done" : "Not everything installed";
+        }
+
         public static bool AllOk(List<ItemState> states)
         {
             foreach (var s in states) if (s.Phase != "finished" || s.ThExit != 0) return false;

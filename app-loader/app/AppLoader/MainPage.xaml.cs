@@ -22,15 +22,10 @@ namespace AppLoader
             public string Detail { get; set; }
         }
 
-        public sealed class AppRow
-        {
-            public string Title { get; set; }
-            public string Detail { get; set; }
-        }
-
         public sealed class CatalogRow
         {
-            public CatalogEntry Entry;
+            public CatalogEntry Entry;     // null on the installed pivot for a sideloaded app that isn't in the catalog
+            public LibraryApp Library;
             public string Letter { get; set; }
             public System.Windows.Media.ImageSource Icon { get; set; }
             public Visibility LetterVisibility { get { return Icon == null ? Visibility.Visible : Visibility.Collapsed; } }
@@ -43,6 +38,7 @@ namespace AppLoader
         public static List<CatalogEntry> Entries;
 
         bool _busy, _loaded, _waiting;
+        List<InstalledApp> _onPhone;
 
         public MainPage()
         {
@@ -94,19 +90,11 @@ namespace AppLoader
                 }).ToList();
                 PackagesNote.Text = found.Count == 0
                     ? "No .xap or .appx files in Downloads or Documents (on the phone or the SD card). Download one and tap refresh."
-                    : "Tap a package to install it. Apps you already have are updated in place, with their data.";
+                    : "Tap a package to install it, the same way catalog apps are installed. Apps you already have are updated in place, with their data.";
 
                 Busy("reading the installed apps...");
                 var apps = await Phone.InstalledAppsAsync();
-                InstalledList.ItemsSource = apps
-                    .Where(a => !string.IsNullOrEmpty(a.Title))
-                    .OrderBy(a => a.Title, StringComparer.OrdinalIgnoreCase)
-                    .Select(a => new AppRow
-                    {
-                        Title = a.Title,
-                        Detail = (a.OnSd ? "SD card" : "phone") + " · " + a.ProductId,
-                    }).ToList();
-                InstalledNote.Text = apps.Count + " apps.";
+                _onPhone = apps;
 
                 await RefreshCatalogAsync(apps);
             }
@@ -118,6 +106,22 @@ namespace AppLoader
             {
                 Busy(null);
             }
+            DrawInstalled();
+            await AutoUpdateAsync();
+        }
+
+        /// <summary>Automatic updates (when they're on) of the apps on the installed pivot.</summary>
+        async Task AutoUpdateAsync()
+        {
+            if (Entries == null || _busy || _waiting) return;
+            var now = Updates.Check(Entries, true);
+            if (now.Count == 0) return;
+            InstallOutcome outcome;
+            try { outcome = await Phone.StartCatalogAsync(now, now.Select(x => x.App.Latest).ToList(), s => Busy(s)); }
+            catch (Exception ex) { outcome = new InstallOutcome { Message = Friendly.Of(ex) }; }
+            finally { Busy(null); }
+            if (!outcome.Started) { AppLog.Add("automatic update didn't start", outcome.Message); return; }
+            await FinishAsync(outcome.Job, null, true);
         }
 
         public static string Size(long b)
@@ -159,7 +163,7 @@ namespace AppLoader
             await FinishAsync(outcome.Job, outcome.Package);
         }
 
-        async Task FinishAsync(InstallJob job, PackageInfo pkg)
+        async Task FinishAsync(InstallJob job, PackageInfo pkg, bool quiet = false)
         {
             _waiting = true;
             Busy("working on " + job.Title + "...");
@@ -178,7 +182,8 @@ namespace AppLoader
                 Busy(null);
                 _waiting = false;
             }
-            Show(job.Title, outcome);
+            if (!(quiet && outcome.Succeeded)) Show(job.Title, outcome);
+            else AppLog.Add(outcome.Message, null);
             if (!outcome.StillRunning) { _loaded = true; var t = RefreshAsync(); }
         }
 
@@ -195,7 +200,6 @@ namespace AppLoader
             if (!CatalogService.Configured)
             {
                 CatalogNote.Text = "The online catalog isn't set up in this version of " + AppInfo.Name + ".";
-                UpdatesNote.Text = CatalogNote.Text;
                 return;
             }
             CatalogIndex idx = null;
@@ -213,11 +217,11 @@ namespace AppLoader
             if (idx == null)
             {
                 CatalogNote.Text = problem ?? "No catalog yet.";
-                UpdatesNote.Text = CatalogNote.Text;
                 return;
             }
             Busy("checking installed versions...");
             Entries = await CatalogService.EntriesAsync(idx, installed);
+            Library.StartWith(Entries);
             Busy("getting app icons...");
             await CatalogService.FetchIconsAsync(idx);
             var rows = Entries.OrderBy(x => x.App.Name, StringComparer.OrdinalIgnoreCase).Select(x => new CatalogRow
@@ -230,13 +234,47 @@ namespace AppLoader
                 State = StateText(x),
             }).ToList();
             CatalogList.ItemsSource = rows;
-            var updates = rows.Where(r => r.Entry.UpdateAvailable).ToList();
-            UpdatesList.ItemsSource = updates;
             CatalogNote.Text = (problem != null ? "Offline, showing the last catalog (" + problem + "). " : "") +
-                               idx.Apps.Count + " apps. Tap one for details.";
-            UpdatesNote.Text = updates.Count == 0 ? "Everything from the catalog is up to date."
-                             : updates.Count + (updates.Count == 1 ? " update" : " updates") + ". Tap one for details, or update all at once.";
-            UpdateAllButton.Visibility = updates.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+                               rows.Count + " apps. Tap one for details.";
+        }
+
+        /// <summary>The installed pivot: apps installed with Unesbrews (catalog or sideload) that
+        /// are still on the phone, updates first.</summary>
+        void DrawInstalled()
+        {
+            var onPhone = _onPhone == null ? null : new HashSet<string>(_onPhone.Select(a => a.ProductId));
+            var entries = Entries ?? new List<CatalogEntry>();
+            var pending = Updates.Pending(entries);
+            var rows = Library.All()
+                .Where(a => onPhone == null || onPhone.Contains(a.ProductId))
+                .Select(a =>
+                {
+                    var x = entries.FirstOrDefault(e => e.App.ProductId == a.ProductId);
+                    string name = x != null ? x.App.Name : a.Title;
+                    string have = x != null && x.InstalledVersion != null ? x.InstalledVersion : a.Version;
+                    return new CatalogRow
+                    {
+                        Entry = x,
+                        Library = a,
+                        Name = name,
+                        Letter = string.IsNullOrEmpty(name) ? "?" : name.Substring(0, 1).ToUpperInvariant(),
+                        Icon = x != null ? CatalogService.LoadIcon(x.App) : null,
+                        State = pending.Contains(x) ? "update to " + x.App.Latest.Version + " · you have " + have
+                              : (string.IsNullOrEmpty(have) ? "installed" : "version " + have) + (x == null ? " · sideloaded" : ""),
+                    };
+                })
+                .OrderBy(r => pending.Contains(r.Entry) ? 0 : 1)
+                .ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            InstalledList.ItemsSource = rows;
+            UpdateAllButton.Visibility = pending.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            if (rows.Count == 0)
+                InstalledNote.Text = "Apps you install with " + AppInfo.Name + ", from the catalog or the sideload page, show up here.";
+            else if (pending.Count > 0)
+                InstalledNote.Text = pending.Count + (pending.Count == 1 ? " update is" : " updates are") + " ready." +
+                                     (Prefs.AutoUpdates ? "" : " Automatic updates can be turned on in settings.");
+            else
+                InstalledNote.Text = rows.Count + (rows.Count == 1 ? " app" : " apps") + ", all up to date.";
         }
 
         /// <summary>Downloads and installs every available update, one after the other, then says
@@ -244,7 +282,7 @@ namespace AppLoader
         async void UpdateAll_Click(object sender, RoutedEventArgs e)
         {
             if (_busy || _waiting || Entries == null) return;
-            var todo = Entries.Where(x => x.UpdateAvailable)
+            var todo = Updates.Pending(Entries)
                               .OrderBy(x => x.App.ProductId == Phone.OwnProductId ? 1 : 0)
                               .ThenBy(x => x.App.Name, StringComparer.OrdinalIgnoreCase).ToList();
             if (todo.Count == 0) return;
@@ -300,6 +338,29 @@ namespace AppLoader
             if (_leaving) return;
             _leaving = true;
             Turnstile.Out(Pivots, false, () => { _leaving = false; NavigationService.Navigate(uri); });
+        }
+
+        void InstalledList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var row = InstalledList.SelectedItem as CatalogRow;
+            if (row == null) return;
+            if (row.Entry != null) { CatalogList_SelectionChanged(sender, e); return; }
+            InstalledList.SelectedItem = null;
+            // a sideloaded app that isn't in the catalog: open it
+            try
+            {
+                foreach (var p in Windows.Phone.Management.Deployment.InstallationManager.FindPackages())
+                    if (PackageInfo.Guid(p.Id.ProductId) == row.Library.ProductId) { p.Launch(""); return; }
+            }
+            catch (Exception ex) { AppLog.Add("couldn't open " + row.Name, ex.Message); }
+            MessageBox.Show(row.Name + " didn't open. Open it from the app list instead.", "open", MessageBoxButton.OK);
+        }
+
+        void Settings_Click(object sender, EventArgs e)
+        {
+            if (_leaving) return;
+            _leaving = true;
+            Turnstile.Out(Pivots, false, () => { _leaving = false; NavigationService.Navigate(new Uri("/SettingsPage.xaml", UriKind.Relative)); });
         }
 
         void Log_Click(object sender, EventArgs e)

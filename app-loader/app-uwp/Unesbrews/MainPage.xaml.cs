@@ -36,31 +36,33 @@ namespace Unesbrews
         public static MainPage Current { get; private set; }
 
         readonly List<NavEntry> _top, _bottom;
-        readonly NavEntry _updates;
+        readonly NavEntry _installed;
 
         public MainPage()
         {
             InitializeComponent();
             Current = this;
-            _updates = new NavEntry { Label = "Updates", Glyph = "", Page = typeof(CatalogPage), Parameter = CatalogPage.UpdatesMode };
+            _installed = new NavEntry { Label = "Installed", Glyph = "\uE71D", Page = typeof(InstalledPage) };
             _top = new List<NavEntry>
             {
-                new NavEntry { Label = "Catalog", Glyph = "", Page = typeof(CatalogPage), Parameter = CatalogPage.CatalogMode },
-                _updates,
-                new NavEntry { Label = "Package files", Glyph = "", Page = typeof(PackagesPage) },
-                new NavEntry { Label = "Installed apps", Glyph = "", Page = typeof(InstalledPage) },
+                new NavEntry { Label = "Catalog", Glyph = "\uE719", Page = typeof(CatalogPage) },
+                _installed,
+                new NavEntry { Label = "Sideload", Glyph = "\uE8B5", Page = typeof(PackagesPage) },
             };
             _bottom = new List<NavEntry>
             {
-                new NavEntry { Label = "Activity log", Glyph = "", Page = typeof(LogPage) },
-                new NavEntry { Label = "About", Glyph = "", Page = typeof(AboutPage) },
+                new NavEntry { Label = "Settings", Glyph = "\uE713", Page = typeof(SettingsPage) },
             };
             TopItems.ItemsSource = _top;
             BottomItems.ItemsSource = _bottom;
 
             SystemNavigationManager.GetForCurrentView().BackRequested += OnBackRequested;
             AppState.StatusChanged += ShowStatus;
-            AppState.Changed += () => _updates.Count = AppState.UpdateCount > 0 ? AppState.UpdateCount.ToString() : "";
+            AppState.Changed += () =>
+            {
+                int n = AppState.PendingUpdates.Count;
+                _installed.Count = n > 0 ? n.ToString() : "";
+            };
             Loaded += (s, e) => Go(_top[0], false);
         }
 

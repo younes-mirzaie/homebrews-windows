@@ -46,7 +46,9 @@
                            FontSize="{StaticResource PhoneFontSizeMedium}" Margin="12,0,12,24" />
                 <TextBlock x:Name="Description" Style="{StaticResource PhoneTextNormalStyle}" TextWrapping="Wrap" Margin="12,0,12,24" />
                 <TextBlock Text="details" Style="{StaticResource PhoneTextGroupHeaderStyle}" Margin="12,0,12,6" />
-                <TextBlock x:Name="Details" Style="{StaticResource PhoneTextSubtleStyle}" TextWrapping="Wrap" Margin="12,0,12,24" />
+                <TextBlock x:Name="Details" Style="{StaticResource PhoneTextSubtleStyle}" TextWrapping="Wrap" Margin="12,0,12,12" />
+                <HyperlinkButton x:Name="SourceLink" Content="source code" TargetName="_blank" HorizontalAlignment="Left"
+                                 Visibility="Collapsed" Margin="0,0,12,24" />
                 <TextBlock Text="versions" Style="{StaticResource PhoneTextGroupHeaderStyle}" Margin="12,0,12,6" />
                 <TextBlock Style="{StaticResource PhoneTextSubtleStyle}" TextWrapping="Wrap" Margin="12,0,12,12"
                            Text="Tap a version to install that one (going back to an older version may be refused by the phone)." />
@@ -69,6 +71,9 @@
         <shell:ApplicationBar Opacity="1">
             <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/download.png" Text="install" Click="Install_Click" />
             <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/open.png" Text="open" Click="Open_Click" />
+            <shell:ApplicationBar.MenuItems>
+                <shell:ApplicationBarMenuItem Text="download package" Click="Save_Click" />
+            </shell:ApplicationBar.MenuItems>
         </shell:ApplicationBar>
     </phone:PhoneApplicationPage.ApplicationBar>
 </phone:PhoneApplicationPage>

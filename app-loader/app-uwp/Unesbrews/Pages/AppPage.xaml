@@ -54,7 +54,7 @@
 
                 <TextBlock Text="Details" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,32,0,8" />
                 <TextBlock x:Name="Details" Style="{StaticResource NoteText}" IsTextSelectionEnabled="True" />
-                <HyperlinkButton x:Name="SourceLink" Content="Source code" Visibility="Collapsed" />
+                <HyperlinkButton x:Name="SourceLink" Content="Source code" Visibility="Collapsed" Margin="0,8,0,0" />
 
                 <TextBlock Text="Versions" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,32,0,4" />
                 <TextBlock Style="{StaticResource NoteText}" Margin="0,0,0,8"
@@ -74,6 +74,9 @@
         </ScrollViewer>
 
         <CommandBar x:Name="Bar" Grid.Row="2">
+            <AppBarButton x:Name="SaveButton" Label="Download package" Click="Save_Click">
+                <AppBarButton.Icon><FontIcon FontFamily="{StaticResource IconFont}" Glyph="&#xE896;" /></AppBarButton.Icon>
+            </AppBarButton>
             <AppBarButton x:Name="OpenButton" Label="Open" Click="Open_Click" IsEnabled="False">
                 <AppBarButton.Icon><FontIcon FontFamily="{StaticResource IconFont}" Glyph="&#xE8A7;" /></AppBarButton.Icon>
             </AppBarButton>

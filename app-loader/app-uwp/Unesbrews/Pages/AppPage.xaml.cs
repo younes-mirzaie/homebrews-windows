@@ -61,6 +61,7 @@ namespace Unesbrews.Pages
             {
                 AppName.Text = "This app isn't in the catalog any more.";
                 MainAction.Visibility = Visibility.Collapsed;
+                SaveButton.IsEnabled = false;
                 return;
             }
             var app = _entry.App;
@@ -79,9 +80,11 @@ namespace Unesbrews.Pages
             d.Append("Product ID: " + app.ProductId);
             Details.Text = d.ToString();
             Uri source;
+            SourceLink.Visibility = Visibility.Collapsed;
             if (!string.IsNullOrEmpty(app.Source) && Uri.TryCreate(app.Source, UriKind.Absolute, out source) && source.Scheme == "https")
             {
                 SourceLink.NavigateUri = source;
+                SourceLink.Content = source.Host.EndsWith("github.com", StringComparison.OrdinalIgnoreCase) ? "Source code on GitHub" : "Source code";
                 SourceLink.Visibility = Visibility.Visible;
             }
 
@@ -141,6 +144,7 @@ namespace Unesbrews.Pages
         {
             bool idle = !AppState.Busy && !AppState.Waiting;
             MainAction.IsEnabled = idle && _action != null;
+            SaveButton.IsEnabled = idle && _entry != null;
             Versions.IsItemClickEnabled = idle;
         }
 
@@ -166,6 +170,12 @@ namespace Unesbrews.Pages
                 verb + " " + _entry.App.Name + " " + r.Version + "?",
                 _entry.App.Name + " " + r.Version + " (" + AppState.Size(r.Size) + ") is downloaded and installed.",
                 verb);
+        }
+
+        /// <summary>The latest package file to Downloads, for sideloading it another way.</summary>
+        async void Save_Click(object sender, RoutedEventArgs e)
+        {
+            if (_entry != null) await AppState.SavePackageAsync(_entry.App, _entry.App.Latest);
         }
 
         async void Open_Click(object sender, RoutedEventArgs e)
