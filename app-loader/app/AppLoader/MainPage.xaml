@@ -1,0 +1,155 @@
+<phone:PhoneApplicationPage
+    x:Class="AppLoader.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    xmlns:core="clr-namespace:AppLoader.Core"
+    core:Tilt.IsEnabled="True"
+    FontFamily="{StaticResource PhoneFontFamilyNormal}"
+    FontSize="{StaticResource PhoneFontSizeNormal}"
+    Foreground="{StaticResource PhoneForegroundBrush}"
+    SupportedOrientations="Portrait" Orientation="Portrait"
+    shell:SystemTray.IsVisible="True">
+
+    <shell:SystemTray.ProgressIndicator>
+        <shell:ProgressIndicator x:Name="Progress" IsIndeterminate="True" IsVisible="False" />
+    </shell:SystemTray.ProgressIndicator>
+
+    <phone:Pivot x:Name="Pivots" Title="UNESBREWS" Background="{StaticResource PhoneBackgroundBrush}">
+        <phone:PivotItem Header="catalog">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="CatalogNote" TextWrapping="Wrap" Margin="12,0,12,12"
+                           Style="{StaticResource PhoneTextSubtleStyle}" Text="Loading the catalog..." />
+                <ListBox x:Name="CatalogList" Grid.Row="1" SelectionChanged="CatalogList_SelectionChanged">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="12,0,0,24">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="62" Height="62" Background="{StaticResource PhoneAccentBrush}" VerticalAlignment="Top">
+                                    <Grid>
+                                        <TextBlock Text="{Binding Letter}" FontSize="32" Foreground="White" Visibility="{Binding LetterVisibility}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        <Image Source="{Binding Icon}" Stretch="UniformToFill" />
+                                    </Grid>
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="12,-6,0,0">
+                                    <TextBlock Text="{Binding Name}" Style="{StaticResource PhoneTextLargeStyle}"
+                                               Margin="0" TextTrimming="WordEllipsis" />
+                                    <TextBlock Text="{Binding Detail}" Style="{StaticResource PhoneTextSubtleStyle}"
+                                               Margin="0" TextTrimming="WordEllipsis" />
+                                    <TextBlock Text="{Binding State}" Style="{StaticResource PhoneTextAccentStyle}"
+                                               Margin="0" TextTrimming="WordEllipsis" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </phone:PivotItem>
+
+        <phone:PivotItem Header="updates">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <StackPanel>
+                    <TextBlock x:Name="UpdatesNote" TextWrapping="Wrap" Margin="12,0,12,12"
+                               Style="{StaticResource PhoneTextSubtleStyle}" Text="" />
+                    <Button x:Name="UpdateAllButton" Content="update all" HorizontalAlignment="Left"
+                            Visibility="Collapsed" Click="UpdateAll_Click" Margin="0,0,0,12" />
+                </StackPanel>
+                <ListBox x:Name="UpdatesList" Grid.Row="1" SelectionChanged="CatalogList_SelectionChanged">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="12,0,0,24">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="62" Height="62" Background="{StaticResource PhoneAccentBrush}" VerticalAlignment="Top">
+                                    <Grid>
+                                        <TextBlock Text="{Binding Letter}" FontSize="32" Foreground="White" Visibility="{Binding LetterVisibility}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        <Image Source="{Binding Icon}" Stretch="UniformToFill" />
+                                    </Grid>
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="12,-6,0,0">
+                                    <TextBlock Text="{Binding Name}" Style="{StaticResource PhoneTextLargeStyle}"
+                                               Margin="0" TextTrimming="WordEllipsis" />
+                                    <TextBlock Text="{Binding State}" Style="{StaticResource PhoneTextSubtleStyle}"
+                                               Margin="0" TextTrimming="WordEllipsis" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </phone:PivotItem>
+
+        <phone:PivotItem Header="packages">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="PackagesNote" TextWrapping="Wrap" Margin="12,0,12,12"
+                           Style="{StaticResource PhoneTextSubtleStyle}"
+                           Text="Looking in Downloads and Documents for .xap and .appx files..." />
+                <ListBox x:Name="PackagesList" Grid.Row="1" SelectionChanged="PackagesList_SelectionChanged">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="12,0,0,24">
+                                <TextBlock Text="{Binding Name}" Style="{StaticResource PhoneTextLargeStyle}"
+                                           Margin="0" TextTrimming="WordEllipsis" />
+                                <TextBlock Text="{Binding Detail}" Style="{StaticResource PhoneTextSubtleStyle}"
+                                           Margin="0" TextTrimming="WordEllipsis" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </phone:PivotItem>
+
+        <phone:PivotItem Header="installed">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="InstalledNote" TextWrapping="Wrap" Margin="12,0,12,12"
+                           Style="{StaticResource PhoneTextSubtleStyle}" Text="" />
+                <ListBox x:Name="InstalledList" Grid.Row="1">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="12,0,0,24">
+                                <TextBlock Text="{Binding Title}" Style="{StaticResource PhoneTextLargeStyle}"
+                                           Margin="0" TextTrimming="WordEllipsis" />
+                                <TextBlock Text="{Binding Detail}" Style="{StaticResource PhoneTextSubtleStyle}"
+                                           Margin="0" TextTrimming="WordEllipsis" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </phone:PivotItem>
+
+    </phone:Pivot>
+
+    <phone:PhoneApplicationPage.ApplicationBar>
+        <shell:ApplicationBar Opacity="1">
+            <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/refresh.png" Text="refresh" Click="Refresh_Click" />
+            <shell:ApplicationBar.MenuItems>
+                <shell:ApplicationBarMenuItem Text="log" Click="Log_Click" />
+            </shell:ApplicationBar.MenuItems>
+        </shell:ApplicationBar>
+    </phone:PhoneApplicationPage.ApplicationBar>
+</phone:PhoneApplicationPage>
