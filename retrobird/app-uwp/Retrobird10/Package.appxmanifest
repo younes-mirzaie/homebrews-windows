@@ -44,8 +44,8 @@
             <uap:ShowOn Tile="square310x310Logo" />
           </uap:ShowNameOnTiles>
         </uap:DefaultTile>
-        <!-- the unread count, and sender and subject of the newest mail, on the lock screen -->
-        <uap:LockScreen Notification="badgeAndTileText" BadgeLogo="Assets\BadgeLogo.png" />
+        <!-- no lock screen entry: it needs a declared background task, and the in-process one
+             can't be declared (see below) -->
         <uap:SplashScreen Image="Assets\SplashScreen.png" BackgroundColor="#40AAE3" />
         <uap:InitialRotationPreference>
           <uap:Rotation Preference="portrait" />
@@ -53,14 +53,9 @@
           <uap:Rotation Preference="landscapeFlipped" />
         </uap:InitialRotationPreference>
       </uap:VisualElements>
-      <Extensions>
-        <!-- the check for new mail while closed, run in the app's own process -->
-        <Extension Category="windows.backgroundTasks">
-          <BackgroundTasks>
-            <Task Type="timer" />
-          </BackgroundTasks>
-        </Extension>
-      </Extensions>
+      <!-- the check for new mail while closed runs in the app's own process and is registered
+           from code (App.ScheduleBackgroundCheck); declaring it here without an entry point fails
+           manifest validation -->
     </Application>
   </Applications>
 
