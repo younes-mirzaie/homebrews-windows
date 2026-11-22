@@ -48,18 +48,21 @@
     <Compile Include="MainPage.xaml.cs"><DependentUpon>MainPage.xaml</DependentUpon></Compile>
     <Compile Include="CatalogPage.xaml.cs"><DependentUpon>CatalogPage.xaml</DependentUpon></Compile>
     <Compile Include="LogPage.xaml.cs"><DependentUpon>LogPage.xaml</DependentUpon></Compile>
-    <!-- Core\AppInfo.cs, Jobs.cs and Notify.cs are compiled into AppLoader.Agent, referenced below -->
+    <Compile Include="SettingsPage.xaml.cs"><DependentUpon>SettingsPage.xaml</DependentUpon></Compile>
+    <!-- Core\AppInfo.cs, Jobs.cs, Notify.cs and Prefs.cs are compiled into AppLoader.Agent, referenced below -->
     <Compile Include="Core\Background.cs" />
     <Compile Include="Core\CatalogService.cs" />
     <!-- stage 2 catalog client, shared with the Mono tests in ..\..\catalog\test -->
     <Compile Include="..\..\catalog\client\*.cs"><Link>Catalog\%(Filename)%(Extension)</Link></Compile>
     <Compile Include="Core\Friendly.cs" />
+    <Compile Include="Core\Library.cs" />
     <Compile Include="Core\LineSocket.cs" />
     <Compile Include="Core\Motion.cs" />
     <Compile Include="Core\PackageInfo.cs" />
     <Compile Include="Core\PackageInstaller.cs" />
     <Compile Include="Core\Phone.cs" />
     <Compile Include="Core\Shell.cs" />
+    <Compile Include="Core\Updates.cs" />
     <Compile Include="Core\Zip.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -68,6 +71,7 @@
     <Page Include="CatalogPage.xaml"><SubType>Designer</SubType><Generator>MSBuild:Compile</Generator></Page>
     <Page Include="LogPage.xaml"><SubType>Designer</SubType><Generator>MSBuild:Compile</Generator></Page>
     <Page Include="MainPage.xaml"><SubType>Designer</SubType><Generator>MSBuild:Compile</Generator></Page>
+    <Page Include="SettingsPage.xaml"><SubType>Designer</SubType><Generator>MSBuild:Compile</Generator></Page>
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest"><SubType>Designer</SubType></AppxManifest>

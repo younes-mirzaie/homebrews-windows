@@ -1,6 +1,8 @@
 // Notifications for installs and downloads that run while the app is minimized or the phone is
 // locked: one entry in the action center that updates in place (silently) with the progress, then
-// pops up once with the result. Shared with the background agent. Needs ToastCapable="true".
+// pops up once with the result. A second entry says when updates are available. All of it can be
+// turned off on the settings page (Prefs.Notifications). Shared with the background agent.
+// Needs ToastCapable="true".
 using System;
 using System.IO.IsolatedStorage;
 using Windows.Data.Xml.Dom;
@@ -18,7 +20,8 @@ namespace AppLoader.Core
         {
             if (text == _last) return;
             _last = text;
-            Show(AppInfo.Name, text, true);
+            if (!Prefs.Notifications) return;
+            Show(AppInfo.Name, text, true, Tag);
         }
 
         /// <summary>The result, with a popup: once per run, whoever (app or agent) gets there first.</summary>
@@ -34,10 +37,18 @@ namespace AppLoader.Core
                 }
             }
             catch (Exception) { return; }
-            Show(title, text, false);
+            if (!Prefs.Notifications) return;
+            Show(title, text, false, Tag);
         }
 
-        static void Show(string title, string text, bool silent)
+        /// <summary>"Updates are available" (when automatic updates are off), with a popup.</summary>
+        public static void Updates(string title, string text)
+        {
+            if (!Prefs.Notifications) return;
+            Show(title, text, false, "updates");
+        }
+
+        static void Show(string title, string text, bool silent, string tag)
         {
             try
             {
@@ -45,7 +56,7 @@ namespace AppLoader.Core
                 var t = xml.GetElementsByTagName("text");
                 t[0].AppendChild(xml.CreateTextNode(title));
                 t[1].AppendChild(xml.CreateTextNode(text));
-                var toast = new ToastNotification(xml) { Tag = Tag, Group = Group, SuppressPopup = silent };
+                var toast = new ToastNotification(xml) { Tag = tag, Group = Group, SuppressPopup = silent };
                 ToastNotificationManager.CreateToastNotifier().Show(toast);
             }
             catch (Exception) { }   // notifications are a nicety: never break an install over one

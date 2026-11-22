@@ -43,7 +43,11 @@ namespace AppLoader.Core
         {
             if (mode != Update && mode != Deploy)
                 throw new ArgumentException("mode must be uda or di");
+#if WINDOWS_UWP
+            string cmds = Installer10.Line(Shell.Quote(packagePath), mode) + "\n" +
+#else
             string cmds = "TH.exe " + Shell.Quote(packagePath) + " -" + mode + "\n" +
+#endif
                           "set rc=%errorlevel%\n" +
                           (deleteAfter ? "del /f /q " + Shell.Quote(packagePath) + " >nul 2>&1\n" : "") +
                           "exit /b %rc%";

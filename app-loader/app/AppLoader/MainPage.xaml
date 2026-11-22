@@ -12,23 +12,31 @@
     SupportedOrientations="Portrait" Orientation="Portrait"
     shell:SystemTray.IsVisible="True">
 
+    <!-- Three peer views of one set of apps, as a pivot: library (everything in the online
+         library), installed (what Unesbrews put on this phone, updates first) and sideload
+         (package files on the phone). Progress goes in the system tray; commands live in the app
+         bar, which changes with the pivot page. Lists end with 95 px of space so the app bar
+         never covers the last row. -->
     <shell:SystemTray.ProgressIndicator>
         <shell:ProgressIndicator x:Name="Progress" IsIndeterminate="True" IsVisible="False" />
     </shell:SystemTray.ProgressIndicator>
 
-    <phone:Pivot x:Name="Pivots" Title="UNESBREWS" Background="{StaticResource PhoneBackgroundBrush}">
-        <phone:PivotItem Header="catalog">
+    <phone:Pivot x:Name="Pivots" Title="UNESBREWS" Background="{StaticResource PhoneBackgroundBrush}"
+                 SelectionChanged="Pivots_SelectionChanged">
+        <phone:PivotItem Header="library">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
-                <TextBlock x:Name="CatalogNote" TextWrapping="Wrap" Margin="12,0,12,12"
-                           Style="{StaticResource PhoneTextSubtleStyle}" Text="Loading the catalog..." />
-                <ListBox x:Name="CatalogList" Grid.Row="1" SelectionChanged="CatalogList_SelectionChanged">
+                <TextBlock x:Name="CatalogNote" TextWrapping="Wrap" Margin="12,0,12,24"
+                           Style="{StaticResource PhoneTextSubtleStyle}" Text="Loading the library..." />
+                <ListBox x:Name="CatalogList" Grid.Row="1" Padding="0,0,0,95" SelectionChanged="CatalogList_SelectionChanged">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Grid Margin="12,0,0,24">
+                            <!-- app list row: 62 px icon (accent behind a missing one), name in Large
+                                 Semilight, then one line in subtle and one state line -->
+                            <Grid Margin="12,0,0,36" Background="Transparent" core:Tilt.IsTarget="True">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
@@ -36,16 +44,16 @@
                                 <Border Width="62" Height="62" Background="{StaticResource PhoneAccentBrush}" VerticalAlignment="Top">
                                     <Grid>
                                         <TextBlock Text="{Binding Letter}" FontSize="32" Foreground="White" Visibility="{Binding LetterVisibility}"
-                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="{StaticResource PhoneFontFamilySemiLight}" />
                                         <Image Source="{Binding Icon}" Stretch="UniformToFill" />
                                     </Grid>
                                 </Border>
-                                <StackPanel Grid.Column="1" Margin="12,-6,0,0">
+                                <StackPanel Grid.Column="1" Margin="12,-7,12,0">
                                     <TextBlock Text="{Binding Name}" Style="{StaticResource PhoneTextLargeStyle}"
                                                Margin="0" TextTrimming="WordEllipsis" />
-                                    <TextBlock Text="{Binding Detail}" Style="{StaticResource PhoneTextSubtleStyle}"
+                                    <TextBlock Text="{Binding Detail}" Style="{StaticResource PhoneTextSubtleStyle}" Visibility="{Binding DetailVisibility}"
                                                Margin="0" TextTrimming="WordEllipsis" />
-                                    <TextBlock Text="{Binding State}" Style="{StaticResource PhoneTextAccentStyle}"
+                                    <TextBlock Text="{Binding State}" Style="{StaticResource PhoneTextSubtleStyle}" Foreground="{Binding StateBrush}"
                                                Margin="0" TextTrimming="WordEllipsis" />
                                 </StackPanel>
                             </Grid>
@@ -55,59 +63,92 @@
             </Grid>
         </phone:PivotItem>
 
-        <phone:PivotItem Header="updates">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <StackPanel>
-                    <TextBlock x:Name="UpdatesNote" TextWrapping="Wrap" Margin="12,0,12,12"
+        <phone:PivotItem Header="installed">
+            <!-- grouped like a phone list: "updates" first (state line in the accent color), then
+                 "up to date"; group headers in GroupHeader style (32 px Semilight, subtle) -->
+            <ScrollViewer>
+                <StackPanel Margin="0,0,0,95">
+                    <TextBlock x:Name="InstalledNote" TextWrapping="Wrap" Margin="12,0,12,24"
                                Style="{StaticResource PhoneTextSubtleStyle}" Text="" />
-                    <Button x:Name="UpdateAllButton" Content="update all" HorizontalAlignment="Left"
-                            Visibility="Collapsed" Click="UpdateAll_Click" Margin="0,0,0,12" />
+                    <TextBlock x:Name="UpdatesHeader" Text="updates" Style="{StaticResource PhoneTextGroupHeaderStyle}"
+                               Margin="12,0,12,16" Visibility="Collapsed" />
+                    <ItemsControl x:Name="UpdatesList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <!-- app list row: 62 px icon (accent behind a missing one), name in Large
+                                     Semilight, then one line in subtle and one state line -->
+                                <Grid Margin="12,0,0,36" Background="Transparent" core:Tilt.IsTarget="True" Tap="InstalledRow_Tap">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="62" Height="62" Background="{StaticResource PhoneAccentBrush}" VerticalAlignment="Top">
+                                        <Grid>
+                                            <TextBlock Text="{Binding Letter}" FontSize="32" Foreground="White" Visibility="{Binding LetterVisibility}"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="{StaticResource PhoneFontFamilySemiLight}" />
+                                            <Image Source="{Binding Icon}" Stretch="UniformToFill" />
+                                        </Grid>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Margin="12,-7,12,0">
+                                        <TextBlock Text="{Binding Name}" Style="{StaticResource PhoneTextLargeStyle}"
+                                                   Margin="0" TextTrimming="WordEllipsis" />
+                                        <TextBlock Text="{Binding Detail}" Style="{StaticResource PhoneTextSubtleStyle}" Visibility="{Binding DetailVisibility}"
+                                                   Margin="0" TextTrimming="WordEllipsis" />
+                                        <TextBlock Text="{Binding State}" Style="{StaticResource PhoneTextSubtleStyle}" Foreground="{Binding StateBrush}"
+                                                   Margin="0" TextTrimming="WordEllipsis" />
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock x:Name="CurrentHeader" Text="up to date" Style="{StaticResource PhoneTextGroupHeaderStyle}"
+                               Margin="12,0,12,16" Visibility="Collapsed" />
+                    <ItemsControl x:Name="InstalledList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <!-- app list row: 62 px icon (accent behind a missing one), name in Large
+                                     Semilight, then one line in subtle and one state line -->
+                                <Grid Margin="12,0,0,36" Background="Transparent" core:Tilt.IsTarget="True" Tap="InstalledRow_Tap">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="62" Height="62" Background="{StaticResource PhoneAccentBrush}" VerticalAlignment="Top">
+                                        <Grid>
+                                            <TextBlock Text="{Binding Letter}" FontSize="32" Foreground="White" Visibility="{Binding LetterVisibility}"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="{StaticResource PhoneFontFamilySemiLight}" />
+                                            <Image Source="{Binding Icon}" Stretch="UniformToFill" />
+                                        </Grid>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Margin="12,-7,12,0">
+                                        <TextBlock Text="{Binding Name}" Style="{StaticResource PhoneTextLargeStyle}"
+                                                   Margin="0" TextTrimming="WordEllipsis" />
+                                        <TextBlock Text="{Binding Detail}" Style="{StaticResource PhoneTextSubtleStyle}" Visibility="{Binding DetailVisibility}"
+                                                   Margin="0" TextTrimming="WordEllipsis" />
+                                        <TextBlock Text="{Binding State}" Style="{StaticResource PhoneTextSubtleStyle}" Foreground="{Binding StateBrush}"
+                                                   Margin="0" TextTrimming="WordEllipsis" />
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </StackPanel>
-                <ListBox x:Name="UpdatesList" Grid.Row="1" SelectionChanged="CatalogList_SelectionChanged">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <Grid Margin="12,0,0,24">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <Border Width="62" Height="62" Background="{StaticResource PhoneAccentBrush}" VerticalAlignment="Top">
-                                    <Grid>
-                                        <TextBlock Text="{Binding Letter}" FontSize="32" Foreground="White" Visibility="{Binding LetterVisibility}"
-                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                        <Image Source="{Binding Icon}" Stretch="UniformToFill" />
-                                    </Grid>
-                                </Border>
-                                <StackPanel Grid.Column="1" Margin="12,-6,0,0">
-                                    <TextBlock Text="{Binding Name}" Style="{StaticResource PhoneTextLargeStyle}"
-                                               Margin="0" TextTrimming="WordEllipsis" />
-                                    <TextBlock Text="{Binding State}" Style="{StaticResource PhoneTextSubtleStyle}"
-                                               Margin="0" TextTrimming="WordEllipsis" />
-                                </StackPanel>
-                            </Grid>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </Grid>
+            </ScrollViewer>
         </phone:PivotItem>
 
-        <phone:PivotItem Header="packages">
+        <phone:PivotItem Header="sideload">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
-                <TextBlock x:Name="PackagesNote" TextWrapping="Wrap" Margin="12,0,12,12"
+                <TextBlock x:Name="PackagesNote" TextWrapping="Wrap" Margin="12,0,12,24"
                            Style="{StaticResource PhoneTextSubtleStyle}"
                            Text="Looking in Downloads and Documents for .xap and .appx files..." />
-                <ListBox x:Name="PackagesList" Grid.Row="1" SelectionChanged="PackagesList_SelectionChanged">
+                <ListBox x:Name="PackagesList" Grid.Row="1" Padding="0,0,0,95" SelectionChanged="PackagesList_SelectionChanged">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Margin="12,0,0,24">
+                            <StackPanel Margin="12,0,12,36" Background="Transparent" core:Tilt.IsTarget="True">
                                 <TextBlock Text="{Binding Name}" Style="{StaticResource PhoneTextLargeStyle}"
                                            Margin="0" TextTrimming="WordEllipsis" />
                                 <TextBlock Text="{Binding Detail}" Style="{StaticResource PhoneTextSubtleStyle}"
@@ -118,36 +159,13 @@
                 </ListBox>
             </Grid>
         </phone:PivotItem>
-
-        <phone:PivotItem Header="installed">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <TextBlock x:Name="InstalledNote" TextWrapping="Wrap" Margin="12,0,12,12"
-                           Style="{StaticResource PhoneTextSubtleStyle}" Text="" />
-                <ListBox x:Name="InstalledList" Grid.Row="1">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Margin="12,0,0,24">
-                                <TextBlock Text="{Binding Title}" Style="{StaticResource PhoneTextLargeStyle}"
-                                           Margin="0" TextTrimming="WordEllipsis" />
-                                <TextBlock Text="{Binding Detail}" Style="{StaticResource PhoneTextSubtleStyle}"
-                                           Margin="0" TextTrimming="WordEllipsis" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </Grid>
-        </phone:PivotItem>
-
     </phone:Pivot>
 
+    <!-- buttons are set per pivot page in code (UpdateAppBar); the menu stays the same -->
     <phone:PhoneApplicationPage.ApplicationBar>
         <shell:ApplicationBar Opacity="1">
-            <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/refresh.png" Text="refresh" Click="Refresh_Click" />
             <shell:ApplicationBar.MenuItems>
+                <shell:ApplicationBarMenuItem Text="settings" Click="Settings_Click" />
                 <shell:ApplicationBarMenuItem Text="log" Click="Log_Click" />
             </shell:ApplicationBar.MenuItems>
         </shell:ApplicationBar>

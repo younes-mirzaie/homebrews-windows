@@ -89,7 +89,7 @@ namespace AppLoader.Core
         /// <summary>Downloads the index and its signature, checks them, and keeps them.</summary>
         public static async Task<CatalogIndex> RefreshAsync()
         {
-            if (!Configured) throw new CatalogException("The online catalog isn't set up in this version of " + AppInfo.Name + ".");
+            if (!Configured) throw new CatalogException("The online library isn't set up in this version of " + AppInfo.Name + ".");
             string tmpIndex = Shell.LocalPath + "\\catalog-new.json", tmpSig = tmpIndex + ".sig";
             string fetch = Shell.Quote(Helper("rfxfetch.exe"));
             var r = await Shell.RunAsync(
@@ -98,7 +98,7 @@ namespace AppLoader.Core
                 "if errorlevel 1 exit /b 1\n" +
                 fetch + " " + Shell.Quote(CatalogConfig.IndexUrl + ".sig") + " " + Shell.Quote(tmpSig) + " --max-bytes 4096 --quiet\n", 120);
             if (!r.Reached) throw new CatalogException(r.Problem ?? Friendly.Slow);
-            if (r.ExitCode != 0) throw new CatalogException(Friendly.Download("the catalog", r.Output));
+            if (r.ExitCode != 0) throw new CatalogException(Friendly.Download("the library", r.Output));
 
             using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
             {
@@ -114,6 +114,34 @@ namespace AppLoader.Core
                 if (idx.Serial > HighestSerial) HighestSerial = idx.Serial;
                 return Current = idx;
             }
+        }
+
+        /// <summary>Where "download package" saves files: the phone's Downloads folder, where
+        /// file managers and other sideload tools find them.</summary>
+        public const string SaveFolder = @"C:\Data\Users\Public\Downloads";
+
+        /// <summary>Downloads a release's package file to the Downloads folder for the user to keep
+        /// or sideload another way. Pinned to the catalog's SHA-256 and size like an install.
+        /// Returns the saved file's path, or throws with plain words.</summary>
+        public static async Task<string> SaveAsync(CatalogApp app, CatalogRelease r)
+        {
+            string ext = r.Kind == "appxbundle" ? ".appxbundle" : r.Kind == "appx" ? ".appx" : ".xap";
+            var name = new StringBuilder();
+            foreach (char c in app.Name + "_" + r.Version)
+                name.Append((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '.' || c == '_' || c == '-' ? c : '_');
+            string dst = SaveFolder + "\\" + name + ext;
+            string fetch = Shell.Quote(Helper("rfxfetch.exe"));
+            // about 20 KB/s at worst, plus a minute
+            int timeout = 60 + (int)Math.Min(3600, r.Size / 20000);
+            var res = await Shell.RunAsync(
+                "if not exist " + Shell.Quote(SaveFolder) + " mkdir " + Shell.Quote(SaveFolder) + "\n" +
+                fetch + " " + Shell.Quote(r.Url) + " " + Shell.Quote(dst) + " --sha256 " + r.Sha256 +
+                    " --size " + r.Size + " --max-bytes " + r.Size + " --quiet\n" +
+                "if errorlevel 1 exit /b 1\n", timeout);
+            if (!res.Reached) throw new IOException(res.Problem ?? Friendly.Slow);
+            if (res.ExitCode != 0) throw new IOException(Friendly.Download(app.Name + " " + r.Version, res.Output));
+            AppLog.Add("saved " + app.Name + " " + r.Version, dst);
+            return dst;
         }
 
         /// <summary>The cached icon file for an app (named by its hash), or null if it has none.</summary>
@@ -147,6 +175,7 @@ namespace AppLoader.Core
             if (!r.Reached || r.Output.Contains("ERROR ")) AppLog.Add("some app icons didn't download", r.Problem ?? r.Output);
         }
 
+#if !WINDOWS_UWP
         /// <summary>The cached icon as an image, or null.</summary>
         public static System.Windows.Media.Imaging.BitmapImage LoadIcon(CatalogApp app)
         {
@@ -167,6 +196,38 @@ namespace AppLoader.Core
             }
             catch (Exception) { return null; }
         }
+#endif
+
+        /// <summary>Whether a release can run on this phone's OS (its min_os, e.g. 10.0.15063.0 for
+        /// a Windows 10 app). A release without min_os runs everywhere.</summary>
+        public static bool RunsHere(CatalogRelease r)
+        {
+            if (string.IsNullOrEmpty(r.MinOs)) return true;
+            Version need, have = OsVersion;
+            try { need = new Version(r.MinOs); } catch (Exception) { return true; }
+            return have == null || have >= need;
+        }
+
+        static Version _os;
+        /// <summary>The phone's OS version, or null when it can't be read.</summary>
+        public static Version OsVersion
+        {
+            get
+            {
+                if (_os != null) return _os;
+                try
+                {
+#if WINDOWS_UWP
+                    ulong v = ulong.Parse(Windows.System.Profile.AnalyticsInfo.VersionInfo.DeviceFamilyVersion);
+                    _os = new Version((int)(v >> 48), (int)((v >> 32) & 0xFFFF), (int)((v >> 16) & 0xFFFF), (int)(v & 0xFFFF));
+#else
+                    _os = Environment.OSVersion.Version;
+#endif
+                }
+                catch (Exception) { }
+                return _os;
+            }
+        }
 
         /// <summary>Joins the catalog with the installed apps and their versions.</summary>
         public static async Task<List<CatalogEntry>> EntriesAsync(CatalogIndex idx, List<InstalledApp> installed)
@@ -177,6 +238,12 @@ namespace AppLoader.Core
             var wanted = new List<string>();
             foreach (var app in idx.Apps)
             {
+                // apps made for a newer OS (Windows 10 versions on an 8.1 phone) aren't shown
+                if (!RunsHere(app.Latest)) continue;
+#if WINDOWS_UWP
+                // the Windows Phone 8.1 Unesbrews: this app replaces it here
+                if (app.ProductId == Installer10.ProductId81) continue;
+#endif
                 InstalledApp inst;
                 byId.TryGetValue(app.ProductId, out inst);
                 list.Add(new CatalogEntry { App = app, Installed = inst });

@@ -65,7 +65,12 @@ namespace AppLoader.Core
                     b.Append("if errorlevel 1 goto :fail" + n + "\n");
                 }
                 b.Append("echo UB " + n + " install\n");
+#if WINDOWS_UWP
+                // Windows 10 Mobile has no TH.exe: MinDeployAppX.exe (see Installer10.cs)
+                b.Append(Installer10.Line(pkg, it.Mode) + "\n");
+#else
                 b.Append("TH.exe " + pkg + " -" + it.Mode + "\n");
+#endif
                 b.Append("echo UB " + n + " th %errorlevel%\n");
                 b.Append("goto :next" + n + "\n");
                 b.Append(":fail" + n + "\n");
@@ -73,6 +78,10 @@ namespace AppLoader.Core
                 b.Append(":next" + n + "\n");
                 b.Append("del /f /q " + pkg + " >nul 2>&1\n");
             }
+#if WINDOWS_UWP
+            // keep this app allowed to reach the shell after it updates itself
+            b.Append(Installer10.LoopbackLine() + "\n");
+#endif
             b.Append("exit /b 0");
             return b.ToString();
         }
@@ -249,6 +258,19 @@ namespace AppLoader.Core
                 else parts.Add(it.Title + " didn't install");
             }
             return string.Join(", ", parts.ToArray()) + ".";
+        }
+
+        /// <summary>The result's headline, e.g. "Retrobird 0.4 updated" or "Couldn't install Retrobird".</summary>
+        public static string Title(InstallJob job, List<ItemState> states)
+        {
+            bool ok = AllOk(states);
+            if (job.Items.Count == 1)
+            {
+                var it = job.Items[0];
+                return ok ? it.What + (it.IsUpdate ? " updated" : " installed")
+                          : (it.IsUpdate ? "Couldn't update " : "Couldn't install ") + it.Title;
+            }
+            return ok ? job.Items.Count + " apps done" : "Not everything installed";
         }
 
         public static bool AllOk(List<ItemState> states)

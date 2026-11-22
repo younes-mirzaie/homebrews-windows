@@ -47,9 +47,17 @@ namespace AppLoader.Core
     {
         public const string Unchanged = "Nothing on the phone was changed.";
 
+#if WINDOWS_UWP
+        // Windows 10 apps may not connect to the phone itself until they are allowed to ("loopback")
+        public const string NoShell =
+            AppInfo.Name + " can't reach the phone's system shell. If this is the first time: open CMD Injector, " +
+            "go to the app manager, pick " + AppInfo.Name + " and tap Enable Loopback, then try again. " +
+            "Otherwise try again in a moment; restarting the phone brings the shell back.";
+#else
         public const string NoShell =
             "The phone's system shell didn't answer. Try again in a moment. If it never answers, " + AppInfo.Name +
             " needs a phone unlocked with CMD Injector, and restarting the phone brings the shell back.";
+#endif
 
         public const string Slow = "The phone took too long to answer. Try again in a moment.";
 
@@ -58,37 +66,59 @@ namespace AppLoader.Core
         /// <summary>A download (rfxfetch) that failed: its output in, plain words out.</summary>
         public static string Download(string what, string fetchOutput)
         {
+            AppLog.Add("download failed: " + what, fetchOutput);
+            string why;
+            switch (DownloadProblem(fetchOutput))
+            {
+                case "offline": why = "The phone couldn't reach the server. Check that Wi-Fi or mobile data is on, then try again."; break;
+                case "tls": why = "The server's security check failed. Make sure the phone's date and time are right, then try again."; break;
+                case "gone": why = "The file isn't on the server any more. Refresh the library and try again."; break;
+                case "server": why = "The server didn't hand over the file right now. Try again later."; break;
+                case "mismatch":
+                    why = "What arrived wasn't the exact file the library promised, so it was thrown away. Try again; " +
+                          "if it keeps happening, the library may be in the middle of an update."; break;
+                case "storage": why = "The file couldn't be saved. The phone may be out of storage space."; break;
+                default: why = "The download didn't complete. Try again."; break;
+            }
+            return "Couldn't download " + what + ". " + why;
+        }
+
+        /// <summary>The same in a few words, for a notification.</summary>
+        public static string DownloadBrief(string fetchOutput)
+        {
+            switch (DownloadProblem(fetchOutput))
+            {
+                case "offline": return "no connection to the server";
+                case "tls": return "the server's security check failed (check the date and time)";
+                case "gone": return "the file isn't on the server any more";
+                case "server": return "the server didn't hand over the file";
+                case "mismatch": return "the file didn't match the library";
+                case "storage": return "the phone is out of storage space";
+                default: return "the download didn't complete";
+            }
+        }
+
+        static string DownloadProblem(string fetchOutput)
+        {
             string err = "";
             foreach (var line in (fetchOutput ?? "").Split('\n'))
                 if (line.StartsWith("ERROR ", StringComparison.Ordinal)) err = line.Substring(6).Trim();
-            AppLog.Add("download failed: " + what, fetchOutput);
             string e = err.ToLowerInvariant();
-            string why;
             if (e.Contains("not found") || e.Contains("unreachable") || e.Contains("timed out") || e.Contains("refused") ||
                 e.Contains("reset") || e.Contains("closed") || e.Contains("connecting") || e.Contains("looking up"))
-                why = "The phone couldn't reach the server. Check that Wi-Fi or mobile data is on, then try again.";
-            else if (e.Contains("certificate") || e.Contains("secure connection"))
-                why = "The server's security check failed. Make sure the phone's date and time are right, then try again.";
-            else if (e.Contains("http 404") || e.Contains("http 410"))
-                why = "The file isn't on the server any more. Refresh the catalog and try again.";
-            else if (e.Contains("http "))
-                why = "The server didn't hand over the file right now. Try again later.";
-            else if (e.Contains("mismatch") || e.Contains("larger than the limit"))
-                why = "What arrived wasn't the exact file the catalog promised, so it was thrown away. Try again; " +
-                      "if it keeps happening, the catalog may be in the middle of an update.";
-            else if (e.Contains("can't write") || e.Contains("can't create") || e.Contains("can't rename"))
-                why = "The file couldn't be saved. The phone may be out of storage space.";
-            else
-                why = "The download didn't complete. Try again.";
-            return "Couldn't download " + what + ". " + why;
+                return "offline";
+            if (e.Contains("certificate") || e.Contains("secure connection")) return "tls";
+            if (e.Contains("http 404") || e.Contains("http 410")) return "gone";
+            if (e.Contains("http ")) return "server";
+            if (e.Contains("mismatch") || e.Contains("larger than the limit")) return "mismatch";
+            if (e.Contains("can't write") || e.Contains("can't create") || e.Contains("can't rename")) return "storage";
+            return "other";
         }
 
         /// <summary>An install TH.exe refused, in plain words.</summary>
         public static string InstallFailed(int exitCode, string output, InstallItem job)
         {
-            var m = Regex.Match(output ?? "", @"PacMan Error Code\s*=\s*(0x[0-9a-fA-F]{8})");
-            string code = m.Success ? m.Groups[1].Value.ToLowerInvariant() : HResult(output);
-            if (code == null && exitCode != 0 && exitCode != -1) code = "0x" + ((uint)exitCode).ToString("x8");
+            string code = ErrorCode(exitCode, output);
             string what = job.What;
             string why = job.KindChange && job.IsUpdate
                 ? "This version is built differently from the " + (job.ExistingTitle ?? job.Title) + " you have now " +
@@ -97,6 +127,37 @@ namespace AppLoader.Core
                   "then install it again from " + AppInfo.Name + ". Its saved settings go with the uninstall. " + Unchanged
                 : Reason(code, job);
             return (job.IsUpdate ? "Couldn't update " : "Couldn't install ") + what + ". " + why;   // the code itself is in the log
+        }
+
+        /// <summary>The same in a few words, for a notification: "Couldn't update X: it's running".</summary>
+        public static string InstallFailedBrief(int exitCode, string output, InstallItem job)
+        {
+            string why;
+            if (job.KindChange && job.IsUpdate) why = "it has to be uninstalled first (open " + AppInfo.Name + " for details)";
+            else switch (ErrorCode(exitCode, output))
+            {
+                case "0x8103012e": why = "it can't be stored on the SD card"; break;
+                case "0x81030137": why = job.IsUpdate ? "the phone didn't take it as an update" : "it doesn't fit this phone"; break;
+                case "0x800b0100": why = "the package isn't signed"; break;
+                case "0x80070005": why = "the phone refused access"; break;
+                case "0x80070070": why = "the phone is out of storage space"; break;
+                case "0x80073d02": why = "the app is running"; break;
+                case "0x80073d06": why = "a newer version is installed"; break;
+                case "0x80073cf3": why = "it needs a framework package the phone doesn't have"; break;
+                case "0x80073cf0": why = "the package is damaged"; break;
+                case "0x80073cfb": why = "this version is already installed"; break;
+                case "0x80073cf9": why = job.IsUpdate ? "the app is open, or the storage setting doesn't match" : "the app is open, or storage is full"; break;
+                default: why = "the phone's installer refused it"; break;
+            }
+            return (job.IsUpdate ? "Couldn't update " : "Couldn't install ") + job.Title + ": " + why + ".";
+        }
+
+        static string ErrorCode(int exitCode, string output)
+        {
+            var m = Regex.Match(output ?? "", @"PacMan Error Code\s*=\s*(0x[0-9a-fA-F]{8})");
+            string code = m.Success ? m.Groups[1].Value.ToLowerInvariant() : HResult(output);
+            if (code == null && exitCode != 0 && exitCode != -1) code = "0x" + ((uint)exitCode).ToString("x8");
+            return code;
         }
 
         static string Reason(string code, InstallItem job)

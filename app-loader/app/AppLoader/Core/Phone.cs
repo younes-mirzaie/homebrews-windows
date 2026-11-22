@@ -52,8 +52,12 @@ namespace AppLoader.Core
 
     public static class Phone
     {
-        // App Loader's own product ID: updating it ends this app while TH runs
+        // This app's own product ID: updating it ends this app while the installer runs
+#if WINDOWS_UWP
+        public const string OwnProductId = Installer10.ProductId;
+#else
         public const string OwnProductId = "0145BB18-825E-4266-9094-5CA73FEF56A9";
+#endif
 
         // Where downloads and copied files usually land
         static readonly string[] Roots =
@@ -89,6 +93,10 @@ namespace AppLoader.Core
         /// <summary>The installed apps, from the list TH.exe prints with its help.</summary>
         public static async Task<List<InstalledApp>> InstalledAppsAsync()
         {
+#if WINDOWS_UWP
+            // no TH.exe on Windows 10 Mobile: read the installed manifests instead
+            return await Installer10.InstalledAppsAsync();
+#else
             var r = await Shell.RunAsync("TH.exe -?", 90);
             if (!r.Reached) throw new IOException(r.Problem ?? Friendly.Slow);
             var apps = new Dictionary<string, InstalledApp>();
@@ -109,6 +117,7 @@ namespace AppLoader.Core
             foreach (var n in order)
                 if (apps[n].ProductId != null) list.Add(apps[n]);
             return list;
+#endif
         }
 
         public static Task<InstallOutcome> InstallAsync(FoundPackage found, Action<string> status)
@@ -162,7 +171,7 @@ namespace AppLoader.Core
                             if (!string.Equals(hash, expectedSha256.Trim(), StringComparison.OrdinalIgnoreCase))
                             {
                                 AppLog.Add("SHA-256 mismatch: " + found.Name, "expected " + expectedSha256 + "\ngot " + hash);
-                                outcome.Message = "The downloaded file isn't exactly the one the catalog lists, so it was thrown away. " +
+                                outcome.Message = "The downloaded file isn't exactly the one the library lists, so it was thrown away. " +
                                                   "Try again. " + Friendly.Unchanged;
                                 outcome.HashMismatch = true;
                                 return outcome;
@@ -187,7 +196,7 @@ namespace AppLoader.Core
                 if (expectedProductId != null && PackageInfo.Guid(expectedProductId) != pkg.ProductId)
                 {
                     AppLog.Add("product ID mismatch: " + found.Name, "expected " + expectedProductId + "\ngot " + pkg.ProductId);
-                    outcome.Message = "The downloaded file is a different app (" + pkg.Title + ") than the catalog says, " +
+                    outcome.Message = "The downloaded file is a different app (" + pkg.Title + ") than the library says, " +
                                       "so it wasn't installed. " + Friendly.Unchanged;
                     return outcome;
                 }
@@ -399,7 +408,9 @@ namespace AppLoader.Core
             var installed = await CatalogService.InstalledVersionsAsync(ids);
 
             var messages = new List<string>();
+            var briefs = new List<string>();
             bool all = true;
+            int done = 0;
             for (int n = 0; n < job.Items.Count; n++)
             {
                 var it = job.Items[n];
@@ -407,12 +418,33 @@ namespace AppLoader.Core
                 string v;
                 installed.TryGetValue(it.ProductId, out v);
                 bool ok;
-                messages.Add(Explain(it, st, v, out ok));
+                string brief;
+                messages.Add(Explain(it, st, v, out ok, out brief));
+                briefs.Add(brief);
                 all &= ok;
+                if (ok)
+                {
+                    done++;
+                    // installed through Unesbrews: it's in the library from now on
+                    Library.Add(it.ProductId, it.Title, v ?? it.Version);
+                }
             }
             outcome.Succeeded = all;
             outcome.Message = string.Join("\n\n", messages.ToArray());
-            Notify.Result(job.Run, all ? "done" : "not everything installed", outcome.Message);
+            if (job.Items.Count == 1)
+            {
+                // "Couldn't update Retrobird: the app is running." -> title and reason
+                string b = briefs[0];
+                int colon = b.IndexOf(": ", StringComparison.Ordinal);
+                if (colon > 0) Notify.Result(job.Run, b.Substring(0, colon), Capital(b.Substring(colon + 2)));
+                else Notify.Result(job.Run, b.TrimEnd('.'), all ? "Ready to use." : "");
+            }
+            else
+            {
+                string title = all ? (job.Items.TrueForAll(i => i.IsUpdate) ? job.Items.Count + " apps updated" : job.Items.Count + " apps installed")
+                                   : done + " of " + job.Items.Count + " apps installed";
+                Notify.Result(job.Run, title, string.Join(" ", briefs.ToArray()));
+            }
             InstallJob.Clear();
             Shell.Archive(job.Run, outcome.Message);
             Shell.Delete(job.Run);
@@ -430,6 +462,17 @@ namespace AppLoader.Core
         }
 
         /// <summary>One item's result in plain words; what's installed now decides, not only TH.</summary>
+        static string Explain(InstallItem it, ItemState st, string installed, out bool ok, out string brief)
+        {
+            string text = Explain(it, st, installed, out ok);
+            if (ok) brief = it.What + (it.IsUpdate ? " updated." : " installed.");
+            else if (st.Phase == "failed-download") brief = "Couldn't download " + it.Title + ": " + Friendly.DownloadBrief(st.Output) + ".";
+            else if (st.Phase != "finished") brief = "Couldn't " + (it.IsUpdate ? "update " : "install ") + it.Title + ": the installer stopped early.";
+            else if (st.ThExit == 0) brief = "Couldn't " + (it.IsUpdate ? "update " : "install ") + it.Title + ": close it and try again.";
+            else brief = Friendly.InstallFailedBrief(st.ThExit, st.Output, it);
+            return text;
+        }
+
         static string Explain(InstallItem it, ItemState st, string installed, out bool ok)
         {
             ok = false;
@@ -467,6 +510,11 @@ namespace AppLoader.Core
             catch (Exception) { return null; }
         }
 
+        static string Capital(string s)
+        {
+            return string.IsNullOrEmpty(s) ? s : char.ToUpperInvariant(s[0]) + s.Substring(1);
+        }
+
         static bool SameVersion(string a, string b)
         {
             try { return AppLoader.Catalog.CatalogIndex.CompareVersions(a, b) == 0; }
@@ -475,7 +523,11 @@ namespace AppLoader.Core
 
         static string Sha256Hex(Stream s)
         {
+#if WINDOWS_UWP
+            using (var sha = SHA256.Create())
+#else
             using (var sha = new SHA256Managed())
+#endif
             {
                 var hash = sha.ComputeHash(s);
                 var sb = new StringBuilder();

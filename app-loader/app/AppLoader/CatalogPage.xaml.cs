@@ -35,7 +35,8 @@ namespace AppLoader
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
-            Turnstile.In(LayoutRoot, e.NavigationMode == NavigationMode.Back);
+            if (Continuum.Pending && e.NavigationMode == NavigationMode.New) Continuum.FlyIn(AppName, LayoutRoot);
+            else Turnstile.FeatherIn(LayoutRoot, e.NavigationMode == NavigationMode.Back);
             string id;
             NavigationContext.QueryString.TryGetValue("id", out id);
             var idx = CatalogService.Current ?? CatalogService.LoadCached();
@@ -50,17 +51,23 @@ namespace AppLoader
         {
             var latest = _app.Latest;
             AppName.Text = _app.Name;
+            AppBy.Text = string.IsNullOrEmpty(_app.Author) ? "" : "by " + _app.Author;
             var icon = CatalogService.LoadIcon(_app);
             AppIcon.Source = icon;
             AppLetter.Text = icon == null ? _app.Name.Substring(0, 1).ToUpperInvariant() : "";
             Description.Text = string.IsNullOrEmpty(_app.Description) ? "No description." : _app.Description;
             var d = new StringBuilder();
-            if (!string.IsNullOrEmpty(_app.Author)) d.AppendLine("by " + _app.Author);
             if (!string.IsNullOrEmpty(_app.License)) d.AppendLine("license: " + _app.License);
-            if (!string.IsNullOrEmpty(_app.Source)) d.AppendLine("source: " + _app.Source);
             d.AppendLine("latest: " + latest.Version + ", " + MainPage.Size(latest.Size) + ", " + latest.Arch);
             d.Append("product ID: " + _app.ProductId);
             Details.Text = d.ToString();
+            Uri source;
+            if (!string.IsNullOrEmpty(_app.Source) && Uri.TryCreate(_app.Source, UriKind.Absolute, out source) && source.Scheme == "https")
+            {
+                SourceLink.NavigateUri = source;
+                SourceLink.Content = source.Host.EndsWith("github.com", StringComparison.OrdinalIgnoreCase) ? "source code on GitHub" : "source code";
+                SourceLink.Visibility = Visibility.Visible;
+            }
 
             string installed = _entry == null || _entry.Installed == null ? null
                 : (_entry.InstalledVersion ?? "a version " + AppInfo.Name + " can't read");
@@ -102,7 +109,7 @@ namespace AppLoader
         {
             if (_leaving || !NavigationService.CanGoBack) return;
             _leaving = true;
-            Turnstile.Out(LayoutRoot, true, () => NavigationService.GoBack());
+            Turnstile.FeatherOut(LayoutRoot, true, () => NavigationService.GoBack());
         }
 
         protected override void OnBackKeyPress(System.ComponentModel.CancelEventArgs e)
@@ -172,6 +179,27 @@ namespace AppLoader
             InstallBar.IsEnabled = !_busy && _installLabel != null;
         }
 
+        /// <summary>The latest package file to Downloads, for sideloading it another way.</summary>
+        async void Save_Click(object sender, EventArgs e)
+        {
+            if (_busy) return;
+            var r = _app.Latest;
+            try
+            {
+                Busy("downloading " + _app.Name + " " + r.Version + "...");
+                string path = await CatalogService.SaveAsync(_app, r);
+                Busy(null);
+                MessageBox.Show(_app.Name + " " + r.Version + " is in Downloads as " + System.IO.Path.GetFileName(path) +
+                                ". It was checked against the library's signed list. You can install it from the sideload page, or with any other tool.",
+                                "downloaded", MessageBoxButton.OK);
+            }
+            catch (Exception ex)
+            {
+                Busy(null);
+                MessageBox.Show(Friendly.Of(ex), "not downloaded", MessageBoxButton.OK);
+            }
+        }
+
         async void Install_Click(object sender, EventArgs e)
         {
             if (!_busy && _installLabel != null) await ConfirmAndInstallAsync(_app.Latest);
@@ -191,7 +219,7 @@ namespace AppLoader
                 return;
             }
             string what = _app.Name + " " + r.Version + " (" + MainPage.Size(r.Size) + ")";
-            if (MessageBox.Show("Download and install " + what + "?\n\nIt's checked against the signed catalog " +
+            if (MessageBox.Show("Download and install " + what + "?\n\nIt's checked against the library's signed list " +
                                 "before anything is installed. An installed app is updated in place and keeps its data. " +
                                 "It carries on if you leave " + AppInfo.Name + " or lock the phone, and a notification says how it went.",
                                 "install", MessageBoxButton.OKCancel) != MessageBoxResult.OK)

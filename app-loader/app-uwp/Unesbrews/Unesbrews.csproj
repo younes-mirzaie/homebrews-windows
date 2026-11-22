@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Unesbrews for Windows 10 Mobile (UWP, C#, .NET Native).
+     The logic is the Windows Phone 8.1 app's own core, linked from ..\..\app\AppLoader\Core and
+     ..\..\catalog\client, so a fix there reaches both apps. The few places where Windows 10 differs
+     are marked #if WINDOWS_UWP in those files, or live in Core10\ here. Build: ..\..\build-uwp.ps1 -->
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">ARM</Platform>
+    <ProjectGuid>{5A6F2C1E-3B7D-4E8A-9C21-7F0E4D6B8A31}</ProjectGuid>
+    <OutputType>AppContainerExe</OutputType>
+    <RootNamespace>Unesbrews</RootNamespace>
+    <AssemblyName>Unesbrews</AssemblyName>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
+    <TargetPlatformVersion Condition=" '$(TargetPlatformVersion)' == '' ">10.0.22621.0</TargetPlatformVersion>
+    <TargetPlatformMinVersion>10.0.15063.0</TargetPlatformMinVersion>
+    <MinimumVisualStudioVersion>15</MinimumVisualStudioVersion>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{A5A43C5B-DE2A-4C0C-9213-0A381AF9435A};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <LangVersion>7.3</LangVersion>
+    <!-- CS0436: Compat\IsolatedStorage.cs replaces .NET's IsolatedStorageFile on purpose -->
+    <NoWarn>$(NoWarn);CS0436;2008</NoWarn>
+    <AppxPackageSigningEnabled Condition=" '$(AppxPackageSigningEnabled)' == '' ">false</AppxPackageSigningEnabled>
+    <AppxBundle>Never</AppxBundle>
+    <AppxPackageDir>$(MSBuildProjectDirectory)\AppPackages\</AppxPackageDir>
+    <GenerateAppInstallerFile>False</GenerateAppInstallerFile>
+    <AppxAutoIncrementPackageRevision>False</AppxAutoIncrementPackageRevision>
+    <GenerateTestArtifacts>False</GenerateTestArtifacts>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|ARM'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\ARM\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
+    <NoWarn>$(NoWarn);CS0436;2008</NoWarn>
+    <DebugType>full</DebugType>
+    <PlatformTarget>ARM</PlatformTarget>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|ARM'">
+    <OutputPath>bin\ARM\Release\</OutputPath>
+    <DefineConstants>TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
+    <Optimize>true</Optimize>
+    <NoWarn>$(NoWarn);CS0436;2008</NoWarn>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>ARM</PlatformTarget>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+    <ErrorReport>prompt</ErrorReport>
+    <UseDotNetNativeToolchain>true</UseDotNetNativeToolchain>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <!-- for trying the UI on a PC; the phone build is ARM -->
+    <OutputPath>bin\x86\Release\</OutputPath>
+    <DefineConstants>TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
+    <Optimize>true</Optimize>
+    <NoWarn>$(NoWarn);CS0436;2008</NoWarn>
+    <PlatformTarget>x86</PlatformTarget>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+    <UseDotNetNativeToolchain>true</UseDotNetNativeToolchain>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AppxManifest Include="Package.appxmanifest"><SubType>Designer</SubType></AppxManifest>
+    <Content Include="Properties\Default.rd.xml" />
+    <Content Include="Assets\*.png" />
+  </ItemGroup>
+
+  <!-- the shared core, linked from the Windows Phone 8.1 app (not copied) -->
+  <ItemGroup>
+    <Compile Include="..\..\app\AppLoader\Core\AppInfo.cs"><Link>Core\AppInfo.cs</Link></Compile>
+    <Compile Include="..\..\app\AppLoader\Core\CatalogService.cs"><Link>Core\CatalogService.cs</Link></Compile>
+    <Compile Include="..\..\app\AppLoader\Core\Friendly.cs"><Link>Core\Friendly.cs</Link></Compile>
+    <Compile Include="..\..\app\AppLoader\Core\Jobs.cs"><Link>Core\Jobs.cs</Link></Compile>
+    <Compile Include="..\..\app\AppLoader\Core\LineSocket.cs"><Link>Core\LineSocket.cs</Link></Compile>
+    <Compile Include="..\..\app\AppLoader\Core\Notify.cs"><Link>Core\Notify.cs</Link></Compile>
+    <Compile Include="..\..\app\AppLoader\Core\PackageInfo.cs"><Link>Core\PackageInfo.cs</Link></Compile>
+    <Compile Include="..\..\app\AppLoader\Core\PackageInstaller.cs"><Link>Core\PackageInstaller.cs</Link></Compile>
+    <Compile Include="..\..\app\AppLoader\Core\Phone.cs"><Link>Core\Phone.cs</Link></Compile>
+    <Compile Include="..\..\app\AppLoader\Core\Shell.cs"><Link>Core\Shell.cs</Link></Compile>
+    <Compile Include="..\..\app\AppLoader\Core\Library.cs"><Link>Core\Library.cs</Link></Compile>
+    <Compile Include="..\..\app\AppLoader\Core\Prefs.cs"><Link>Core\Prefs.cs</Link></Compile>
+    <Compile Include="..\..\app\AppLoader\Core\Updates.cs"><Link>Core\Updates.cs</Link></Compile>
+    <Compile Include="..\..\app\AppLoader\Core\Zip.cs"><Link>Core\Zip.cs</Link></Compile>
+    <Compile Include="..\..\catalog\client\*.cs"><Link>Catalog\%(Filename)%(Extension)</Link></Compile>
+  </ItemGroup>
+
+  <!-- Windows 10 parts and the UI -->
+  <ItemGroup>
+    <Compile Include="Compat\IsolatedStorage.cs" />
+    <Compile Include="Core10\AppPackages.cs" />
+    <Compile Include="Core10\AppState.cs" />
+    <Compile Include="Core10\Background.cs" />
+    <Compile Include="Core10\BackgroundCheck.cs" />
+    <Compile Include="Core10\Dialogs.cs" />
+    <Compile Include="Core10\Installer10.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="App.xaml.cs"><DependentUpon>App.xaml</DependentUpon></Compile>
+    <Compile Include="MainPage.xaml.cs"><DependentUpon>MainPage.xaml</DependentUpon></Compile>
+    <Compile Include="Pages\AboutPage.xaml.cs"><DependentUpon>AboutPage.xaml</DependentUpon></Compile>
+    <Compile Include="Pages\AppPage.xaml.cs"><DependentUpon>AppPage.xaml</DependentUpon></Compile>
+    <Compile Include="Pages\CatalogPage.xaml.cs"><DependentUpon>CatalogPage.xaml</DependentUpon></Compile>
+    <Compile Include="Pages\InstalledPage.xaml.cs"><DependentUpon>InstalledPage.xaml</DependentUpon></Compile>
+    <Compile Include="Pages\LogPage.xaml.cs"><DependentUpon>LogPage.xaml</DependentUpon></Compile>
+    <Compile Include="Pages\PackagesPage.xaml.cs"><DependentUpon>PackagesPage.xaml</DependentUpon></Compile>
+    <Compile Include="Pages\SettingsPage.xaml.cs"><DependentUpon>SettingsPage.xaml</DependentUpon></Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <ApplicationDefinition Include="App.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></ApplicationDefinition>
+    <Page Include="MainPage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+    <Page Include="Pages\AboutPage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+    <Page Include="Pages\AppPage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+    <Page Include="Pages\CatalogPage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+    <Page Include="Pages\InstalledPage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+    <Page Include="Pages\LogPage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+    <Page Include="Pages\PackagesPage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+    <Page Include="Pages\SettingsPage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+  </ItemGroup>
+
+  <!-- native helpers, the same ARM binaries as the 8.1 app (built by ..\..\build.ps1 and
+       ..\..\fetch\build.ps1 into ..\..\app\AppLoader\Helper): the shell copies them to
+       C:\Data\SharedData\AppLoader and runs them from there -->
+  <ItemGroup>
+    <Content Include="..\..\app\AppLoader\Helper\aldetach.exe"><Link>Helper\aldetach.exe</Link></Content>
+    <Content Include="..\..\app\AppLoader\Helper\rfxfetch.exe"><Link>Helper\rfxfetch.exe</Link></Content>
+    <Content Include="..\..\app\AppLoader\Helper\*.dll"><Link>Helper\%(Filename)%(Extension)</Link></Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform">
+      <Version>6.2.14</Version>
+    </PackageReference>
+  </ItemGroup>
+  <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '15.0' ">
+    <VisualStudioVersion>15.0</VisualStudioVersion>
+  </PropertyGroup>
+  <Import Project="$(MSBuildExtensionsPath)\Microsoft\WindowsXaml\v$(VisualStudioVersion)\Microsoft.Windows.UI.Xaml.CSharp.targets" />
+</Project>

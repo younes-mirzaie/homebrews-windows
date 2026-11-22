@@ -45,6 +45,7 @@
     <Compile Include="..\AppLoader\Core\AppInfo.cs"><Link>Core\AppInfo.cs</Link></Compile>
     <Compile Include="..\AppLoader\Core\Jobs.cs"><Link>Core\Jobs.cs</Link></Compile>
     <Compile Include="..\AppLoader\Core\Notify.cs"><Link>Core\Notify.cs</Link></Compile>
+    <Compile Include="..\AppLoader\Core\Prefs.cs"><Link>Core\Prefs.cs</Link></Compile>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).$(TargetFrameworkVersion).Overrides.targets" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).CSharp.targets" />
