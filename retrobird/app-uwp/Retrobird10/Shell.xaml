@@ -71,7 +71,7 @@
         </StackPanel>
 
         <SplitView x:Name="Nav" Grid.Row="2" DisplayMode="Overlay" OpenPaneLength="256" CompactPaneLength="48"
-                   PaneBackground="{ThemeResource SystemControlBackgroundChromeMediumBrush}" PaneOpening="Nav_PaneOpening">
+                   PaneBackground="{ThemeResource SystemControlBackgroundChromeMediumBrush}">
             <SplitView.Pane>
                 <Grid>
                     <Grid.RowDefinitions>

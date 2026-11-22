@@ -84,9 +84,12 @@ namespace Retrobird
 
         // ---------------- navigation pane ----------------
 
-        void Hamburger_Click(object sender, RoutedEventArgs e) { Nav.IsPaneOpen = !Nav.IsPaneOpen; }
-
-        void Nav_PaneOpening(SplitView sender, object args) { var t = RefreshPaneAsync(); }
+        // (SplitView.PaneOpening only exists from build 16299; Windows 10 Mobile is 15063 to 15254)
+        void Hamburger_Click(object sender, RoutedEventArgs e)
+        {
+            if (!Nav.IsPaneOpen) { var t = RefreshPaneAsync(); }
+            Nav.IsPaneOpen = !Nav.IsPaneOpen;
+        }
 
         bool Overlaid { get { return Nav.DisplayMode == SplitViewDisplayMode.Overlay || Nav.DisplayMode == SplitViewDisplayMode.CompactOverlay; } }
 
