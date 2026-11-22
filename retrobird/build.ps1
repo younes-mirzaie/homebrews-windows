@@ -1,0 +1,102 @@
+# Builds Retrobird: the mail engine (helper\*.c on NSPR/NSS, ARM, as rbmail.dll, which runs
+# inside the app) and the Windows Phone 8.1 (WinRT XAML) app.
+#   .\build.ps1               engine + app, build only (Retrobird_<version>_ARM.appx)
+#   .\build.ps1 -Deploy       also installs on the USB-connected phone (phone must be unlocked)
+# Needs the retrofox phone toolchain and its NSS build (retrofox notes/step2-nss.md):
+#   C:\rfx\sdk, C:\rfx\uxp (NSS headers), C:\rfx\obj-js (NSPR), C:\rfx\obj-nss (static NSS libs,
+#   nssckbi.dll, targets.json). It never rebuilds those, so it is safe next to a Gecko build.
+# Normally the app is installed over Wi-Fi instead (no USB phone is assumed).
+param([switch]$Deploy, [string]$Configuration = "Release")
+$ErrorActionPreference = "Stop"
+$here = $PSScriptRoot
+$Llvm = "C:\Program Files\LLVM\bin"
+$Sdk = "C:\rfx\sdk"
+$UcrtVer = "10.0.22621.0"
+$Rfx = if ($env:RETROFOX_ROOT) { $env:RETROFOX_ROOT } else { "C:\rfx\retrofox" }
+$Uxp = if ($env:UXP_ROOT) { $env:UXP_ROOT } else { "C:\rfx\uxp" }
+$NsprInc = "C:\rfx\obj-js\dist\include\nspr"
+$NsprLib = "C:\rfx\obj-js\config\external\nspr"
+$NsprBin = "C:\rfx\obj-js\dist\bin"
+$NssObj = "C:\rfx\obj-nss"
+$PhoneLib = "$Rfx\build\lib"
+$pf86 = ${env:ProgramFiles(x86)}
+
+# ---- helper (native ARM) ----
+foreach ($need in @("$Llvm\clang-cl.exe", "$Sdk\vc143\include", "$PhoneLib\kernel32.lib", "$NsprInc\nspr.h",
+                    "$NssObj\targets.json", "$NssObj\lib\ssl.lib", "$NssObj\lib\nssckbi.dll", "$NsprBin\nspr4.dll")) {
+    if (-not (Test-Path $need)) { throw "Missing $need (set up by the retrofox build; see retrofox notes/step2-nss.md)" }
+}
+$nss = "$Uxp\security\nss"
+$targets = Get-Content "$NssObj\targets.json" -Raw | ConvertFrom-Json
+# Same platform defines as libssl (NSPR's headers need WIN95/_WINDOWS)
+$sslDefines = $targets.ssl.defines | Where-Object { $_ -ne "IN_LIBSSL" } | ForEach-Object { "-D$_" }
+$obj = "$here\helper\build"
+New-Item -ItemType Directory -Force $obj | Out-Null
+$cflags = @("--target=thumbv7-pc-windows-msvc", "/MT", "/O2", "/W3", "-X", "/c", "/nologo",
+    "-I", "$Rfx\shim\include", "-FI", "retrofox-phone.h",
+    "-D_ARM_WINAPI_PARTITION_DESKTOP_SDK_AVAILABLE=1", "-DXP_PC", "-DWIN32",
+    # XP_WIN changes NSPR's PRNetAddr layout; it must match how NSPR/NSS were built
+    "-DXP_WIN", "-DXP_WIN32", "-DNSS_USE_STATIC_LIBS",
+    "-D_CRT_SECURE_NO_WARNINGS", "-D_WINSOCK_DEPRECATED_NO_WARNINGS",
+    "/imsvc", "$Sdk\vc143\include", "/imsvc", "$Sdk\ucrt\Include\$UcrtVer\ucrt",
+    "/imsvc", "$Sdk\win81\Include\um", "/imsvc", "$Sdk\win81\Include\shared",
+    "-I", $NsprInc) + $sslDefines
+foreach ($d in Get-ChildItem "$nss\lib" -Directory) { $cflags += @("-I", $d.FullName) }
+# blapit.h (freebl) includes ecl-exp.h, one level further down
+$cflags += @("-I", "$nss\lib\freebl\ecl")
+
+$sources = "buf", "codec", "mime", "net", "store", "imap", "smtp", "oauth", "server"
+Write-Host "Compiling the mail engine (ARM)..." -ForegroundColor Cyan
+foreach ($s in $sources) {
+    # RB_DLL: server.c exports RetrobirdMain instead of main. Compiler warnings go to stderr:
+    # under "Stop", PowerShell 5.1 would turn them into errors. Only the exit code decides.
+    & { $ErrorActionPreference = "Continue"
+        & "$Llvm\clang-cl.exe" @cflags -DRB_DLL "$here\helper\$s.c" "/Fo$obj\$s.obj" 2>&1 | ForEach-Object { "$_" } }
+    if ($LASTEXITCODE -ne 0) { throw "$s.c compile failed" }
+}
+$static = "nssutil", "nssb", "nssdev", "nsspki", "certdb", "certhi", "cryptohi", "pk11wrap_static",
+          "nss_static", "softokn_static", "freebl_static", "sqlite", "ssl", "nssckfw" | ForEach-Object { "$_.lib" }
+$lflags = @("/nologo", "/machine:arm", "/dll",
+    "/libpath:$Sdk\vc143\lib\arm", "/libpath:$Sdk\ucrt\Lib\$UcrtVer\ucrt\arm", "/libpath:$Sdk\phonekit\lib\ARM",
+    "/libpath:$PhoneLib", "/libpath:$NssObj\lib",
+    "/libpath:$NsprLib\pr", "/libpath:$NsprLib\libc", "/libpath:$NsprLib\ds") + $static +
+    @("nspr4.lib", "plc4.lib", "plds4.lib", "ws2_32.lib", "libcmt.lib", "libvcruntime.lib", "libucrt.lib",
+      "WindowsPhoneCore.lib", "kernel32.lib", "retrofox-compat.lib")
+$objs = $sources | ForEach-Object { "$obj\$_.obj" }
+& { $ErrorActionPreference = "Continue"
+    & "$Llvm\lld-link.exe" @lflags @objs "/out:$obj\rbmail.dll" 2>&1 | ForEach-Object { "$_" } }
+if ($LASTEXITCODE -ne 0) { throw "rbmail.dll link failed" }
+# The app can't load a DLL whose imports the phone doesn't offer it (0.1.3-0.1.8 failed so, with a
+# static ws2_32 import): list what rbmail.dll imports and refuse ws2_32, which net.c looks up at run time.
+$readobj = "$Llvm\llvm-readobj.exe"
+if (Test-Path $readobj) {
+    $imports = & $readobj --coff-imports "$obj\rbmail.dll" | Select-String "Name: " | ForEach-Object { $_.Line.Trim() }
+    Write-Host ("rbmail.dll imports: " + (($imports | Where-Object { $_ -match "\.dll" -or $_ -match "\.DLL" }) -join ", "))
+    if ($imports -match "(?i)ws2_32") { throw "rbmail.dll imports ws2_32 directly; the app couldn't load it" }
+}
+
+$helperDir = "$here\app\Retrobird\Helper"
+New-Item -ItemType Directory -Force $helperDir | Out-Null
+Copy-Item -Force "$obj\rbmail.dll" $helperDir
+Copy-Item -Force "$NssObj\lib\nssckbi.dll" $helperDir
+foreach ($dll in "nspr4.dll", "plc4.dll", "plds4.dll") { Copy-Item -Force "$NsprBin\$dll" $helperDir }
+Write-Host "rbmail.dll built" -ForegroundColor Green
+
+# ---- app ----
+$msbuild = "$pf86\MSBuild\14.0\Bin\MSBuild.exe"
+if (-not (Test-Path $msbuild)) { throw "MSBuild 14 not found. Install VS 2015 first." }
+Write-Host "Building the app..." -ForegroundColor Cyan
+& $msbuild "$here\app\Retrobird.sln" "/p:Configuration=$Configuration" "/p:Platform=ARM" /p:VisualStudioVersion=14.0 /m /v:minimal
+if ($LASTEXITCODE -ne 0) { throw "App build failed." }
+$appx = Get-ChildItem "$here\app\Retrobird" -Recurse -Filter *.appx | Where-Object { $_.FullName -match "_ARM" } |
+        Sort-Object LastWriteTime -Descending | Select-Object -First 1
+if (-not $appx) { throw "No .appx produced." }
+Write-Host "Package: $($appx.FullName)" -ForegroundColor Green
+if (-not $Deploy) { return }
+
+$deploy = "$pf86\Microsoft SDKs\Windows Phone\v8.1\Tools\AppDeploy\AppDeployCmd.exe"
+if (-not (Test-Path $deploy)) {
+    $found = Get-ChildItem "$pf86\Microsoft SDKs\Windows Phone" -Recurse -Filter AppDeployCmd.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($found) { $deploy = $found.FullName } else { throw "AppDeployCmd.exe not found." }
+}
+& $deploy /installlaunch $appx.FullName /targetdevice:de

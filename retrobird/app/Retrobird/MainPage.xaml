@@ -1,0 +1,81 @@
+<local:RbPage
+    x:Class="Retrobird.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Retrobird"
+    NavigationCacheMode="Required">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- account and folder: tap the account to switch inboxes, the folder name to switch folders -->
+        <StackPanel Style="{StaticResource RbHeaderPanel}">
+            <TextBlock x:Name="AccountText" Text="RETROBIRD" Style="{StaticResource RbAppTitle}"
+                       Tapped="AccountText_Tapped" local:Motion.Tilt="True"/>
+            <TextBlock x:Name="FolderText" Text="inbox" Style="{StaticResource RbPageTitle}"
+                       Tapped="FolderText_Tapped" local:Motion.Tilt="True"/>
+        </StackPanel>
+
+        <TextBlock x:Name="StatusText" Grid.Row="1" Margin="19,0,19,9.5" Visibility="Collapsed"
+                   Style="{StaticResource RbSmall}" Tapped="StatusText_Tapped"/>
+
+        <!-- first run, or the engine couldn't start -->
+        <StackPanel x:Name="EmptyPanel" Grid.Row="2" Margin="19,0,19,0" Visibility="Collapsed">
+            <TextBlock x:Name="EmptyText" FontSize="20.27" TextWrapping="Wrap"
+                       Text="Add a mail account to get started. Retrobird works with any IMAP mail service."/>
+            <Button x:Name="AddButton" Content="add account" Style="{StaticResource RbButton}" Margin="0,12,0,0" Click="AddButton_Click"/>
+            <Button x:Name="RetryButton" Content="try again" Style="{StaticResource RbButton}" Margin="0,12,0,0"
+                    Click="RetryButton_Click" Visibility="Collapsed"/>
+        </StackPanel>
+
+        <ListView x:Name="Items" Grid.Row="2" Padding="19,0,19,0" SelectionMode="None" IsItemClickEnabled="True"
+                  ItemClick="Items_ItemClick" ItemContainerStyle="{StaticResource RbStretchItem}">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="5"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <!-- unread: an accent bar, and the sender in semibold -->
+                        <Rectangle Fill="{ThemeResource PhoneAccentBrush}" Visibility="{Binding UnreadVisibility}" Margin="0,3,0,3"/>
+                        <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Sender}" FontWeight="{Binding SenderWeight}" FontSize="20.27"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Grid.Column="1" Text="{Binding DateText}" Margin="10,0,0,0" VerticalAlignment="Bottom"
+                                           Style="{StaticResource RbSmall}" TextWrapping="NoWrap"/>
+                            </Grid>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding SubjectText}" Style="{StaticResource RbSubtle}" TextWrapping="NoWrap"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Grid.Column="1" Text="{Binding AccountLabel}" Visibility="{Binding AccountVisibility}"
+                                           Margin="10,0,0,0" Style="{StaticResource RbSmall}" TextWrapping="NoWrap"
+                                           Foreground="{ThemeResource PhoneAccentBrush}" MaxWidth="120" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Grid.Column="2" Text="{Binding Glyphs}" FontFamily="Segoe UI Symbol" Margin="10,0,0,0"
+                                           Style="{StaticResource RbSubtle}" TextWrapping="NoWrap"/>
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+            <ListView.Footer>
+                <Button x:Name="MoreButton" Content="load older messages" Style="{StaticResource RbButton}"
+                        Click="MoreButton_Click" Visibility="Collapsed"/>
+            </ListView.Footer>
+        </ListView>
+    </Grid>
+</local:RbPage>

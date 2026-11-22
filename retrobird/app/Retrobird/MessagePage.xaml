@@ -1,0 +1,53 @@
+<local:RbPage
+    x:Class="Retrobird.MessagePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Retrobird">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Margin="19,12,19,4">
+            <TextBlock x:Name="SubjectText" Style="{StaticResource RbItemTitle}" TextWrapping="Wrap" MaxHeight="96"/>
+            <!-- tap the sender line for all recipients -->
+            <Grid Tapped="Header_Tapped" Background="Transparent">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="FromText" Foreground="{ThemeResource PhoneAccentBrush}" TextTrimming="CharacterEllipsis"
+                           FontSize="18.13"/>
+                <TextBlock x:Name="DateText" Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Bottom"
+                           Style="{StaticResource RbSmall}" TextWrapping="NoWrap"/>
+            </Grid>
+            <TextBlock x:Name="DetailsText" Visibility="Collapsed" Margin="0,4,0,0" Style="{StaticResource RbSmall}"/>
+            <TextBlock x:Name="ErrorText" Visibility="Collapsed" Margin="0,8,0,0" Style="{StaticResource RbSubtle}"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Margin="19,0,19,0">
+            <Button x:Name="ImagesButton" Content="show pictures" Style="{StaticResource RbButton}" Visibility="Collapsed"
+                    Click="ImagesButton_Click"/>
+            <!-- attachments as a short list: no sideways scrolling on the page -->
+            <ListView x:Name="Attachments" Visibility="Collapsed" SelectionMode="None" IsItemClickEnabled="True"
+                      ItemClick="Attachments_ItemClick" MaxHeight="130">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal" Margin="0,2,0,6">
+                            <TextBlock Text="&#xE16C;" FontFamily="Segoe UI Symbol" FontSize="18.13" Margin="0,0,8,0"
+                                       Foreground="{ThemeResource PhoneAccentBrush}"/>
+                            <TextBlock Text="{Binding Label}" FontSize="18.13" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </StackPanel>
+
+        <!-- the mail engine has already removed scripts and blocked remote pictures from the HTML -->
+        <WebView x:Name="Body" Grid.Row="2" Opacity="0"
+                 NavigationStarting="Body_NavigationStarting" NavigationCompleted="Body_NavigationCompleted"/>
+    </Grid>
+</local:RbPage>
