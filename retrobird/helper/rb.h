@@ -191,6 +191,7 @@ typedef struct {
     uint32_t size;
     int att;
     char *from, *to, *subject, *msgid;
+    char *preview;               /* first words of the text, one line; NULL until fetched */
 } msg_entry;
 
 typedef struct {
@@ -220,6 +221,8 @@ msg_entry *cache_find(folder_cache *fc, uint32_t uid);
 msg_entry *cache_insert(folder_cache *fc, uint32_t uid);
 void cache_remove(folder_cache *fc, uint32_t uid);
 void entry_free(msg_entry *e);
+/* a one-line preview from the header fields and the first bytes of a message's text */
+char *make_preview(const char *hdr, size_t hdr_len, const char *text, size_t text_len);
 /* ---- oauth.c: Microsoft sign-in (device code flow) and XOAUTH2 ---- */
 typedef struct { char *device_code, *user_code, *verify_uri; int interval, expires_in; } oauth_device;
 int oauth_device_start(const char *client, oauth_device *d, char *err, size_t errlen);

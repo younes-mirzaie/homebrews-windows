@@ -6,7 +6,9 @@
 #include <ctype.h>
 #include "rb.h"
 
-#define FETCH_ITEMS "(UID FLAGS INTERNALDATE RFC822.SIZE ENVELOPE BODY.PEEK[HEADER.FIELDS (CONTENT-TYPE)])"
+#define PREVIEW_ITEMS "BODY.PEEK[HEADER.FIELDS (CONTENT-TYPE CONTENT-TRANSFER-ENCODING)] BODY.PEEK[TEXT]<0.4096>"
+#define FETCH_ITEMS "(UID FLAGS INTERNALDATE RFC822.SIZE ENVELOPE " PREVIEW_ITEMS ")"
+#define PREVIEW_BACKFILL 50     /* newest messages without a preview that a sync fills in */
 
 /* ---------------- response parser ---------------- */
 
@@ -678,10 +680,25 @@ typedef struct {
     uint32_t *seen_uids;    /* for flag refresh: uids the server still has */
     int nseen, capseen;
     int flags_only;
+    int preview_only;       /* backfill: only set previews of cached messages */
     uint32_t *search;
     int nsearch, capsearch;
     buf_t *body;            /* BODY[] for fetch_message */
 } sync_ctx;
+
+/* The preview from a FETCH that carried the header fields and the first bytes of the text. */
+static void set_preview(msg_entry *e, inode *l)
+{
+    const inode *h = NULL, *t = NULL;
+    for (int i = 0; i + 1 < l->n; i += 2) {
+        const char *k = inode_str(&l->kids[i]);
+        if (starts_with_i(k, "BODY[HEADER")) h = &l->kids[i + 1];
+        else if (starts_with_i(k, "BODY[TEXT]")) t = &l->kids[i + 1];
+    }
+    if (!t) return;
+    free(e->preview);
+    e->preview = make_preview(h && h->s ? h->s : "", h && h->s ? h->len : 0, t->s ? t->s : "", t->s ? t->len : 0);
+}
 
 static void on_fetch(void *ctx, inode *it, int n)
 {
@@ -721,6 +738,11 @@ static void on_fetch(void *ctx, inode *it, int n)
         if (e) flags_from(fetch_item(l, "FLAGS"), e->flags);
         return;
     }
+    if (s->preview_only) {
+        e = cache_find(s->fc, uid);
+        if (e) set_preview(e, l);
+        return;
+    }
     if (uid < s->min_new) return;
     e = cache_find(s->fc, uid);
     if (!e) { e = cache_insert(s->fc, uid); s->added++; }
@@ -750,12 +772,33 @@ static void on_fetch(void *ctx, inode *it, int n)
             free(ct);
         }
     }
+    set_preview(e, l);
 }
 
 static int cmp_u32(const void *a, const void *b)
 {
     uint32_t x = *(const uint32_t *)a, y = *(const uint32_t *)b;
     return x < y ? -1 : x > y;
+}
+
+/* Messages cached before previews existed get theirs, newest first, a few at a time. A failure
+   here leaves them without one; the next sync tries again. */
+static void backfill_previews(imap *m, sync_ctx *s)
+{
+    buf_t set;
+    int n = 0;
+    buf_init(&set);
+    for (int i = s->fc->n - 1; i >= 0 && n < PREVIEW_BACKFILL; i--) {
+        if (s->fc->e[i].preview) continue;
+        buf_printf(&set, "%s%u", set.len ? "," : "", s->fc->e[i].uid);
+        n++;
+    }
+    if (set.len) {
+        s->preview_only = 1;
+        imap_cmd(m, on_fetch, s, "UID FETCH %s (UID " PREVIEW_ITEMS ")", set.p);
+        s->preview_only = 0;
+    }
+    buf_free(&set);
 }
 
 int sync_folder(account *a, imap *m, const char *folder, folder_cache *fc, int *added)
@@ -799,6 +842,7 @@ int sync_folder(account *a, imap *m, const char *folder, folder_cache *fc, int *
     }
     fc->uidnext = m->uidnext;
     *added = s.added;
+    backfill_previews(m, &s);
     return cache_save(fc);
 }
 

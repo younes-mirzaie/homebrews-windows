@@ -299,7 +299,8 @@ namespace Retrobird.Core
                 ml.Items.Add(new MessageSummary
                 {
                     Uid = uid, Flags = F(f, 2), Date = Format.FromUnix(F(f, 3)), Size = size,
-                    HasAttachment = F(f, 5) == "1", From = F(f, 6), To = F(f, 7), Subject = F(f, 8)
+                    HasAttachment = F(f, 5) == "1", From = F(f, 6), To = F(f, 7), Subject = F(f, 8),
+                    Preview = F(f, 9)
                 });
             }
             return ml;

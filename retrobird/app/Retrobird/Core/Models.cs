@@ -98,6 +98,8 @@ namespace Retrobird.Core
         /// <summary>The account's short name, shown on each row in all inboxes (a property, so
         /// the list template can bind to it).</summary>
         public string AccountLabel { get; set; }
+        /// <summary>The first words of the text, one line (empty until the engine fetched it).</summary>
+        public string Preview { get; set; }
 
         public string Flags
         {
@@ -142,6 +144,7 @@ namespace Retrobird.Core
         public Visibility RepliedVisibility { get { return V(IsAnswered); } }
         public Visibility AttachmentVisibility { get { return V(HasAttachment); } }
         public Visibility AccountVisibility { get { return V(!string.IsNullOrEmpty(AccountLabel)); } }
+        public Visibility PreviewVisibility { get { return V(!string.IsNullOrEmpty(Preview)); } }
 #if WINDOWS_UWP
         // Windows 10: unread mail has the sender in Semibold (the Mail app's convention)
         public FontWeight SenderWeight { get { return IsUnread ? FontWeights.SemiBold : FontWeights.Normal; } }

@@ -100,7 +100,11 @@
                         <FontIcon FontFamily="{StaticResource IconFont}" Glyph="&#xE7C1;" FontSize="12" Margin="4,0,0,0"
                                   Visibility="{Binding FlagVisibility}" Foreground="{ThemeResource SystemControlForegroundAccentBrush}" />
                     </StackPanel>
-                    <TextBlock Grid.Row="2" Text="{Binding AccountLabel}" Visibility="{Binding AccountVisibility}"
+                    <TextBlock Grid.Row="2" Text="{Binding Preview}" Visibility="{Binding PreviewVisibility}"
+                               Style="{StaticResource BodyTextBlockStyle}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                               Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding AccountLabel}" Visibility="{Binding AccountVisibility}"
+                               Margin="8,0,0,0" MaxWidth="96" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
                                Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
                 </Grid>
             </DataTemplate>

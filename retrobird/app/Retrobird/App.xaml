@@ -118,6 +118,8 @@
                                    Style="{StaticResource RbSmall}" TextWrapping="NoWrap" MaxWidth="96" TextTrimming="CharacterEllipsis"
                                    VerticalAlignment="Center"/>
                     </Grid>
+                    <TextBlock Text="{Binding Preview}" Visibility="{Binding PreviewVisibility}" FontSize="16" TextWrapping="NoWrap"
+                               TextTrimming="CharacterEllipsis" Foreground="{ThemeResource RbSubtleBrush}"/>
                 </StackPanel>
             </DataTemplate>
             <DataTemplate x:Key="RbDayHeader">
