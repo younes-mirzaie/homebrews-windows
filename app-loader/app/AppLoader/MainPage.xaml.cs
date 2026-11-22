@@ -280,7 +280,12 @@ namespace AppLoader
                 .OrderBy(r => pending.Contains(r.Entry) ? 0 : 1)
                 .ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
                 .ToList();
-            InstalledList.ItemsSource = rows;
+            var updates = rows.Where(r => r.Highlight).ToList();
+            var current = rows.Where(r => !r.Highlight).ToList();
+            UpdatesList.ItemsSource = updates;
+            InstalledList.ItemsSource = current;
+            UpdatesHeader.Visibility = updates.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            CurrentHeader.Visibility = updates.Count > 0 && current.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
             _updatesReady = pending.Count;
             UpdateAppBar();
             if (rows.Count == 0)
@@ -343,25 +348,29 @@ namespace AppLoader
             var list = (ListBox)sender;
             var row = list.SelectedItem as CatalogRow;
             list.SelectedItem = null;
-            if (row == null) return;
+            if (row != null) OpenDetails(row.Entry);
+        }
+
+        /// <summary>An app's page, with the turnstile out.</summary>
+        void OpenDetails(CatalogEntry entry)
+        {
             if (_waiting)
             {
                 MessageBox.Show("An install is still running. Try again once it's done.", "busy", MessageBoxButton.OK);
                 return;
             }
-            var uri = new Uri("/CatalogPage.xaml?id=" + Uri.EscapeDataString(row.Entry.App.Id), UriKind.Relative);
+            var uri = new Uri("/CatalogPage.xaml?id=" + Uri.EscapeDataString(entry.App.Id), UriKind.Relative);
             if (_leaving) return;
             _leaving = true;
             Turnstile.Out(Pivots, false, () => { _leaving = false; NavigationService.Navigate(uri); });
         }
 
-        void InstalledList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        void InstalledRow_Tap(object sender, System.Windows.Input.GestureEventArgs e)
         {
-            var row = InstalledList.SelectedItem as CatalogRow;
+            var row = ((FrameworkElement)sender).DataContext as CatalogRow;
             if (row == null) return;
-            if (row.Entry != null) { CatalogList_SelectionChanged(sender, e); return; }
-            InstalledList.SelectedItem = null;
-            // a sideloaded app that isn't in the catalog: open it
+            if (row.Entry != null) { OpenDetails(row.Entry); return; }
+            // a sideloaded app that isn't in the library: open it
             try
             {
                 foreach (var p in Windows.Phone.Management.Deployment.InstallationManager.FindPackages())

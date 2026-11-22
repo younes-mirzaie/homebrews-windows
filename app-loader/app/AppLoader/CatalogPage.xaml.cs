@@ -35,7 +35,7 @@ namespace AppLoader
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
-            Turnstile.In(LayoutRoot, e.NavigationMode == NavigationMode.Back);
+            Turnstile.FeatherIn(LayoutRoot, e.NavigationMode == NavigationMode.Back);
             string id;
             NavigationContext.QueryString.TryGetValue("id", out id);
             var idx = CatalogService.Current ?? CatalogService.LoadCached();
@@ -108,7 +108,7 @@ namespace AppLoader
         {
             if (_leaving || !NavigationService.CanGoBack) return;
             _leaving = true;
-            Turnstile.Out(LayoutRoot, true, () => NavigationService.GoBack());
+            Turnstile.FeatherOut(LayoutRoot, true, () => NavigationService.GoBack());
         }
 
         protected override void OnBackKeyPress(System.ComponentModel.CancelEventArgs e)

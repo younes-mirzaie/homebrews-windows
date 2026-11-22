@@ -26,7 +26,7 @@ namespace AppLoader
             NotificationsBox.IsChecked = Prefs.Notifications;
             AutoUpdatesBox.IsChecked = Prefs.AutoUpdates;
             Explain();
-            Turnstile.In(LayoutRoot, e.NavigationMode == NavigationMode.Back);
+            Turnstile.FeatherIn(LayoutRoot, e.NavigationMode == NavigationMode.Back);
         }
 
         void Explain()
@@ -56,7 +56,7 @@ namespace AppLoader
             e.Cancel = true;
             if (_leaving) return;
             _leaving = true;
-            Turnstile.Out(LayoutRoot, true, () => NavigationService.GoBack());
+            Turnstile.FeatherOut(LayoutRoot, true, () => NavigationService.GoBack());
         }
     }
 }

@@ -2,6 +2,9 @@
 //  - Tilt: every tappable list row, button or marked element tilts toward the finger and
 //    depresses on touch-down, and springs back on release or when the finger starts scrolling.
 //  - Turnstile: pages swing in and out around their left edge on navigation (350 ms in, 250 ms out).
+//  - Feathered turnstile: the same, row by row (title, header, then each block of content), the
+//    rows starting 40 ms apart (forward in, back out) or 50 ms apart (forward out, back in), the
+//    axis 0.2 element widths left of each row.
 using System;
 using System.Windows;
 using System.Windows.Controls;
@@ -120,6 +123,59 @@ namespace AppLoader.Core
         public static void Out(UIElement root, bool back, Action done)
         {
             Run(root, 0, back ? -80 : 50, 250, EaseIn, true, done);
+        }
+
+        /// <summary>Feathered turnstile in: the page's rows swing in one after the other.</summary>
+        public static void FeatherIn(Panel root, bool back)
+        {
+            Feather(root, back ? 50 : -80, 0, 350, Ease, back ? 50 : 40, false, null);
+        }
+
+        /// <summary>Feathered turnstile out, then calls done.</summary>
+        public static void FeatherOut(Panel root, bool back, Action done)
+        {
+            Feather(root, 0, back ? -80 : 50, 250, EaseIn, back ? 40 : 50, true, done);
+        }
+
+        /// <summary>The rows of a page: the children of each top-level panel, and of the panel
+        /// inside a top-level ScrollViewer.</summary>
+        static System.Collections.Generic.List<UIElement> Rows(Panel root)
+        {
+            var rows = new System.Collections.Generic.List<UIElement>();
+            foreach (var child in root.Children)
+            {
+                var sv = child as ScrollViewer;
+                var panel = child as StackPanel ?? (sv != null ? sv.Content as StackPanel : null);
+                if (panel != null) foreach (var c in panel.Children) { if (c.Visibility == Visibility.Visible) rows.Add(c); }
+                else rows.Add(child);
+            }
+            return rows;
+        }
+
+        static void Feather(Panel root, double from, double to, int ms, IEasingFunction ease, int stagger, bool hideAfter, Action done)
+        {
+            var rows = Rows(root);
+            root.Opacity = 1;
+            var sb = new Storyboard();
+            for (int i = 0; i < rows.Count; i++)
+            {
+                var proj = new PlaneProjection { CenterOfRotationX = -0.2, RotationY = from };
+                rows[i].Projection = proj;
+                var rot = new DoubleAnimation
+                {
+                    From = from, To = to, Duration = TimeSpan.FromMilliseconds(ms), EasingFunction = ease,
+                    BeginTime = TimeSpan.FromMilliseconds(Math.Min(i, 10) * stagger),   // rows far below the fold go together
+                };
+                Storyboard.SetTarget(rot, proj);
+                Storyboard.SetTargetProperty(rot, new PropertyPath("RotationY"));
+                sb.Children.Add(rot);
+            }
+            sb.Completed += (s, e) =>
+            {
+                if (hideAfter) root.Opacity = 0;
+                if (done != null) done();
+            };
+            sb.Begin();
         }
 
         // Opacity snaps, never fades: visible for the whole swing, hidden once a page has left

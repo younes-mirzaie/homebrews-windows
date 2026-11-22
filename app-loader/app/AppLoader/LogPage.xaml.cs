@@ -23,7 +23,7 @@ namespace AppLoader
             base.OnNavigatedTo(e);
             LogText.Text = AppLog.Text;
             AppLog.Changed += _changed;
-            Turnstile.In(LayoutRoot, e.NavigationMode == NavigationMode.Back);
+            Turnstile.FeatherIn(LayoutRoot, e.NavigationMode == NavigationMode.Back);
         }
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)
@@ -39,7 +39,7 @@ namespace AppLoader
             e.Cancel = true;
             if (_leaving) return;
             _leaving = true;
-            Turnstile.Out(LayoutRoot, true, () => NavigationService.GoBack());
+            Turnstile.FeatherOut(LayoutRoot, true, () => NavigationService.GoBack());
         }
     }
 }

@@ -12,7 +12,7 @@ if the CMD Injector app is gone, so App Loader can also put CMD Injector back.
 
 ## Sections
 
-Since 0.1.17.0 (8.1) and 0.3.0.0 (Windows 10). From 0.1.18.0 the 8.1 UI follows the newer Metro design skill: contextual app bar per pivot page, Windows Phone toggle switches in settings, updates in the accent color.
+Since 0.1.17.0 (8.1) and 0.3.0.0 (Windows 10). From 0.1.18.0 the 8.1 UI follows the newer Metro design skill: contextual app bar per pivot page, Windows Phone toggle switches in settings, updates in the accent color; 0.1.19.0 adds feathered turnstiles on the inner pages, installed grouped under "updates" and "up to date" headers, and list spacing from the skill.
 
 - **library** (called catalog before 0.1.18.0 / 0.3.1.0): apps from the signed catalog (below). An app's page links to its source code and
   can download the package file to Downloads, for sideloading it some other way.
