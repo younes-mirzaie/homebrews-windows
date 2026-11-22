@@ -58,7 +58,7 @@ namespace AppLoader.Core
             if (lib.Count == 0 || !CatalogService.Configured) return;
             CatalogIndex idx;
             try { idx = await CatalogService.RefreshAsync(); }
-            catch (Exception e) { AppLog.Add("background update check: no catalog", e.Message); return; }
+            catch (Exception e) { AppLog.Add("background update check: no library list", e.Message); return; }
             var have = await CatalogService.InstalledAsync(lib.Select(a => a.ProductId).ToList());
             var entries = new List<CatalogEntry>();
             foreach (var app in idx.Apps)

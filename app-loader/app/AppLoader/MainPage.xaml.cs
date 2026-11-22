@@ -32,6 +32,12 @@ namespace AppLoader
             public string Name { get; set; }
             public string Detail { get; set; }
             public string State { get; set; }
+            public bool Highlight;   // an update is ready: the state line is in the accent color
+            public Visibility DetailVisibility { get { return string.IsNullOrEmpty(Detail) ? Visibility.Collapsed : Visibility.Visible; } }
+            public System.Windows.Media.Brush StateBrush
+            {
+                get { return (System.Windows.Media.Brush)Application.Current.Resources[Highlight ? "PhoneAccentBrush" : "PhoneSubtleBrush"]; }
+            }
         }
 
         /// <summary>The catalog joined with what's installed, for the details page.</summary>
@@ -43,6 +49,11 @@ namespace AppLoader
         public MainPage()
         {
             InitializeComponent();
+            _refresh = new ApplicationBarIconButton(new Uri("/Assets/AppBar/refresh.png", UriKind.Relative)) { Text = "refresh" };
+            _refresh.Click += Refresh_Click;
+            _updateAll = new ApplicationBarIconButton(new Uri("/Assets/AppBar/updateall.png", UriKind.Relative)) { Text = "update all" };
+            _updateAll.Click += UpdateAll_Click;
+            UpdateAppBar();
             Pivots.Title = AppInfo.Name.ToUpperInvariant();
         }
 
@@ -71,6 +82,7 @@ namespace AppLoader
             _busy = text != null;
             Progress.IsVisible = _busy;
             Progress.Text = text ?? "";
+            UpdateAppBar();
         }
 
         // Keeps the phone from locking during an install (the install itself runs on without the
@@ -90,7 +102,7 @@ namespace AppLoader
                 }).ToList();
                 PackagesNote.Text = found.Count == 0
                     ? "No .xap or .appx files in Downloads or Documents (on the phone or the SD card). Download one and tap refresh."
-                    : "Tap a package to install it, the same way catalog apps are installed. Apps you already have are updated in place, with their data.";
+                    : "Tap a package to install it, the same way library apps are installed. Apps you already have are updated in place, with their data.";
 
                 Busy("reading the installed apps...");
                 var apps = await Phone.InstalledAppsAsync();
@@ -199,14 +211,14 @@ namespace AppLoader
         {
             if (!CatalogService.Configured)
             {
-                CatalogNote.Text = "The online catalog isn't set up in this version of " + AppInfo.Name + ".";
+                CatalogNote.Text = "The online library isn't set up in this version of " + AppInfo.Name + ".";
                 return;
             }
             CatalogIndex idx = null;
             string problem = null;
             try
             {
-                Busy("downloading the catalog...");
+                Busy("downloading the library...");
                 idx = await CatalogService.RefreshAsync();
             }
             catch (Exception ex)
@@ -216,7 +228,7 @@ namespace AppLoader
             }
             if (idx == null)
             {
-                CatalogNote.Text = problem ?? "No catalog yet.";
+                CatalogNote.Text = problem ?? "The library isn't loaded yet.";
                 return;
             }
             Busy("checking installed versions...");
@@ -232,9 +244,10 @@ namespace AppLoader
                 Name = x.App.Name,
                 Detail = string.IsNullOrEmpty(x.App.Description) ? x.App.Latest.Version : x.App.Description,
                 State = StateText(x),
+                Highlight = x.UpdateAvailable,
             }).ToList();
             CatalogList.ItemsSource = rows;
-            CatalogNote.Text = (problem != null ? "Offline, showing the last catalog (" + problem + "). " : "") +
+            CatalogNote.Text = (problem != null ? "Offline, showing the library from last time (" + problem + "). " : "") +
                                rows.Count + " apps. Tap one for details.";
         }
 
@@ -259,6 +272,7 @@ namespace AppLoader
                         Name = name,
                         Letter = string.IsNullOrEmpty(name) ? "?" : name.Substring(0, 1).ToUpperInvariant(),
                         Icon = x != null ? CatalogService.LoadIcon(x.App) : null,
+                        Highlight = pending.Contains(x),
                         State = pending.Contains(x) ? "update to " + x.App.Latest.Version + " · you have " + have
                               : (string.IsNullOrEmpty(have) ? "installed" : "version " + have) + (x == null ? " · sideloaded" : ""),
                     };
@@ -267,9 +281,10 @@ namespace AppLoader
                 .ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
                 .ToList();
             InstalledList.ItemsSource = rows;
-            UpdateAllButton.Visibility = pending.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            _updatesReady = pending.Count;
+            UpdateAppBar();
             if (rows.Count == 0)
-                InstalledNote.Text = "Apps you install with " + AppInfo.Name + ", from the catalog or the sideload page, show up here.";
+                InstalledNote.Text = "Apps you install with " + AppInfo.Name + ", from the library or the sideload page, show up here.";
             else if (pending.Count > 0)
                 InstalledNote.Text = pending.Count + (pending.Count == 1 ? " update is" : " updates are") + " ready." +
                                      (Prefs.AutoUpdates ? "" : " Automatic updates can be turned on in settings.");
@@ -279,7 +294,7 @@ namespace AppLoader
 
         /// <summary>Downloads and installs every available update, one after the other, then says
         /// how each one went. Unesbrews itself goes last, because updating it closes the app.</summary>
-        async void UpdateAll_Click(object sender, RoutedEventArgs e)
+        async void UpdateAll_Click(object sender, EventArgs e)
         {
             if (_busy || _waiting || Entries == null) return;
             var todo = Updates.Pending(Entries)
@@ -289,7 +304,7 @@ namespace AppLoader
             bool self = todo.Any(x => x.App.ProductId == Phone.OwnProductId);
             long total = todo.Sum(x => x.App.Latest.Size);
             if (MessageBox.Show("Update " + string.Join(", ", todo.Select(x => x.App.Name)) + " (" + Size(total) + ")?\n\n" +
-                                "Each one is checked against the signed catalog, then updated in place with its data. " +
+                                "Each one is checked against the library's signed list, then updated in place with its data. " +
                                 "Close those apps first. It carries on if you leave " + AppInfo.Name + " or lock the phone, " +
                                 "and a notification says how it went." +
                                 (self ? " " + AppInfo.Name + " updates itself last and closes; open it again afterwards." : ""),
@@ -369,6 +384,29 @@ namespace AppLoader
             _leaving = true;
             Turnstile.Out(Pivots, false, () => { _leaving = false; NavigationService.Navigate(new Uri("/LogPage.xaml", UriKind.Relative)); });
         }
+
+        readonly ApplicationBarIconButton _refresh, _updateAll;
+        int _updatesReady;
+
+        /// <summary>The app bar's buttons for the pivot page shown: "update all" only on the
+        /// installed page while updates are ready, "refresh" everywhere.</summary>
+        void UpdateAppBar()
+        {
+            var bar = ApplicationBar;
+            if (bar == null || _refresh == null) return;
+            bool updates = Pivots.SelectedIndex == 1 && _updatesReady > 0;
+            bool has = bar.Buttons.Contains(_updateAll);
+            if (has != updates || !bar.Buttons.Contains(_refresh))
+            {
+                bar.Buttons.Clear();
+                if (updates) bar.Buttons.Add(_updateAll);
+                bar.Buttons.Add(_refresh);
+            }
+            _refresh.IsEnabled = !_busy && !_waiting;
+            _updateAll.IsEnabled = !_busy && !_waiting;
+        }
+
+        void Pivots_SelectionChanged(object sender, SelectionChangedEventArgs e) { UpdateAppBar(); }
 
         void Refresh_Click(object sender, EventArgs e)
         {

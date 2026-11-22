@@ -36,12 +36,14 @@
                         <Image x:Name="AppIcon" Stretch="UniformToFill" />
                     </Grid>
                 </Border>
-                <TextBlock x:Name="AppName" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center"
-                           Style="{StaticResource PhoneTextExtraLargeStyle}" TextWrapping="Wrap" />
+                <StackPanel Grid.Column="1" Margin="12,-8,0,0" VerticalAlignment="Center">
+                    <TextBlock x:Name="AppName" Margin="0" Style="{StaticResource PhoneTextExtraLargeStyle}" TextWrapping="Wrap" />
+                    <TextBlock x:Name="AppBy" Margin="0" Style="{StaticResource PhoneTextSubtleStyle}" TextWrapping="Wrap" />
+                </StackPanel>
             </Grid>
         </StackPanel>
         <ScrollViewer Grid.Row="1">
-            <StackPanel Margin="12,0,12,24">
+            <StackPanel Margin="12,0,12,95">
                 <TextBlock x:Name="Status" Style="{StaticResource PhoneTextAccentStyle}" TextWrapping="Wrap"
                            FontSize="{StaticResource PhoneFontSizeMedium}" Margin="12,0,12,24" />
                 <TextBlock x:Name="Description" Style="{StaticResource PhoneTextNormalStyle}" TextWrapping="Wrap" Margin="12,0,12,24" />

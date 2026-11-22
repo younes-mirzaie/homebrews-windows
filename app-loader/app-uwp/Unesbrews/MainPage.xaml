@@ -59,7 +59,7 @@
             </Button>
             <TextBlock x:Name="PageTitle" Grid.Column="1" Margin="4,0,12,0" VerticalAlignment="Center"
                        Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" CharacterSpacing="75"
-                       TextTrimming="CharacterEllipsis" Text="CATALOG" />
+                       TextTrimming="CharacterEllipsis" Text="LIBRARY" />
         </Grid>
 
         <!-- what's running: an indeterminate bar and one line of text -->

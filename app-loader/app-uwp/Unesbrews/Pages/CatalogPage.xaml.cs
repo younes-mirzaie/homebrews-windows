@@ -21,7 +21,7 @@ namespace Unesbrews.Pages
 
     public sealed partial class CatalogPage : Page, ITitled
     {
-        public string Title { get { return "Catalog"; } }
+        public string Title { get { return "Library"; } }
 
         public CatalogPage() { InitializeComponent(); }
 
@@ -47,7 +47,7 @@ namespace Unesbrews.Pages
             if (entries == null)
             {
                 List.ItemsSource = null;
-                Note.Text = AppState.CatalogProblem ?? (AppState.Busy ? "Loading the catalog..." : "Tap Refresh to load the catalog.");
+                Note.Text = AppState.CatalogProblem ?? (AppState.Busy ? "Loading the library..." : "Tap Refresh to load the library.");
                 return;
             }
             List.ItemsSource = Rows(entries.OrderBy(x => x.App.Name, StringComparer.CurrentCultureIgnoreCase));
@@ -72,7 +72,7 @@ namespace Unesbrews.Pages
         {
             RefreshButton.IsEnabled = !AppState.Busy && !AppState.Waiting;
             if (AppState.Entries == null)
-                Note.Text = AppState.CatalogProblem ?? (AppState.Busy ? "Loading the catalog..." : "Tap Refresh to load the catalog.");
+                Note.Text = AppState.CatalogProblem ?? (AppState.Busy ? "Loading the library..." : "Tap Refresh to load the library.");
         }
 
         void List_ItemClick(object sender, ItemClickEventArgs e)

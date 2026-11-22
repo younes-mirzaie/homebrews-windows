@@ -10,8 +10,8 @@
     SupportedOrientations="Portrait" Orientation="Portrait"
     shell:SystemTray.IsVisible="True">
 
-    <!-- Settings, like the phone's own settings pages: a check box per choice with a line of
-         explanation, then what the app is and its version. -->
+    <!-- Settings, like the phone's own settings pages: a toggle switch per choice (applies at
+         once, no save button) with a line of explanation, then what the app is and its version. -->
     <Grid x:Name="LayoutRoot" Background="{StaticResource PhoneBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -24,12 +24,12 @@
         </StackPanel>
         <ScrollViewer Grid.Row="1">
             <StackPanel Margin="12,0,12,24">
-                <CheckBox x:Name="NotificationsBox" Content="notifications" Click="Notifications_Click" />
-                <TextBlock Style="{StaticResource PhoneTextSubtleStyle}" TextWrapping="Wrap" Margin="12,-6,12,24"
+                <ToggleButton x:Name="NotificationsBox" Content="Notifications" Style="{StaticResource ToggleSwitchStyle}" Click="Notifications_Click" />
+                <TextBlock Style="{StaticResource PhoneTextSubtleStyle}" TextWrapping="Wrap" Margin="12,6,12,36"
                            Text="Download progress, and whether an install worked (and why not, if it didn't)." />
 
-                <CheckBox x:Name="AutoUpdatesBox" Content="automatic updates" Click="AutoUpdates_Click" />
-                <TextBlock x:Name="AutoUpdatesNote" Style="{StaticResource PhoneTextSubtleStyle}" TextWrapping="Wrap" Margin="12,-6,12,24" />
+                <ToggleButton x:Name="AutoUpdatesBox" Content="Automatic updates" Style="{StaticResource ToggleSwitchStyle}" Click="AutoUpdates_Click" />
+                <TextBlock x:Name="AutoUpdatesNote" Style="{StaticResource PhoneTextSubtleStyle}" TextWrapping="Wrap" Margin="12,6,12,36" />
 
                 <TextBlock Text="about" Style="{StaticResource PhoneTextGroupHeaderStyle}" Margin="12,12,12,6" />
                 <TextBlock x:Name="AboutText" Style="{StaticResource PhoneTextNormalStyle}" TextWrapping="Wrap" Margin="12,0,12,24" />

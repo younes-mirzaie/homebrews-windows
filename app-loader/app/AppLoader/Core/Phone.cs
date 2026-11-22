@@ -171,7 +171,7 @@ namespace AppLoader.Core
                             if (!string.Equals(hash, expectedSha256.Trim(), StringComparison.OrdinalIgnoreCase))
                             {
                                 AppLog.Add("SHA-256 mismatch: " + found.Name, "expected " + expectedSha256 + "\ngot " + hash);
-                                outcome.Message = "The downloaded file isn't exactly the one the catalog lists, so it was thrown away. " +
+                                outcome.Message = "The downloaded file isn't exactly the one the library lists, so it was thrown away. " +
                                                   "Try again. " + Friendly.Unchanged;
                                 outcome.HashMismatch = true;
                                 return outcome;
@@ -196,7 +196,7 @@ namespace AppLoader.Core
                 if (expectedProductId != null && PackageInfo.Guid(expectedProductId) != pkg.ProductId)
                 {
                     AppLog.Add("product ID mismatch: " + found.Name, "expected " + expectedProductId + "\ngot " + pkg.ProductId);
-                    outcome.Message = "The downloaded file is a different app (" + pkg.Title + ") than the catalog says, " +
+                    outcome.Message = "The downloaded file is a different app (" + pkg.Title + ") than the library says, " +
                                       "so it wasn't installed. " + Friendly.Unchanged;
                     return outcome;
                 }

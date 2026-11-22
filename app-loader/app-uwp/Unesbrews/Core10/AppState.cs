@@ -19,7 +19,7 @@ namespace Unesbrews
         public static string PackagesProblem;
         public static List<InstalledApp> Installed;
         public static List<CatalogEntry> Entries;        // catalog joined with what's installed
-        public static string CatalogNote;                // e.g. "Offline, showing the last catalog"
+        public static string CatalogNote;                // e.g. "Offline, showing the library from last time"
         public static string CatalogProblem;             // why there is no catalog at all
         public static DateTimeOffset? LastRefresh;
 
@@ -121,14 +121,14 @@ namespace Unesbrews
             CatalogProblem = null;
             if (!CatalogService.Configured)
             {
-                CatalogProblem = "The online catalog isn't set up in this version of " + AppInfo.Name + ".";
+                CatalogProblem = "The online library isn't set up in this version of " + AppInfo.Name + ".";
                 return;
             }
             CatalogIndex idx;
             string problem = null;
             try
             {
-                SetStatus("Downloading the catalog...");
+                SetStatus("Downloading the library...");
                 idx = await CatalogService.RefreshAsync();
             }
             catch (Exception e)
@@ -136,8 +136,8 @@ namespace Unesbrews
                 problem = Friendly.Of(e);
                 idx = CatalogService.LoadCached();
             }
-            if (idx == null) { CatalogProblem = problem ?? "There's no catalog yet."; return; }
-            if (problem != null) CatalogNote = "You're seeing the catalog from your last visit. " + problem;
+            if (idx == null) { CatalogProblem = problem ?? "The library isn't loaded yet."; return; }
+            if (problem != null) CatalogNote = "You're seeing the library from your last visit. " + problem;
             SetStatus("Checking installed versions...");
             Entries = await CatalogService.EntriesAsync(idx, Installed ?? new List<InstalledApp>());
             if (Installed != null) Library.StartWith(Entries);
@@ -186,7 +186,7 @@ namespace Unesbrews
             if (Busy || Waiting) { await Dialogs.TellAsync("Please wait", Friendly.Busy); return; }
             bool self = entries.Any(e => e.App.ProductId == Phone.OwnProductId);
             if (!await Dialogs.AskAsync(title, question +
-                    "\n\nEverything is checked against the signed catalog before it's installed. Apps you have are updated in place and keep their data. " +
+                    "\n\nEverything is checked against the library's signed list before it's installed. Apps you have are updated in place and keep their data. " +
                     "It carries on if you leave " + AppInfo.Name + " or lock the phone, and a notification says how it went." +
                     (self ? "\n\n" + AppInfo.Name + " updates itself last and closes. Open it again afterwards." : ""),
                     action))
@@ -242,7 +242,7 @@ namespace Unesbrews
             }
             SetStatus(null);
             await Dialogs.TellAsync("Downloaded", app.Name + " " + r.Version + " is in Downloads as " + System.IO.Path.GetFileName(path) +
-                ". It was checked against the signed catalog. You can install it from Sideload, or with any other tool.");
+                ". It was checked against the library's signed list. You can install it from Sideload, or with any other tool.");
         }
 
         /// <summary>Installs a package file chosen with the file picker: copied into the app's

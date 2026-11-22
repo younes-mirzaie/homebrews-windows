@@ -50,12 +50,12 @@ namespace AppLoader
         {
             var latest = _app.Latest;
             AppName.Text = _app.Name;
+            AppBy.Text = string.IsNullOrEmpty(_app.Author) ? "" : "by " + _app.Author;
             var icon = CatalogService.LoadIcon(_app);
             AppIcon.Source = icon;
             AppLetter.Text = icon == null ? _app.Name.Substring(0, 1).ToUpperInvariant() : "";
             Description.Text = string.IsNullOrEmpty(_app.Description) ? "No description." : _app.Description;
             var d = new StringBuilder();
-            if (!string.IsNullOrEmpty(_app.Author)) d.AppendLine("by " + _app.Author);
             if (!string.IsNullOrEmpty(_app.License)) d.AppendLine("license: " + _app.License);
             d.AppendLine("latest: " + latest.Version + ", " + MainPage.Size(latest.Size) + ", " + latest.Arch);
             d.Append("product ID: " + _app.ProductId);
@@ -189,7 +189,7 @@ namespace AppLoader
                 string path = await CatalogService.SaveAsync(_app, r);
                 Busy(null);
                 MessageBox.Show(_app.Name + " " + r.Version + " is in Downloads as " + System.IO.Path.GetFileName(path) +
-                                ". It was checked against the signed catalog. You can install it from the sideload page, or with any other tool.",
+                                ". It was checked against the library's signed list. You can install it from the sideload page, or with any other tool.",
                                 "downloaded", MessageBoxButton.OK);
             }
             catch (Exception ex)
@@ -218,7 +218,7 @@ namespace AppLoader
                 return;
             }
             string what = _app.Name + " " + r.Version + " (" + MainPage.Size(r.Size) + ")";
-            if (MessageBox.Show("Download and install " + what + "?\n\nIt's checked against the signed catalog " +
+            if (MessageBox.Show("Download and install " + what + "?\n\nIt's checked against the library's signed list " +
                                 "before anything is installed. An installed app is updated in place and keeps its data. " +
                                 "It carries on if you leave " + AppInfo.Name + " or lock the phone, and a notification says how it went.",
                                 "install", MessageBoxButton.OKCancel) != MessageBoxResult.OK)

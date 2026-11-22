@@ -89,7 +89,7 @@ namespace AppLoader.Core
         /// <summary>Downloads the index and its signature, checks them, and keeps them.</summary>
         public static async Task<CatalogIndex> RefreshAsync()
         {
-            if (!Configured) throw new CatalogException("The online catalog isn't set up in this version of " + AppInfo.Name + ".");
+            if (!Configured) throw new CatalogException("The online library isn't set up in this version of " + AppInfo.Name + ".");
             string tmpIndex = Shell.LocalPath + "\\catalog-new.json", tmpSig = tmpIndex + ".sig";
             string fetch = Shell.Quote(Helper("rfxfetch.exe"));
             var r = await Shell.RunAsync(
@@ -98,7 +98,7 @@ namespace AppLoader.Core
                 "if errorlevel 1 exit /b 1\n" +
                 fetch + " " + Shell.Quote(CatalogConfig.IndexUrl + ".sig") + " " + Shell.Quote(tmpSig) + " --max-bytes 4096 --quiet\n", 120);
             if (!r.Reached) throw new CatalogException(r.Problem ?? Friendly.Slow);
-            if (r.ExitCode != 0) throw new CatalogException(Friendly.Download("the catalog", r.Output));
+            if (r.ExitCode != 0) throw new CatalogException(Friendly.Download("the library", r.Output));
 
             using (var iso = IsolatedStorageFile.GetUserStoreForApplication())
             {

@@ -45,7 +45,7 @@ namespace Unesbrews
             _installed = new NavEntry { Label = "Installed", Glyph = "\uE71D", Page = typeof(InstalledPage) };
             _top = new List<NavEntry>
             {
-                new NavEntry { Label = "Catalog", Glyph = "\uE719", Page = typeof(CatalogPage) },
+                new NavEntry { Label = "Library", Glyph = "\uE719", Page = typeof(CatalogPage) },
                 _installed,
                 new NavEntry { Label = "Sideload", Glyph = "\uE8B5", Page = typeof(PackagesPage) },
             };

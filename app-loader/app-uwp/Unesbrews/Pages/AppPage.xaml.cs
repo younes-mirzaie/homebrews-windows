@@ -59,7 +59,7 @@ namespace Unesbrews.Pages
         {
             if (_entry == null)
             {
-                AppName.Text = "This app isn't in the catalog any more.";
+                AppName.Text = "This app isn't in the library any more.";
                 MainAction.Visibility = Visibility.Collapsed;
                 SaveButton.IsEnabled = false;
                 return;

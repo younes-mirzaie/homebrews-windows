@@ -74,7 +74,7 @@ namespace Unesbrews.Pages
             UpdateAllButton.Visibility = pending.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
             if (rows.Count == 0)
                 Note.Text = AppState.CatalogProblem ?? (AppState.Busy ? "Reading the installed apps..."
-                    : "Apps you install with " + AppInfo.Name + ", from the catalog or with Sideload, show up here.");
+                    : "Apps you install with " + AppInfo.Name + ", from the library or with Sideload, show up here.");
             else if (pending.Count > 0)
                 Note.Text = pending.Count + (pending.Count == 1 ? " update is" : " updates are") + " ready. Tap Update all, or tap an app for details." +
                             (Prefs.AutoUpdates ? "" : " Automatic updates can be turned on in Settings.");

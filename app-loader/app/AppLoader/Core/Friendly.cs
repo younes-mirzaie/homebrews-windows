@@ -72,11 +72,11 @@ namespace AppLoader.Core
             {
                 case "offline": why = "The phone couldn't reach the server. Check that Wi-Fi or mobile data is on, then try again."; break;
                 case "tls": why = "The server's security check failed. Make sure the phone's date and time are right, then try again."; break;
-                case "gone": why = "The file isn't on the server any more. Refresh the catalog and try again."; break;
+                case "gone": why = "The file isn't on the server any more. Refresh the library and try again."; break;
                 case "server": why = "The server didn't hand over the file right now. Try again later."; break;
                 case "mismatch":
-                    why = "What arrived wasn't the exact file the catalog promised, so it was thrown away. Try again; " +
-                          "if it keeps happening, the catalog may be in the middle of an update."; break;
+                    why = "What arrived wasn't the exact file the library promised, so it was thrown away. Try again; " +
+                          "if it keeps happening, the library may be in the middle of an update."; break;
                 case "storage": why = "The file couldn't be saved. The phone may be out of storage space."; break;
                 default: why = "The download didn't complete. Try again."; break;
             }
@@ -92,7 +92,7 @@ namespace AppLoader.Core
                 case "tls": return "the server's security check failed (check the date and time)";
                 case "gone": return "the file isn't on the server any more";
                 case "server": return "the server didn't hand over the file";
-                case "mismatch": return "the file didn't match the catalog";
+                case "mismatch": return "the file didn't match the library";
                 case "storage": return "the phone is out of storage space";
                 default: return "the download didn't complete";
             }
