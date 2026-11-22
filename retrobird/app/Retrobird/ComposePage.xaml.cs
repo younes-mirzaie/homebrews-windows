@@ -38,8 +38,8 @@ namespace Retrobird
             CcBox.Text = _draft.Cc ?? "";
             BccBox.Text = _draft.Bcc ?? "";
             if (CcBox.Text.Length > 0 || BccBox.Text.Length > 0) ShowCc();
-            TitleText.Text = _draft.ReplyUid != 0 || !string.IsNullOrEmpty(_draft.InReplyTo) ? "reply"
-                           : (_draft.Subject ?? "").StartsWith("Fwd:") ? "forward" : "new message";
+            TitleText.Text = Ui.Text(_draft.ReplyUid != 0 || !string.IsNullOrEmpty(_draft.InReplyTo) ? "reply"
+                           : (_draft.Subject ?? "").StartsWith("Fwd:") ? "forward" : "new message");
             SubjectBox.Text = _draft.Subject ?? "";
             BodyBox.Text = _draft.Body ?? "";
             Loaded += (s, a) =>
@@ -84,7 +84,7 @@ namespace Retrobird
         void ShowFrom()
         {
             var acct = AppState.CurrentAccount;
-            FromText.Text = acct == null ? "RETROBIRD" : "FROM " + acct.Email.ToUpperInvariant();
+            FromText.Text = Ui.Caps(acct == null ? "Retrobird" : "From " + acct.Email);
             FromChevron.Visibility = CanPickFrom ? Visibility.Visible : Visibility.Collapsed;
         }
 

@@ -1,7 +1,8 @@
 # Retrobird
 
 A Thunderbird-style mail client for Windows Phone 8.1 (made on a Lumia 820). Works with any
-IMAP/SMTP mail service, runs entirely inside the app, modern TLS.
+IMAP/SMTP mail service, runs entirely inside the app, modern TLS. A native Windows 10 version
+shares its code: see [app-uwp](app-uwp/README.md).
 
 - Several accounts; settings filled in from the address for common providers (Gmail, Yahoo,
   iCloud, GMX, WEB.DE, Fastmail, Yandex, Zoho) or guessed, editable by hand.
@@ -47,7 +48,9 @@ See [PROTOCOL.md](PROTOCOL.md).
 | `helper/test/` | `mimetest.c` (62 unit checks), `test_rbmaild.py` (82 checks against Dovecot and a fake SMTP server), `run-tests.sh` |
 | `app/Retrobird/` | Windows Phone 8.1 app (WinRT XAML, like Retrofox: Silverlight apps can't load native DLLs); `Core/` holds the protocol client and models, testable on Mono |
 | `app/tests/ClientTest.cs` | 20 checks of the C# client against a live helper; `InProcessTest.cs` runs them with the helper loaded as a library in the same process |
-| `app/art/`, `app/tools/render-art.js` | Younes's Retrobird art (SVG) and the script that renders the tile, icon, store logo and splash PNGs; `make-icons.py` draws the app bar icons |
+| `app/tests/CoreTest.cs` | checks of the shared core (replies, the message page, day groups, account names) |
+| `app-uwp/` | the Windows 10 app: its own XAML, shell and inbox on the same core and page code; `build-uwp.ps1` builds it |
+| `app/art/`, `app/tools/render-art.js` | Younes's Retrobird art (SVG) and the scripts that render the tile, icon, store logo and splash PNGs (`render-art-uwp.js` for Windows 10); `make-icons.py` draws the app bar icons |
 
 ## Building (Windows)
 

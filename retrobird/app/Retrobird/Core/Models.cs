@@ -94,7 +94,10 @@ namespace Retrobird.Core
         public DateTime Date;
         string _flags = "";
         public bool ShowRecipient;   // Sent/Drafts lists show who it went to
-        public string AccountId, AccountLabel;   // set in all inboxes
+        public string AccountId;                 // set in all inboxes
+        /// <summary>The account's short name, shown on each row in all inboxes (a property, so
+        /// the list template can bind to it).</summary>
+        public string AccountLabel { get; set; }
 
         public string Flags
         {

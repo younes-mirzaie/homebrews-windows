@@ -2,6 +2,7 @@
 // mail itself) and the background task (RetrobirdTasks), which compiles this same file.
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Windows.Data.Xml.Dom;
 using Windows.Foundation.Collections;
 using Windows.Storage;
@@ -18,8 +19,37 @@ namespace Retrobird.Core
         public long Date;   // Unix seconds
     }
 
+    /// <summary>One account after a background check: its unread count and newest unread mail.</summary>
+    internal sealed class AccountMail
+    {
+        public string Id, Email;
+        public int Unread;
+        public List<NewMail> Mail = new List<NewMail>();
+    }
+
     internal static class Notify
     {
+        /// <summary>After a check while the app was closed: the tiles (the app's and each pinned
+        /// inbox) and a notification for mail not announced yet. The first check after installing
+        /// announces nothing old.</summary>
+        public static void Report(IList<AccountMail> accounts)
+        {
+            int unread = accounts.Sum(a => Math.Max(0, a.Unread));
+            UpdateTile(unread, accounts.SelectMany(a => a.Mail).OrderByDescending(m => m.Date).Take(5).ToList());
+            foreach (var a in accounts)
+            {
+                UpdateAccountTile(a.Id, Math.Max(0, a.Unread), a.Mail.OrderByDescending(m => m.Date).Take(5).ToList());
+                if (a.Mail.Count == 0) continue;
+                uint newest = a.Mail.Max(m => m.Uid);
+                if (HasLastNotified(a.Id))
+                {
+                    uint last = LastNotified(a.Id);
+                    Toast(a.Mail.Where(m => m.Uid > last).OrderByDescending(m => m.Date).ToList(), a.Email);
+                }
+                SetLastNotified(a.Id, newest);
+            }
+        }
+
         static IPropertySet Settings { get { return ApplicationData.Current.LocalSettings.Values; } }
 
         static T Get<T>(string key, T dflt)

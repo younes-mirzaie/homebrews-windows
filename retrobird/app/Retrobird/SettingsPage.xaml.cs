@@ -23,8 +23,8 @@ namespace Retrobird
         public SettingsPage()
         {
             InitializeComponent();
-            foreach (var l in SyncLabels) SyncBox.Items.Add(l);
-            foreach (var l in BackgroundLabels) BackgroundBox.Items.Add(l);
+            foreach (var l in SyncLabels) SyncBox.Items.Add(Ui.Text(l));
+            foreach (var l in BackgroundLabels) BackgroundBox.Items.Add(Ui.Text(l));
             Ui.Button(this, Symbol.Add, "add", (s, e) => Go("/ProviderPage.xaml"));
         }
 
@@ -50,7 +50,7 @@ namespace Retrobird
                 AppState.Accounts = await AppState.Client.GetAccountsAsync();
                 Accounts.ItemsSource = null;
                 Accounts.ItemsSource = AppState.Accounts;
-                EngineText.Text = "mail engine " + await AppState.Client.PingAsync();
+                EngineText.Text = Ui.Text("mail engine ") + await AppState.Client.PingAsync();
             }
             catch (Exception ex) { EngineText.Text = Ui.Describe(ex); }
         }
@@ -77,12 +77,18 @@ namespace Retrobird
 
         void Account_Holding(object sender, HoldingRoutedEventArgs e)
         {
-            if (e.HoldingState != Windows.UI.Input.HoldingState.Started) return;
-            var el = sender as FrameworkElement;
+            if (e.HoldingState == Windows.UI.Input.HoldingState.Started) ShowAccountMenu(sender as FrameworkElement);
+        }
+
+        // a right click (Windows 10 with a mouse) opens the same menu
+        void Account_RightTapped(object sender, RightTappedRoutedEventArgs e) { ShowAccountMenu(sender as FrameworkElement); }
+
+        void ShowAccountMenu(FrameworkElement el)
+        {
             var a = el == null ? null : el.DataContext as AccountInfo;
             var menu = FlyoutBase.GetAttachedFlyout(el) as MenuFlyout;
             if (a == null || menu == null) return;
-            ((MenuFlyoutItem)menu.Items[0]).Text = Pins.IsPinned(a) ? "unpin from start" : "pin to start";
+            ((MenuFlyoutItem)menu.Items[0]).Text = Ui.Text(Pins.IsPinned(a) ? "unpin from Start" : "pin to Start");
             // a flyout isn't in the list's visual tree, so it gets its account here
             foreach (var item in menu.Items.OfType<MenuFlyoutItem>()) item.Tag = a;
             FlyoutBase.ShowAttachedFlyout(el);

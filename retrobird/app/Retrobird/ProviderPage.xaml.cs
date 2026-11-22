@@ -10,7 +10,7 @@ namespace Retrobird
 {
     public sealed partial class ProviderPage : RbPage
     {
-        static readonly Provider Other = new Provider { Name = "other account", Domains = new[] { "any service with IMAP and SMTP" }, Tagline = "Any IMAP mail service" };
+        static readonly Provider Other = new Provider { Name = Ui.Text("other account"), Domains = new[] { "any service with IMAP and SMTP" }, Tagline = "Any IMAP mail service" };
         bool _first;   // no account yet: this is the first page, and back leaves the app
 
         public ProviderPage()

@@ -1,0 +1,113 @@
+<Application
+    x:Class="Retrobird.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Retrobird">
+    <!-- Windows 10 (MDL2, as on Windows 10 Mobile): Segoe UI 15 px body, 48 px bars, 12 px gutters,
+         the user's light or dark theme and accent color. Only resources that exist on build 15063
+         are used, so the app runs on the last Windows 10 Mobile builds. -->
+    <Application.Resources>
+        <ResourceDictionary>
+            <FontFamily x:Key="IconFont">Segoe MDL2 Assets</FontFamily>
+
+            <!-- ======== text ======== -->
+            <Style x:Key="SecondaryText" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
+                <Setter Property="Foreground" Value="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+            </Style>
+            <Style x:Key="EmptyText" TargetType="TextBlock" BasedOn="{StaticResource SubtitleTextBlockStyle}">
+                <Setter Property="Foreground" Value="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+            </Style>
+            <!-- a section heading inside a page (Subtitle, 24 px above) -->
+            <Style x:Key="SectionHeader" TargetType="TextBlock" BasedOn="{StaticResource SubtitleTextBlockStyle}">
+                <Setter Property="Margin" Value="0,24,0,8" />
+            </Style>
+            <!-- the names the shared page code uses for body and small secondary text -->
+            <Style x:Key="RbSubtle" TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
+                <Setter Property="TextWrapping" Value="Wrap" />
+            </Style>
+            <Style x:Key="RbSmall" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
+                <Setter Property="Foreground" Value="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+            </Style>
+
+            <!-- ======== navigation pane ======== -->
+            <Style x:Key="NavItem" TargetType="ListViewItem">
+                <Setter Property="MinHeight" Value="48" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            </Style>
+            <local:NavTemplateSelector x:Key="NavTemplates">
+                <local:NavTemplateSelector.Item>
+                    <DataTemplate>
+                        <Grid Height="48">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="48" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <FontIcon FontFamily="{StaticResource IconFont}" Glyph="{Binding Glyph}" FontSize="20" />
+                            <TextBlock Grid.Column="1" Text="{Binding Label}" VerticalAlignment="Center"
+                                       Style="{StaticResource BodyTextBlockStyle}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Grid.Column="2" Text="{Binding Count}" Margin="8,0,16,0" VerticalAlignment="Center"
+                                       Style="{StaticResource BodyTextBlockStyle}" Foreground="{ThemeResource SystemControlForegroundAccentBrush}" />
+                        </Grid>
+                    </DataTemplate>
+                </local:NavTemplateSelector.Item>
+                <local:NavTemplateSelector.Header>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Label}" Margin="14,12,12,4" VerticalAlignment="Bottom"
+                                   Style="{StaticResource CaptionTextBlockStyle}" TextTrimming="CharacterEllipsis"
+                                   Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                    </DataTemplate>
+                </local:NavTemplateSelector.Header>
+            </local:NavTemplateSelector>
+
+            <!-- ======== mail list ======== -->
+            <Style x:Key="MailItemContainer" TargetType="ListViewItem">
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="Padding" Value="12,0" />
+                <Setter Property="MinHeight" Value="64" />
+            </Style>
+            <!-- sender and time, then the subject (accent while unread), with small glyphs for
+                 flagged, replied and attachments, and the account in all inboxes -->
+            <DataTemplate x:Key="MailItem">
+                <Grid Padding="0,10,0,10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{Binding Sender}" FontWeight="{Binding SenderWeight}" Style="{StaticResource BodyTextBlockStyle}"
+                               TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="1" Text="{Binding TimeText}" Margin="8,0,0,0" Style="{StaticResource CaptionTextBlockStyle}"
+                               VerticalAlignment="Center" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                    <TextBlock Grid.Row="1" Text="{Binding SubjectText}" Visibility="{Binding UnreadVisibility}"
+                               Style="{StaticResource BodyTextBlockStyle}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                               Foreground="{ThemeResource SystemControlForegroundAccentBrush}" />
+                    <TextBlock Grid.Row="1" Text="{Binding SubjectText}" Visibility="{Binding ReadVisibility}"
+                               Style="{StaticResource BodyTextBlockStyle}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                               Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                    <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="8,0,0,0" VerticalAlignment="Center">
+                        <FontIcon FontFamily="{StaticResource IconFont}" Glyph="&#xE723;" FontSize="12" Margin="4,0,0,0"
+                                  Visibility="{Binding AttachmentVisibility}" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                        <FontIcon FontFamily="{StaticResource IconFont}" Glyph="&#xE97A;" FontSize="12" Margin="4,0,0,0"
+                                  Visibility="{Binding RepliedVisibility}" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                        <FontIcon FontFamily="{StaticResource IconFont}" Glyph="&#xE7C1;" FontSize="12" Margin="4,0,0,0"
+                                  Visibility="{Binding FlagVisibility}" Foreground="{ThemeResource SystemControlForegroundAccentBrush}" />
+                    </StackPanel>
+                    <TextBlock Grid.Row="2" Text="{Binding AccountLabel}" Visibility="{Binding AccountVisibility}"
+                               Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                </Grid>
+            </DataTemplate>
+            <!-- day groups: "Today", "Yesterday", "Monday"... -->
+            <DataTemplate x:Key="DayHeader">
+                <TextBlock Text="{Binding Key}" Style="{StaticResource SubtitleTextBlockStyle}" />
+            </DataTemplate>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

@@ -1,6 +1,7 @@
 // One message: headers, attachments, and the body in a web view. Remote pictures stay blocked
-// until asked for. Respond (reply, reply all, forward), flag, move, delete. Building replies and
-// the body page is shared with Windows 10 (Core/Drafts.cs, Core/MessageHtml.cs).
+// until asked for. Respond (reply, reply all, forward), flag, move, delete. The Windows 10 app
+// compiles this same file with its own MessagePage.xaml (#if WINDOWS_UWP marks the differences);
+// building replies and the body page is in Core/Drafts.cs and Core/MessageHtml.cs.
 using System;
 using System.Linq;
 using System.Text;
@@ -38,7 +39,12 @@ namespace Retrobird
             }
             respond.Flyout = menu;
             _flag = Ui.Button(this, Symbol.Flag, "flag", (s, e) => ToggleFlag());
+#if WINDOWS_UWP
+            // Windows 10 picks the folder from a menu: the message may be the right-hand pane
+            Ui.Button(this, Symbol.MoveToFolder, "move", (s, e) => PickFolder());
+#else
             Ui.Button(this, Symbol.MoveToFolder, "move", (s, e) => Go("/FoldersPage.xaml?pick=1"));
+#endif
             Ui.Button(this, Symbol.Delete, "delete", (s, e) => Delete());
             Ui.Menu(this, "mark as unread", (s, e) => MarkUnread());
             _plainItem = Ui.Menu(this, "show as plain text", (s, e) => { _plain = !_plain; Render(); });
@@ -66,14 +72,14 @@ namespace Retrobird
             if (Query.TryGetValue("f", out flags)) _flagged = flags.IndexOf('F') >= 0;
             ShowFlag();
             var acct = AppState.CurrentAccount;
-            WhereText.Text = (AppState.CurrentFolderLabel + (acct == null ? "" : " · " + acct.ShortName)).ToUpperInvariant();
+            WhereText.Text = Ui.Caps(Format.Sentence(AppState.CurrentFolderLabel) + (acct == null ? "" : " · " + acct.ShortName));
             _images = AppState.LoadImages;
             await Load();
         }
 
         void ShowFlag()
         {
-            _flag.Label = _flagged ? "unflag" : "flag";
+            _flag.Label = Ui.Text(_flagged ? "unflag" : "flag");
         }
 
         async Task Load()
@@ -118,8 +124,13 @@ namespace Retrobird
         {
             get
             {
+#if WINDOWS_UWP
+                var c = Application.Current.Resources["SystemAccentColor"];
+                return c is Color ? (Color)c : Color.FromArgb(255, 0x00, 0x78, 0xD7);
+#else
                 var b = Application.Current.Resources["PhoneAccentBrush"] as SolidColorBrush;
                 return b != null ? b.Color : Color.FromArgb(255, 0x1B, 0xA1, 0xE2);
+#endif
             }
         }
 
@@ -128,13 +139,18 @@ namespace Retrobird
         void Render()
         {
             if (_view == null) return;
-            _plainItem.Label = _plain ? "show formatted" : "show as plain text";
+            _plainItem.Label = Ui.Text(_plain ? "show formatted" : "show as plain text");
             var style = new BodyStyle
             {
                 Dark = Application.Current.RequestedTheme == ApplicationTheme.Dark,
                 Accent = Css(Accent),
+#if WINDOWS_UWP
+                FontSize = 15,           // Body
+                Padding = "0 12px 24px"  // the 12 px gutter
+#else
                 FontSize = 16,           // Silverlight Normal 20 x 0.8
                 Padding = "0 19px 24px"  // the page's own margins
+#endif
             };
             Body.Opacity = 0;
             Body.NavigateToString(MessageHtml.Build(_view, _plain, style));
@@ -253,6 +269,19 @@ namespace Retrobird
             }
             catch (Exception ex) { _flagged = !_flagged; ShowFlag(); await Ui.ErrorAsync(ex); }
         }
+
+#if WINDOWS_UWP
+        async void PickFolder()
+        {
+            FolderList list;
+            try { list = await AppState.Client.GetFoldersAsync(Acct); }
+            catch (Exception ex) { await Ui.ErrorAsync(ex); return; }
+            var items = list.Folders.Where(f => !f.NoSelect && f.Name != Folder)
+                                    .Select(f => Tuple.Create(Format.Sentence(f.Label.Trim()), (object)f));
+            var dest = await Ui.PickAsync(SubjectText, "move to", items) as FolderInfo;
+            if (dest != null) await MoveTo(dest);
+        }
+#endif
 
         async Task MoveTo(FolderInfo dest)
         {

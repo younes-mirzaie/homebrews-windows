@@ -1,0 +1,81 @@
+<local:RbPage
+    x:Class="Retrobird.AccountEditPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Retrobird">
+    <!-- Signing in to an account, or changing one. Code: ..\..\app\Retrobird\AccountEditPage.xaml.cs,
+         shared with the phone app, so every element keeps its name. -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock x:Name="TitleText" Visibility="Collapsed" Text="Sign in" />
+        <ScrollViewer Grid.Row="1">
+            <StackPanel Margin="12,12,12,24" MaxWidth="600" HorizontalAlignment="Left">
+                <!-- the mail service ("Gmail") -->
+                <TextBlock x:Name="AppTitleText" Text="Retrobird" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,0,0,12" />
+                <TextBox x:Name="EmailBox" Header="Email address" TextChanged="EmailBox_TextChanged" Margin="0,0,0,12" />
+                <!-- Outlook.com: sign in on Microsoft's page with a short code instead of a password -->
+                <StackPanel x:Name="MsPanel" Visibility="Collapsed" Margin="0,0,0,12">
+                    <TextBlock x:Name="MsStatus" Style="{StaticResource BodyTextBlockStyle}" Margin="0,0,0,8"
+                               Text="Sign in on Microsoft's own page. Retrobird never sees your Microsoft password." />
+                    <StackPanel x:Name="CodePanel" Visibility="Collapsed" Margin="0,0,0,8">
+                        <TextBlock Text="Your code" Style="{StaticResource RbSubtle}" />
+                        <TextBlock x:Name="CodeText" Style="{StaticResource SubheaderTextBlockStyle}" IsTextSelectionEnabled="True"
+                                   Foreground="{ThemeResource SystemControlForegroundAccentBrush}" />
+                        <TextBlock x:Name="CodeHelp" Style="{StaticResource RbSmall}" Margin="0,4,0,8" />
+                        <StackPanel Orientation="Horizontal">
+                            <Button x:Name="OpenBrowserButton" Content="Open in browser" Click="OpenBrowser_Click" Margin="0,0,8,0" />
+                            <Button x:Name="OpenRetrofoxButton" Content="Open in Retrofox" Click="OpenRetrofox_Click" />
+                        </StackPanel>
+                    </StackPanel>
+                    <Button x:Name="MsSignInButton" Content="Sign in with Microsoft" Click="MsSignIn_Click" />
+                </StackPanel>
+                <PasswordBox x:Name="PassBox" Header="Password" />
+                <TextBlock x:Name="PassHint" Text="Leave it empty to keep the saved password." Visibility="Collapsed"
+                           Style="{StaticResource RbSmall}" Margin="0,4,0,0" />
+                <TextBox x:Name="NameBox" Header="Your name (people see it on your mail)" Margin="0,12,0,12" />
+                <!-- app password advice -->
+                <StackPanel x:Name="AdvicePanel" Margin="0,0,0,12">
+                    <TextBlock x:Name="NoteText" Style="{StaticResource BodyTextBlockStyle}" Visibility="Collapsed" Margin="0,0,0,6" />
+                    <TextBlock x:Name="AppPassText" Style="{StaticResource RbSmall}"
+                               Text="Retrobird asks for an app password instead of your main one. It only opens your mail, and you can cancel it anytime without changing your main password." />
+                    <HyperlinkButton x:Name="AppPasswordButton" Content="Get an app password" Visibility="Collapsed"
+                                     Click="AppPasswordButton_Click" />
+                </StackPanel>
+                <CheckBox x:Name="SaveSentBox" Content="Keep a copy of sent mail" IsChecked="True" />
+                <StackPanel x:Name="AdvancedPanel" Visibility="Collapsed">
+                    <TextBlock Text="Incoming mail (IMAP)" Style="{StaticResource SectionHeader}" />
+                    <TextBox x:Name="ImapHostBox" Header="Server" TextChanged="Server_Changed" Margin="0,0,0,12" />
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="110" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="ImapPortBox" Header="Port" TextChanged="Server_Changed" />
+                        <ComboBox x:Name="ImapSecBox" Grid.Column="1" Header="Security" Margin="12,0,0,0" HorizontalAlignment="Stretch"
+                                  SelectionChanged="Sec_Changed" />
+                    </Grid>
+                    <TextBox x:Name="UserBox" Header="User name" TextChanged="Server_Changed" />
+                    <TextBlock Text="Outgoing mail (SMTP)" Style="{StaticResource SectionHeader}" />
+                    <TextBox x:Name="SmtpHostBox" Header="Server" TextChanged="Server_Changed" Margin="0,0,0,12" />
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="110" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="SmtpPortBox" Header="Port" TextChanged="Server_Changed" />
+                        <ComboBox x:Name="SmtpSecBox" Grid.Column="1" Header="Security" Margin="12,0,0,0" HorizontalAlignment="Stretch"
+                                  SelectionChanged="Sec_Changed" />
+                    </Grid>
+                    <TextBox x:Name="ClientBox" Header="Microsoft app ID" Visibility="Collapsed" Margin="0,0,0,12" />
+                    <TextBlock x:Name="PinsText" Style="{StaticResource RbSmall}" Margin="0,8,0,8" Visibility="Collapsed" />
+                    <Button x:Name="ForgetPinsButton" Content="Forget trusted certificates" Visibility="Collapsed" Click="ForgetPinsButton_Click" />
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+        <CommandBar x:Name="Bar" Grid.Row="2" />
+    </Grid>
+</local:RbPage>

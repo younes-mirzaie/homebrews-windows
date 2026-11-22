@@ -70,8 +70,8 @@ namespace Retrobird
                 }
                 return;
             }
-            TitleText.Text = "account";
-            _save.Label = "save";
+            TitleText.Text = Ui.Text("account");
+            _save.Label = Ui.Text("save");
             PassHint.Visibility = Visibility.Visible;
             Ui.Menu(this, "remove account", async (s, ev) => await Delete());
             Busy("loading");
@@ -102,7 +102,7 @@ namespace Retrobird
                     MsStatus.Text = _signedIn
                         ? "Signed in with Microsoft. Sign in again only if Retrobird asks you to."
                         : "The Microsoft sign-in has expired. Sign in again.";
-                    MsSignInButton.Content = "sign in again";
+                    MsSignInButton.Content = Ui.Text("sign in again");
                 }
                 _filling = false;
                 _provider = Provider.ForEmail(EmailBox.Text);
@@ -126,7 +126,7 @@ namespace Retrobird
             AppPassText.Visibility = pw;
             if (_ms) PassHint.Visibility = Visibility.Collapsed;
             else if (_id != null) PassHint.Visibility = Visibility.Visible;
-            AppTitleText.Text = known ? p.ShortName.ToUpperInvariant() : "RETROBIRD";
+            AppTitleText.Text = Ui.Caps(known ? p.ShortName : "Retrobird");
             if (known && !string.IsNullOrEmpty(p.AppPasswordUrl)) PassBox.Header = "App password";
             NoteText.Text = known && !string.IsNullOrEmpty(p.Note) ? p.Note : "";
             NoteText.Visibility = NoteText.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -169,7 +169,7 @@ namespace Retrobird
             CodeHelp.Text = "Open " + _device.Url + ", sign in with your Microsoft account and enter this code. Then come back here: Retrobird notices by itself.";
             CodePanel.Visibility = Visibility.Visible;
             MsStatus.Text = "Waiting for you to sign in on Microsoft's page.";
-            MsSignInButton.Content = "get a new code";
+            MsSignInButton.Content = Ui.Text("get a new code");
             MsSignInButton.IsEnabled = true;
             await Poll(gen, client, _device);
         }
@@ -186,7 +186,7 @@ namespace Retrobird
                 {
                     CodePanel.Visibility = Visibility.Collapsed;
                     MsStatus.Text = "The code expired before it was entered. Tap \"sign in with Microsoft\" for a new one.";
-                    MsSignInButton.Content = "sign in with Microsoft";
+                    MsSignInButton.Content = Ui.Text("sign in with Microsoft");
                     return;
                 }
                 Tuple<string, string> r;
@@ -202,7 +202,7 @@ namespace Retrobird
                     if (gen != _pollGen) return;
                     CodePanel.Visibility = Visibility.Collapsed;
                     MsStatus.Text = Ui.Describe(ex);
-                    MsSignInButton.Content = "sign in with Microsoft";
+                    MsSignInButton.Content = Ui.Text("sign in with Microsoft");
                     return;
                 }
                 if (gen != _pollGen) return;
@@ -211,7 +211,7 @@ namespace Retrobird
                 _refresh = r.Item1;
                 _signedIn = true;
                 CodePanel.Visibility = Visibility.Collapsed;
-                MsSignInButton.Content = "sign in again";
+                MsSignInButton.Content = Ui.Text("sign in again");
                 var email = r.Item2 ?? "";
                 if (email.Length > 0 && EmailBox.Text.Trim().Length == 0) EmailBox.Text = email;
                 var typed = EmailBox.Text.Trim();
