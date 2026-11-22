@@ -5,6 +5,9 @@
 //  - Feathered turnstile: the same, row by row (title, header, then each block of content), the
 //    rows starting 40 ms apart (forward in, back out) or 50 ms apart (forward out, back in), the
 //    axis 0.2 element widths left of each row.
+//  - Continuum: opening an item from a list, its name flies out down and to the right while the
+//    list page drops away (150 ms); the next page's title flies in from below, tipped back 80
+//    degrees around its X axis, as the rest of the page rises in (350 ms).
 using System;
 using System.Windows;
 using System.Windows.Controls;
@@ -195,6 +198,77 @@ namespace AppLoader.Core
                 if (done != null) done();
             };
             sb.Begin();
+        }
+    }
+
+    public static class Continuum
+    {
+        static readonly IEasingFunction Out = new ExponentialEase { EasingMode = EasingMode.EaseIn, Exponent = 6 };
+        static readonly IEasingFunction In = new ExponentialEase { EasingMode = EasingMode.EaseOut, Exponent = 6 };
+
+        /// <summary>Set by the list page before it navigates, read once by the page it opens.</summary>
+        public static bool Pending;
+
+        /// <summary>The first TextBlock under an element that shows the given text (the tapped
+        /// row's name), or null.</summary>
+        public static TextBlock FindText(DependencyObject root, string text)
+        {
+            if (root == null) return null;
+            var tb = root as TextBlock;
+            if (tb != null && tb.Text == text) return tb;
+            int n = VisualTreeHelper.GetChildrenCount(root);
+            for (int i = 0; i < n; i++)
+            {
+                var hit = FindText(VisualTreeHelper.GetChild(root, i), text);
+                if (hit != null) return hit;
+            }
+            return null;
+        }
+
+        /// <summary>The tapped item's name flies out while the page fades away; then done.</summary>
+        public static void FlyOut(FrameworkElement title, UIElement page, Action done)
+        {
+            if (title == null) { Turnstile.Out(page, false, done); return; }
+            Pending = true;
+            var move = new TranslateTransform();
+            title.RenderTransform = move;
+            var sb = new Storyboard();
+            Add(sb, move, "Y", 0, 73, 150, Out);
+            Add(sb, move, "X", 0, 225, 150, Out);
+            Add(sb, page, "Opacity", 1, 0, 150, Out);
+            sb.Completed += (s, e) =>
+            {
+                title.RenderTransform = null;   // the list is cached: put the row back for the return
+                if (done != null) done();
+            };
+            sb.Begin();
+        }
+
+        /// <summary>The new page's title comes in from below, tipped back, as the page rises in.</summary>
+        public static void FlyIn(FrameworkElement title, FrameworkElement page)
+        {
+            Pending = false;
+            page.Opacity = 1;
+            var rise = new TranslateTransform();
+            page.RenderTransform = rise;
+            var tip = new PlaneProjection { CenterOfRotationX = 0, RotationX = 80 };
+            var lift = new TranslateTransform();
+            title.Projection = tip;
+            title.RenderTransform = lift;
+            var sb = new Storyboard();
+            Add(sb, rise, "Y", 150, 0, 350, In);
+            Add(sb, page, "Opacity", 0, 1, 120, In);
+            Add(sb, tip, "RotationX", 80, 0, 350, In);
+            Add(sb, lift, "Y", 73, 0, 350, In);
+            sb.Begin();
+        }
+
+        static void Add(Storyboard sb, DependencyObject target, string prop, double from, double to, int ms, IEasingFunction ease)
+        {
+            var a = new DoubleAnimation { From = from, To = to, Duration = TimeSpan.FromMilliseconds(ms), EasingFunction = ease };
+            Storyboard.SetTarget(a, target);
+            Storyboard.SetTargetProperty(a, new PropertyPath(prop));
+            sb.Children.Add(a);
         }
     }
 }

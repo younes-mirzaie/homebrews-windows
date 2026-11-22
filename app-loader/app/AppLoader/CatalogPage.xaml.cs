@@ -35,7 +35,8 @@ namespace AppLoader
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
-            Turnstile.FeatherIn(LayoutRoot, e.NavigationMode == NavigationMode.Back);
+            if (Continuum.Pending && e.NavigationMode == NavigationMode.New) Continuum.FlyIn(AppName, LayoutRoot);
+            else Turnstile.FeatherIn(LayoutRoot, e.NavigationMode == NavigationMode.Back);
             string id;
             NavigationContext.QueryString.TryGetValue("id", out id);
             var idx = CatalogService.Current ?? CatalogService.LoadCached();

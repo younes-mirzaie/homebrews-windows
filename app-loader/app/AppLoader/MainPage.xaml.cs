@@ -60,6 +60,7 @@ namespace AppLoader
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
+            Pivots.RenderTransform = null;
             Turnstile.In(Pivots, e.NavigationMode == NavigationMode.Back);
             // Also on every return to the app: an install started earlier may have finished (or
             // still be running) while the app was away, or App Loader was updating itself
@@ -348,11 +349,11 @@ namespace AppLoader
             var list = (ListBox)sender;
             var row = list.SelectedItem as CatalogRow;
             list.SelectedItem = null;
-            if (row != null) OpenDetails(row.Entry);
+            if (row != null) OpenDetails(row.Entry, Continuum.FindText(list.ItemContainerGenerator.ContainerFromItem(row), row.Name));
         }
 
         /// <summary>An app's page, with the turnstile out.</summary>
-        void OpenDetails(CatalogEntry entry)
+        void OpenDetails(CatalogEntry entry, FrameworkElement title)
         {
             if (_waiting)
             {
@@ -362,14 +363,15 @@ namespace AppLoader
             var uri = new Uri("/CatalogPage.xaml?id=" + Uri.EscapeDataString(entry.App.Id), UriKind.Relative);
             if (_leaving) return;
             _leaving = true;
-            Turnstile.Out(Pivots, false, () => { _leaving = false; NavigationService.Navigate(uri); });
+            // continuum: the tapped name flies into the app page's title
+            Continuum.FlyOut(title, Pivots, () => { _leaving = false; NavigationService.Navigate(uri); });
         }
 
         void InstalledRow_Tap(object sender, System.Windows.Input.GestureEventArgs e)
         {
             var row = ((FrameworkElement)sender).DataContext as CatalogRow;
             if (row == null) return;
-            if (row.Entry != null) { OpenDetails(row.Entry); return; }
+            if (row.Entry != null) { OpenDetails(row.Entry, Continuum.FindText((DependencyObject)sender, row.Name)); return; }
             // a sideloaded app that isn't in the library: open it
             try
             {
