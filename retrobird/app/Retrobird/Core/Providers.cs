@@ -27,9 +27,33 @@ namespace Retrobird.Core
         public const string MicrosoftClientId = "";
 
         /// <summary>The name, for binding (bindings need a property).</summary>
+        /// <summary>Replaces the generated line under the name, when set.</summary>
+        public string Tagline;
         public string Title { get { return Name; } }
         /// <summary>Shown under the name in the list.</summary>
         public string Hint { get { return Works ? string.Join(", ", Domains) : "not supported yet"; } }
+        /// <summary>"Outlook.com / Hotmail" -> "Outlook", "Yahoo Mail" -> "Yahoo".</summary>
+        public string ShortName
+        {
+            get
+            {
+                if (Microsoft) return "Outlook";
+                var n = Name ?? "";
+                return n.EndsWith(" Mail") ? n.Substring(0, n.Length - 5) : n;
+            }
+        }
+        /// <summary>One line under the name on the "add an account" page: how you sign in.</summary>
+        public string Blurb
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(Tagline)) return Tagline;
+                if (!Works) return "Not supported yet";
+                if (Microsoft) return "Hotmail, Live and MSN too. Sign in with Microsoft.";
+                if (!string.IsNullOrEmpty(AppPasswordUrl)) return "Uses an app password";
+                return "Uses your password, or an app password";
+            }
+        }
         public double ItemOpacity { get { return Works ? 1.0 : 0.5; } }
 
         public static readonly List<Provider> All = new List<Provider>

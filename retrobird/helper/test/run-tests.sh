@@ -40,6 +40,10 @@ python3 -u -I "$here/oauth_test.py" "$here/../build/rbmaild" 18099
 # The app's C# protocol client, on Mono, against a fresh helper
 if command -v mcs >/dev/null && command -v mono >/dev/null; then
     core="$here/../../app/Retrobird/Core"
+    # the shared core's pure parts (replies, the message page, day groups, names)
+    mcs -nologo -out:"$dir/CoreTest.exe" "$here/../../app/tests/CoreTest.cs" "$core/Models.cs" "$core/Providers.cs" \
+        "$core/Drafts.cs" "$core/MessageHtml.cs" "$core/LineSocket.cs" "$core/MailClient.cs"
+    mono "$dir/CoreTest.exe"
     mcs -nologo -out:"$dir/ClientTest.exe" "$here/../../app/tests/ClientTest.cs" \
         "$core/LineSocket.cs" "$core/MailClient.cs" "$core/Models.cs" "$core/Providers.cs"
     "$here/../build/rbmaild" --token mono-token-12345 --port 18097 --data "$dir/monodata" --sync-minutes 0 &

@@ -68,19 +68,8 @@ namespace Retrobird
             box.InputScope = scope;
         }
 
-        public static string Describe(Exception e)
-        {
-            var m = e as MailException;
-            if (m == null) return e.Message;
-            if (m.Message.StartsWith("Retrobird")) return m.Message;   // already a full sentence about the app itself
-            switch (m.Code)
-            {
-                case "AUTH": return "Couldn't sign in: " + m.Message;
-                case "NET": return "Can't connect: " + m.Message;
-                case "OAUTH": return m.Message;
-                default: return m.Message;
-            }
-        }
+        /// <summary>A failure in plain words (Core/Inbox.cs, shared with Windows 10).</summary>
+        public static string Describe(Exception e) { return Inbox.Describe(e); }
 
         // only one message box can be open at a time
         static readonly SemaphoreSlim _dialog = new SemaphoreSlim(1);

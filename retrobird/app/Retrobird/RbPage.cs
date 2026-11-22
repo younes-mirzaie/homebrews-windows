@@ -42,7 +42,7 @@ namespace Retrobird
                 case "MessagePage": return typeof(MessagePage);
                 case "ComposePage": return typeof(ComposePage);
                 case "FoldersPage": return typeof(FoldersPage);
-                case "AccountsPage": return typeof(AccountsPage);
+                case "SettingsPage": return typeof(SettingsPage);
                 case "AccountEditPage": return typeof(AccountEditPage);
                 case "ProviderPage": return typeof(ProviderPage);
                 case "LicensePage": return typeof(LicensePage);

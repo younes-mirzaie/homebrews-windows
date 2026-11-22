@@ -24,7 +24,7 @@ namespace Retrobird
             Ui.Scope(SubjectBox, InputScopeNameValue.Chat);
             Ui.Scope(BodyBox, InputScopeNameValue.Chat);
             _send = Ui.Button(this, Symbol.Send, "send", async (s, e) => await Send());
-            Ui.Button(this, Symbol.People, "cc/bcc", (s, e) => CcPanel.Visibility = Visibility.Visible);
+            Ui.Button(this, Symbol.Delete, "discard", (s, e) => { if (!HandleBack()) GoBack(); });
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -37,7 +37,9 @@ namespace Retrobird
             ToBox.Text = _draft.To ?? "";
             CcBox.Text = _draft.Cc ?? "";
             BccBox.Text = _draft.Bcc ?? "";
-            if (CcBox.Text.Length > 0 || BccBox.Text.Length > 0) CcPanel.Visibility = Visibility.Visible;
+            if (CcBox.Text.Length > 0 || BccBox.Text.Length > 0) ShowCc();
+            TitleText.Text = _draft.ReplyUid != 0 || !string.IsNullOrEmpty(_draft.InReplyTo) ? "reply"
+                           : (_draft.Subject ?? "").StartsWith("Fwd:") ? "forward" : "new message";
             SubjectBox.Text = _draft.Subject ?? "";
             BodyBox.Text = _draft.Body ?? "";
             Loaded += (s, a) =>
@@ -69,7 +71,7 @@ namespace Retrobird
 
         async void AskDiscard()
         {
-            if (await Ui.ConfirmAsync("Discard this message?", "new message"))
+            if (await Ui.ConfirmAsync("Discard this message? What you wrote won't be kept.", "discard"))
             {
                 _sent = true;   // nothing left to keep
                 GoBack();
@@ -82,7 +84,20 @@ namespace Retrobird
         void ShowFrom()
         {
             var acct = AppState.CurrentAccount;
-            FromText.Text = acct == null ? "NEW MESSAGE" : "FROM " + acct.Email.ToUpperInvariant() + (CanPickFrom ? " \u25BE" : "");
+            FromText.Text = acct == null ? "RETROBIRD" : "FROM " + acct.Email.ToUpperInvariant();
+            FromChevron.Visibility = CanPickFrom ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        void ShowCc()
+        {
+            CcPanel.Visibility = Visibility.Visible;
+            CcLink.Visibility = Visibility.Collapsed;
+        }
+
+        void CcLink_Click(object sender, RoutedEventArgs e)
+        {
+            ShowCc();
+            CcBox.Focus(FocusState.Programmatic);
         }
 
         async void FromText_Tapped(object sender, TappedRoutedEventArgs e)

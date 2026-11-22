@@ -1,0 +1,66 @@
+<local:RbPage
+    x:Class="Retrobird.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Retrobird">
+    <!-- Settings as a pivot: accounts, options, about. Everything applies at once. No text boxes
+         here (a pivot must not hold them): accounts are changed on their own page. -->
+    <Pivot x:Name="Tabs" Title="RETROBIRD SETTINGS" SelectionChanged="Tabs_SelectionChanged">
+        <PivotItem Header="accounts">
+            <ListView x:Name="Accounts" SelectionMode="None" IsItemClickEnabled="True" ItemClick="Accounts_ItemClick"
+                      ItemContainerStyle="{StaticResource RbStretchItem}">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Margin="0,0,0,19" Holding="Account_Holding" Background="Transparent">
+                            <FlyoutBase.AttachedFlyout>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem Text="pin to start" Click="Pin_Click"/>
+                                    <MenuFlyoutItem Text="remove" Click="Remove_Click"/>
+                                </MenuFlyout>
+                            </FlyoutBase.AttachedFlyout>
+                            <TextBlock Text="{Binding ShortName}" Style="{StaticResource RbItemTitleLarge}"/>
+                            <TextBlock Text="{Binding Email}" Style="{StaticResource RbSubtle}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                            <TextBlock Text="{Binding StateText}" Style="{StaticResource RbSubtle}" Visibility="{Binding OkVisibility}"/>
+                            <TextBlock Text="{Binding StateText}" Style="{StaticResource RbBody}" Visibility="{Binding AttentionVisibility}"
+                                       Foreground="{ThemeResource PhoneAccentBrush}"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+                <ListView.Footer>
+                    <TextBlock Style="{StaticResource RbSmall}" Margin="0,0,0,19"
+                               Text="Tap an account to change it. Tap and hold to pin its inbox to Start or to remove it."/>
+                </ListView.Footer>
+            </ListView>
+        </PivotItem>
+        <PivotItem Header="options">
+            <ScrollViewer>
+                <StackPanel Margin="0,0,0,19">
+                    <TextBlock Text="Check for new mail while Retrobird is closed" Style="{StaticResource RbCaption}"/>
+                    <ComboBox x:Name="BackgroundBox" SelectionChanged="BackgroundBox_SelectionChanged" Margin="0,0,0,4"/>
+                    <TextBlock Style="{StaticResource RbSmall}" Margin="0,0,0,19"
+                               Text="Windows Phone picks the exact moment, so mail can take up to half an hour to arrive. Everything runs on your phone: there's no push server."/>
+                    <TextBlock Text="Check for new mail while Retrobird is open" Style="{StaticResource RbCaption}"/>
+                    <ComboBox x:Name="SyncBox" SelectionChanged="SyncBox_SelectionChanged" Margin="0,0,0,19"/>
+                    <ToggleSwitch x:Name="NotifySwitch" Header="Notifications for new mail" Toggled="NotifySwitch_Toggled"/>
+                    <ToggleSwitch x:Name="TileSwitch" Header="Show sender and subject on the tile and lock screen" Toggled="TileSwitch_Toggled"/>
+                    <ToggleSwitch x:Name="ImagesSwitch" Header="Show pictures from the web in mail" Toggled="ImagesSwitch_Toggled"/>
+                </StackPanel>
+            </ScrollViewer>
+        </PivotItem>
+        <PivotItem Header="about">
+            <ScrollViewer>
+                <StackPanel Margin="0,0,0,19">
+                    <TextBlock x:Name="VersionText" FontSize="25.6" FontWeight="SemiLight" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="EngineText" Style="{StaticResource RbSubtle}" Margin="0,0,0,12"/>
+                    <TextBlock Style="{StaticResource RbBody}" Margin="0,0,0,12"
+                               Text="Mail for IMAP and SMTP accounts. Your mail and passwords stay in Retrobird's own storage on this phone, and Retrobird only talks to your mail servers."/>
+                    <TextBlock Style="{StaticResource RbSubtle}" Margin="0,0,0,12"
+                               Text="Retrobird is built on Mozilla's NSPR and NSS libraries (the networking and encryption Firefox uses), used under the Mozilla Public License 2.0. Retrobird is an independent project, not made, endorsed or supported by Mozilla."/>
+                    <Button Content="licenses" Style="{StaticResource RbButton}" Click="LicensesButton_Click"/>
+                    <HyperlinkButton Content="source code on GitHub" Style="{StaticResource RbLink}" Margin="0,12,0,0"
+                                     NavigateUri="https://github.com/younes-mirzaie/homebrews-windows"/>
+                </StackPanel>
+            </ScrollViewer>
+        </PivotItem>
+    </Pivot>
+</local:RbPage>

@@ -3,7 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-#if WINDOWS_PHONE_APP
+#if WINDOWS_PHONE_APP || WINDOWS_UWP
 using Windows.UI.Text;
 using Windows.UI.Xaml;
 #endif
@@ -18,6 +18,34 @@ namespace Retrobird.Core
         public bool HasPassword;
 
         public string Title { get { return string.IsNullOrEmpty(Name) ? Email : Name; } }
+        /// <summary>A short name for the account: the provider's name for a known service
+        /// ("Gmail"), else the address's domain.</summary>
+        public string ShortName
+        {
+            get
+            {
+                var p = Provider.ForEmail(Email);
+                if (p != null && !string.IsNullOrEmpty(p.Name)) return p.ShortName;
+                var d = Provider.Domain(Email);
+                return d.Length > 0 ? d : Title;
+            }
+        }
+        /// <summary>One line on how the account is doing, for the settings list.</summary>
+        public string StateText
+        {
+            get
+            {
+                if (!HasPassword) return "Sign in again: the saved sign-in can't be used any more.";
+                if (!string.IsNullOrEmpty(LastError)) return LastError;
+                if (LastSync != DateTime.MinValue) return "Checked at " + LastSync.ToLocalTime().ToString("t");
+                return Unseen > 0 ? Unseen + " unread" : "Not checked yet";
+            }
+        }
+        public bool NeedsAttention { get { return !HasPassword || !string.IsNullOrEmpty(LastError); } }
+#if WINDOWS_PHONE_APP || WINDOWS_UWP
+        public Visibility AttentionVisibility { get { return NeedsAttention ? Visibility.Visible : Visibility.Collapsed; } }
+        public Visibility OkVisibility { get { return NeedsAttention ? Visibility.Collapsed : Visibility.Visible; } }
+#endif
         public string SubText
         {
             get
@@ -71,9 +99,10 @@ namespace Retrobird.Core
         public string Flags
         {
             get { return _flags; }
-            set { _flags = value ?? ""; Changed("Flags"); Changed("IsUnread"); Changed("Glyphs");
-#if WINDOWS_PHONE_APP
-                  Changed("UnreadVisibility"); Changed("SenderWeight");
+            set { _flags = value ?? ""; Changed("Flags"); Changed("IsUnread"); Changed("IsFlagged"); Changed("Glyphs");
+#if WINDOWS_PHONE_APP || WINDOWS_UWP
+                  Changed("UnreadVisibility"); Changed("ReadVisibility"); Changed("SenderWeight");
+                  Changed("FlagVisibility"); Changed("RepliedVisibility");
 #endif
             }
         }
@@ -84,6 +113,11 @@ namespace Retrobird.Core
         public string Sender { get { return ShowRecipient ? "to " + Address.DisplayName(To) : Address.DisplayName(From); } }
         public string SubjectText { get { return string.IsNullOrEmpty(Subject) ? "(no subject)" : Subject; } }
         public string DateText { get { return Format.ShortDate(Date); } }
+        /// <summary>The time on today's and this week's mail, the date on older mail (the list is
+        /// grouped by day, so the day itself is in the group header).</summary>
+        public string TimeText { get { return Format.ListTime(Date); } }
+        /// <summary>The day group this message is listed under ("today", "yesterday", "monday"...).</summary>
+        public string DayGroup { get { return Format.DayGroup(Date); } }
 
         /// <summary>Segoe UI Symbol glyphs: flag, replied, attachment.</summary>
         public string Glyphs
@@ -97,10 +131,21 @@ namespace Retrobird.Core
                 return s.TrimEnd();
             }
         }
-#if WINDOWS_PHONE_APP
-        public Visibility UnreadVisibility { get { return IsUnread ? Visibility.Visible : Visibility.Collapsed; } }
-        public Visibility AccountVisibility { get { return string.IsNullOrEmpty(AccountLabel) ? Visibility.Collapsed : Visibility.Visible; } }
+#if WINDOWS_PHONE_APP || WINDOWS_UWP
+        static Visibility V(bool b) { return b ? Visibility.Visible : Visibility.Collapsed; }
+        public Visibility UnreadVisibility { get { return V(IsUnread); } }
+        public Visibility ReadVisibility { get { return V(!IsUnread); } }
+        public Visibility FlagVisibility { get { return V(IsFlagged); } }
+        public Visibility RepliedVisibility { get { return V(IsAnswered); } }
+        public Visibility AttachmentVisibility { get { return V(HasAttachment); } }
+        public Visibility AccountVisibility { get { return V(!string.IsNullOrEmpty(AccountLabel)); } }
+#if WINDOWS_UWP
+        // Windows 10: unread mail has the sender in Semibold (the Mail app's convention)
         public FontWeight SenderWeight { get { return IsUnread ? FontWeights.SemiBold : FontWeights.Normal; } }
+#else
+        // Metro: the sender is light (Semilight); unread mail gets Regular plus an accent subject
+        public FontWeight SenderWeight { get { return IsUnread ? FontWeights.Normal : FontWeights.SemiLight; } }
+#endif
 #endif
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -125,6 +170,7 @@ namespace Retrobird.Core
         public long Size;
         public bool Inline;
         public string Label { get { return Name + "  (" + Format.Size(Size) + ")"; } }
+        public string SizeText { get { return Format.Size(Size) + " \u00B7 tap to open"; } }
     }
 
     public class MessageView
@@ -153,6 +199,38 @@ namespace Retrobird.Core
             if ((now.Date - local.Date).TotalDays < 7) return local.ToString("ddd");
             if (local.Year == now.Year) return local.ToString("MMM d");
             return local.ToString("d");
+        }
+
+        /// <summary>Time for mail of the last week, else the date (the list's day group says the day).</summary>
+        public static string ListTime(DateTime d)
+        {
+            if (d == DateTime.MinValue) return "";
+            var local = d.ToLocalTime();
+            if ((DateTime.Now.Date - local.Date).TotalDays < 7) return local.ToString("t");
+            return local.Year == DateTime.Now.Year ? local.ToString("MMM d") : local.ToString("d");
+        }
+
+        /// <summary>The day group a message is listed under, lowercase (Metro casing; Windows 10
+        /// capitalizes it): today, yesterday, the weekday for this week, then "last week", the
+        /// month this year, and the year for older mail.</summary>
+        public static string DayGroup(DateTime d)
+        {
+            if (d == DateTime.MinValue) return "older";
+            var day = d.ToLocalTime().Date;
+            var today = DateTime.Now.Date;
+            double ago = (today - day).TotalDays;
+            if (ago <= 0) return "today";
+            if (ago < 2) return "yesterday";
+            if (ago < 7) return day.ToString("dddd").ToLowerInvariant();
+            if (ago < 14) return "last week";
+            if (day.Year == today.Year) return day.ToString("MMMM").ToLowerInvariant();
+            return day.Year.ToString();
+        }
+
+        /// <summary>"last week" -> "Last week" (Windows 10 sentence case).</summary>
+        public static string Sentence(string s)
+        {
+            return string.IsNullOrEmpty(s) ? s : char.ToUpperInvariant(s[0]) + s.Substring(1);
         }
 
         public static string LongDate(DateTime d)

@@ -47,7 +47,9 @@ namespace Retrobird
             ClientBox.Text = AppState.MicrosoftClientId;
             foreach (var box in new[] { ImapSecBox, SmtpSecBox })
                 foreach (var sec in Secs) box.Items.Add(SecLabel(sec));
-            _save = Ui.Button(this, Symbol.Accept, "save", async (s, e) => await Save());
+            _save = Ui.Button(this, Symbol.Accept, "sign in", async (s, e) => await Save());
+            Ui.Button(this, Symbol.Cancel, "cancel", (s, e) => GoBack());
+            Ui.Menu(this, "server settings", AdvancedButton_Click);
             ShowSec();
         }
 
@@ -63,15 +65,15 @@ namespace Retrobird
                 _id = null;
                 if (_chosen != null)
                 {
-                    PassBox.Header = "app password";
                     _provider = _chosen;
                     ShowProvider(_chosen);
                 }
                 return;
             }
-            TitleText.Text = "edit account";
+            TitleText.Text = "account";
+            _save.Label = "save";
             PassHint.Visibility = Visibility.Visible;
-            Ui.Menu(this, "delete account", async (s, ev) => await Delete());
+            Ui.Menu(this, "remove account", async (s, ev) => await Delete());
             Busy("loading");
             try
             {
@@ -124,8 +126,8 @@ namespace Retrobird
             AppPassText.Visibility = pw;
             if (_ms) PassHint.Visibility = Visibility.Collapsed;
             else if (_id != null) PassHint.Visibility = Visibility.Visible;
-            ProviderText.Text = known ? p.Name : "";
-            ProviderText.Visibility = known ? Visibility.Visible : Visibility.Collapsed;
+            AppTitleText.Text = known ? p.ShortName.ToUpperInvariant() : "RETROBIRD";
+            if (known && !string.IsNullOrEmpty(p.AppPasswordUrl)) PassBox.Header = "App password";
             NoteText.Text = known && !string.IsNullOrEmpty(p.Note) ? p.Note : "";
             NoteText.Visibility = NoteText.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
             AppPasswordButton.Visibility = known && !string.IsNullOrEmpty(p.AppPasswordUrl) ? Visibility.Visible : Visibility.Collapsed;
@@ -411,7 +413,7 @@ namespace Retrobird
                 return;
             _saving = true;
             _save.IsEnabled = false;
-            Busy("signing in");
+            Busy("checking your account");
             try
             {
                 for (int attempt = 0; attempt < 3; attempt++)
@@ -461,9 +463,11 @@ namespace Retrobird
         async Task Delete()
         {
             if (_id == null) return;
-            if (!await Ui.ConfirmAsync("Remove " + EmailBox.Text + " from this phone? Your mail stays on the server.", "delete account")) return;
+            if (!await Ui.ConfirmAsync("Remove " + EmailBox.Text + " from this phone? Your mail stays on the server.", "remove account")) return;
             try
             {
+                var gone = AppState.Accounts.Find(a => a.Id == _id);
+                if (gone != null) await Pins.UnpinAsync(gone);
                 await AppState.Client.DeleteAccountAsync(_id);
                 AppState.Accounts = await AppState.Client.GetAccountsAsync();
                 if (AppState.CurrentAccountId == _id) AppState.SelectAccount(AppState.Accounts.Count > 0 ? AppState.Accounts[0] : null);

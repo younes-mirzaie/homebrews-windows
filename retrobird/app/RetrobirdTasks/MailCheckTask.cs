@@ -51,6 +51,7 @@ namespace RetrobirdTasks
             var unreadMail = new List<NewMail>();
             var perAccount = new Dictionary<string, List<NewMail>>();
             var emails = new Dictionary<string, string>();
+            var unreadByAccount = new Dictionary<string, int>();
             string current = null;
             foreach (var line in text.Split('\n'))
             {
@@ -62,6 +63,7 @@ namespace RetrobirdTasks
                     perAccount[current] = new List<NewMail>();
                     int n;
                     if (int.TryParse(f[3], out n) && n > 0) unread += n;
+                    unreadByAccount[current] = Math.Max(0, n);
                 }
                 else if (f[0] == "M" && f.Length >= 5 && current != null)
                 {
@@ -75,9 +77,11 @@ namespace RetrobirdTasks
                 }
             }
 
-            Notify.UpdateTile(unread, unreadMail.OrderByDescending(m => m.Date).Take(3).ToList());
+            Notify.UpdateTile(unread, unreadMail.OrderByDescending(m => m.Date).Take(5).ToList());
             foreach (var kv in perAccount)
             {
+                // an inbox pinned to Start shows its own account's count and mail
+                Notify.UpdateAccountTile(kv.Key, unreadByAccount[kv.Key], kv.Value.OrderByDescending(m => m.Date).Take(5).ToList());
                 if (kv.Value.Count == 0) continue;
                 uint newest = kv.Value.Max(m => m.Uid);
                 // the first check after installing announces nothing old

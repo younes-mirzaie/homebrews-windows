@@ -77,6 +77,12 @@ namespace Retrobird
                 // all inboxes stays as it is (it includes this account); otherwise show this one
                 AppState.UseAccount(Uri.UnescapeDataString(e.Arguments.Substring(8)));
             }
+            // an inbox pinned to Start opens just that inbox
+            else if (!string.IsNullOrEmpty(e.Arguments) && e.Arguments.StartsWith(Pins.Prefix))
+            {
+                AppState.AllInboxes = false;
+                AppState.UseAccount(Uri.UnescapeDataString(e.Arguments.Substring(Pins.Prefix.Length)));
+            }
             RootFrame = Window.Current.Content as Frame;
             if (RootFrame == null)
             {

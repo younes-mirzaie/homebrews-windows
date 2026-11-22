@@ -4,78 +4,88 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Retrobird"
     NavigationCacheMode="Required">
+    <!-- The inbox: a pivot of three views of one list (all, unread, flagged), grouped by day.
+         The title says which inbox it is; tap it to switch inboxes. -->
+    <local:RbPage.Resources>
+        <CollectionViewSource x:Key="AllSource" IsSourceGrouped="True"/>
+        <CollectionViewSource x:Key="UnreadSource" IsSourceGrouped="True"/>
+        <CollectionViewSource x:Key="FlaggedSource" IsSourceGrouped="True"/>
+    </local:RbPage.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- account and folder: tap the account to switch inboxes, the folder name to switch folders -->
-        <StackPanel Style="{StaticResource RbHeaderPanel}">
-            <TextBlock x:Name="AccountText" Text="RETROBIRD" Style="{StaticResource RbAppTitle}"
-                       Tapped="AccountText_Tapped" local:Motion.Tilt="True"/>
-            <TextBlock x:Name="FolderText" Text="inbox" Style="{StaticResource RbPageTitle}"
-                       Tapped="FolderText_Tapped" local:Motion.Tilt="True"/>
+        <Pivot x:Name="Tabs" SelectionChanged="Tabs_SelectionChanged">
+            <Pivot.Title>
+                <StackPanel Orientation="Horizontal" Background="Transparent" Tapped="Title_Tapped" local:Motion.Tilt="True">
+                    <TextBlock x:Name="TitleText" Text="RETROBIRD" Style="{StaticResource TitleTextBlockStyle}"/>
+                    <!-- a chevron says the title can be tapped when there's more than one inbox -->
+                    <TextBlock x:Name="TitleChevron" Text="&#x25BE;" Style="{StaticResource TitleTextBlockStyle}"
+                               Margin="8,0,0,0" Visibility="Collapsed"/>
+                </StackPanel>
+            </Pivot.Title>
+            <PivotItem Header="all">
+                <Grid>
+                    <ListView x:Name="AllList" ItemsSource="{Binding Source={StaticResource AllSource}}"
+                              ItemTemplate="{StaticResource RbMailItem}" ItemContainerStyle="{StaticResource RbStretchItem}"
+                              SelectionMode="None" IsItemClickEnabled="True" ItemClick="List_ItemClick"
+                              SelectionChanged="List_SelectionChanged">
+                        <ListView.GroupStyle>
+                            <GroupStyle HidesIfEmpty="True" HeaderTemplate="{StaticResource RbDayHeader}"/>
+                        </ListView.GroupStyle>
+                        <ListView.Footer>
+                            <Button x:Name="MoreButton" Content="load older messages" Style="{StaticResource RbButton}"
+                                    Click="MoreButton_Click" Visibility="Collapsed" Margin="0,0,0,19"/>
+                        </ListView.Footer>
+                    </ListView>
+                    <TextBlock x:Name="AllEmpty" Text="No mail here." Visibility="Collapsed" FontSize="25.6" FontWeight="SemiLight"
+                               Foreground="{ThemeResource RbSubtleBrush}" TextWrapping="Wrap" VerticalAlignment="Top"/>
+                </Grid>
+            </PivotItem>
+            <PivotItem Header="unread">
+                <Grid>
+                    <ListView x:Name="UnreadList" ItemsSource="{Binding Source={StaticResource UnreadSource}}"
+                              ItemTemplate="{StaticResource RbMailItem}" ItemContainerStyle="{StaticResource RbStretchItem}"
+                              SelectionMode="None" IsItemClickEnabled="True" ItemClick="List_ItemClick"
+                              SelectionChanged="List_SelectionChanged">
+                        <ListView.GroupStyle>
+                            <GroupStyle HidesIfEmpty="True" HeaderTemplate="{StaticResource RbDayHeader}"/>
+                        </ListView.GroupStyle>
+                    </ListView>
+                    <TextBlock x:Name="UnreadEmpty" Text="You're all caught up." Visibility="Collapsed" FontSize="25.6" FontWeight="SemiLight"
+                               Foreground="{ThemeResource RbSubtleBrush}" TextWrapping="Wrap" VerticalAlignment="Top"/>
+                </Grid>
+            </PivotItem>
+            <PivotItem Header="flagged">
+                <Grid>
+                    <ListView x:Name="FlaggedList" ItemsSource="{Binding Source={StaticResource FlaggedSource}}"
+                              ItemTemplate="{StaticResource RbMailItem}" ItemContainerStyle="{StaticResource RbStretchItem}"
+                              SelectionMode="None" IsItemClickEnabled="True" ItemClick="List_ItemClick"
+                              SelectionChanged="List_SelectionChanged">
+                        <ListView.GroupStyle>
+                            <GroupStyle HidesIfEmpty="True" HeaderTemplate="{StaticResource RbDayHeader}"/>
+                        </ListView.GroupStyle>
+                    </ListView>
+                    <TextBlock x:Name="FlaggedEmpty" Text="Flag mail to keep it here." Visibility="Collapsed" FontSize="25.6" FontWeight="SemiLight"
+                               Foreground="{ThemeResource RbSubtleBrush}" TextWrapping="Wrap" VerticalAlignment="Top"/>
+                </Grid>
+            </PivotItem>
+        </Pivot>
+
+        <!-- the engine couldn't start: say so plainly, with a way to try again -->
+        <StackPanel x:Name="ProblemPanel" Margin="19,120,19,0" Visibility="Collapsed" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+            <TextBlock x:Name="ProblemText" FontSize="20.27" TextWrapping="Wrap"/>
+            <Button Content="try again" Style="{StaticResource RbButton}" Margin="0,12,0,0" Click="RetryButton_Click"/>
         </StackPanel>
 
-        <TextBlock x:Name="StatusText" Grid.Row="1" Margin="19,0,19,9.5" Visibility="Collapsed"
-                   Style="{StaticResource RbSmall}" Tapped="StatusText_Tapped"/>
-
-        <!-- first run, or the engine couldn't start -->
-        <StackPanel x:Name="EmptyPanel" Grid.Row="2" Margin="19,0,19,0" Visibility="Collapsed">
-            <TextBlock x:Name="EmptyText" FontSize="20.27" TextWrapping="Wrap"
-                       Text="Add a mail account to get started. Retrobird works with any IMAP mail service."/>
-            <Button x:Name="AddButton" Content="add account" Style="{StaticResource RbButton}" Margin="0,12,0,0" Click="AddButton_Click"/>
-            <Button x:Name="RetryButton" Content="try again" Style="{StaticResource RbButton}" Margin="0,12,0,0"
-                    Click="RetryButton_Click" Visibility="Collapsed"/>
-        </StackPanel>
-
-        <ListView x:Name="Items" Grid.Row="2" Padding="19,0,19,0" SelectionMode="None" IsItemClickEnabled="True"
-                  ItemClick="Items_ItemClick" ItemContainerStyle="{StaticResource RbStretchItem}">
-            <ListView.ItemTemplate>
-                <DataTemplate>
-                    <Grid Margin="0,0,0,14">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="5"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <!-- unread: an accent bar, and the sender in semibold -->
-                        <Rectangle Fill="{ThemeResource PhoneAccentBrush}" Visibility="{Binding UnreadVisibility}" Margin="0,3,0,3"/>
-                        <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="{Binding Sender}" FontWeight="{Binding SenderWeight}" FontSize="20.27"
-                                           TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Grid.Column="1" Text="{Binding DateText}" Margin="10,0,0,0" VerticalAlignment="Bottom"
-                                           Style="{StaticResource RbSmall}" TextWrapping="NoWrap"/>
-                            </Grid>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="{Binding SubjectText}" Style="{StaticResource RbSubtle}" TextWrapping="NoWrap"
-                                           TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Grid.Column="1" Text="{Binding AccountLabel}" Visibility="{Binding AccountVisibility}"
-                                           Margin="10,0,0,0" Style="{StaticResource RbSmall}" TextWrapping="NoWrap"
-                                           Foreground="{ThemeResource PhoneAccentBrush}" MaxWidth="120" TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Grid.Column="2" Text="{Binding Glyphs}" FontFamily="Segoe UI Symbol" Margin="10,0,0,0"
-                                           Style="{StaticResource RbSubtle}" TextWrapping="NoWrap"/>
-                            </Grid>
-                        </StackPanel>
-                    </Grid>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-            <ListView.Footer>
-                <Button x:Name="MoreButton" Content="load older messages" Style="{StaticResource RbButton}"
-                        Click="MoreButton_Click" Visibility="Collapsed"/>
-            </ListView.Footer>
-        </ListView>
+        <!-- a problem with an account or the connection: a band above the app bar; tap it to fix -->
+        <Border x:Name="StatusBand" Grid.Row="1" Background="{ThemeResource RbChromeBrush}" Visibility="Collapsed"
+                Tapped="StatusBand_Tapped" local:Motion.Tilt="True">
+            <TextBlock x:Name="StatusText" Margin="19,8,19,9.5" Style="{StaticResource RbSmall}"
+                       Foreground="{ThemeResource PhoneForegroundBrush}"/>
+        </Border>
     </Grid>
 </local:RbPage>
