@@ -15,8 +15,9 @@
     <!-- Three peer views of one set of apps, as a pivot: library (everything in the online
          library), installed (what Unesbrews put on this phone, updates first) and sideload
          (package files on the phone). Progress goes in the system tray; commands live in the app
-         bar, which changes with the pivot page. Lists end with 95 px of space so the app bar
-         never covers the last row. -->
+         bar, which changes with the pivot page. The app bar is opaque (opacity 1), so the
+         page already ends above it: no bottom padding (padding on a ListBox sits outside its
+         scrolling area and shows as a fixed blank band, the bug fixed in 0.1.10.0). -->
     <shell:SystemTray.ProgressIndicator>
         <shell:ProgressIndicator x:Name="Progress" IsIndeterminate="True" IsVisible="False" />
     </shell:SystemTray.ProgressIndicator>
@@ -31,7 +32,7 @@
                 </Grid.RowDefinitions>
                 <TextBlock x:Name="CatalogNote" TextWrapping="Wrap" Margin="12,0,12,24"
                            Style="{StaticResource PhoneTextSubtleStyle}" Text="Loading the library..." />
-                <ListBox x:Name="CatalogList" Grid.Row="1" Padding="0,0,0,95" SelectionChanged="CatalogList_SelectionChanged">
+                <ListBox x:Name="CatalogList" Grid.Row="1" SelectionChanged="CatalogList_SelectionChanged">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <!-- app list row: 62 px icon (accent behind a missing one), name in Large
@@ -67,7 +68,7 @@
             <!-- grouped like a phone list: "updates" first (state line in the accent color), then
                  "up to date"; group headers in GroupHeader style (32 px Semilight, subtle) -->
             <ScrollViewer>
-                <StackPanel Margin="0,0,0,95">
+                <StackPanel Margin="0,0,0,12">
                     <TextBlock x:Name="InstalledNote" TextWrapping="Wrap" Margin="12,0,12,24"
                                Style="{StaticResource PhoneTextSubtleStyle}" Text="" />
                     <TextBlock x:Name="UpdatesHeader" Text="updates" Style="{StaticResource PhoneTextGroupHeaderStyle}"
@@ -145,7 +146,7 @@
                 <TextBlock x:Name="PackagesNote" TextWrapping="Wrap" Margin="12,0,12,24"
                            Style="{StaticResource PhoneTextSubtleStyle}"
                            Text="Looking in Downloads and Documents for .xap and .appx files..." />
-                <ListBox x:Name="PackagesList" Grid.Row="1" Padding="0,0,0,95" SelectionChanged="PackagesList_SelectionChanged">
+                <ListBox x:Name="PackagesList" Grid.Row="1" SelectionChanged="PackagesList_SelectionChanged">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Margin="12,0,12,36" Background="Transparent" core:Tilt.IsTarget="True">

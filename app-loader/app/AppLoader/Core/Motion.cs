@@ -5,9 +5,9 @@
 //  - Feathered turnstile: the same, row by row (title, header, then each block of content), the
 //    rows starting 40 ms apart (forward in, back out) or 50 ms apart (forward out, back in), the
 //    axis 0.2 element widths left of each row.
-//  - Continuum: opening an item from a list, its name flies out down and to the right while the
-//    list page drops away (150 ms); the next page's title flies in from below, tipped back 80
-//    degrees around its X axis, as the rest of the page rises in (350 ms).
+//  - Continuum: opening an item from a list, the list fades away and the next page's title starts
+//    exactly where the tapped name was, at its size, and glides up into place (350 ms) while the
+//    rest of the page fades in around it.
 using System;
 using System.Windows;
 using System.Windows.Controls;
@@ -203,11 +203,12 @@ namespace AppLoader.Core
 
     public static class Continuum
     {
-        static readonly IEasingFunction Out = new ExponentialEase { EasingMode = EasingMode.EaseIn, Exponent = 6 };
         static readonly IEasingFunction In = new ExponentialEase { EasingMode = EasingMode.EaseOut, Exponent = 6 };
 
         /// <summary>Set by the list page before it navigates, read once by the page it opens.</summary>
         public static bool Pending;
+        static Point _from;          // where the tapped name was on screen
+        static double _fromSize;     // and its font size
 
         /// <summary>The first TextBlock under an element that shows the given text (the tapped
         /// row's name), or null.</summary>
@@ -225,47 +226,65 @@ namespace AppLoader.Core
             return null;
         }
 
-        /// <summary>The tapped item's name flies out while the page fades away; then done.</summary>
-        public static void FlyOut(FrameworkElement title, UIElement page, Action done)
-        {
-            if (title == null) { Turnstile.Out(page, false, done); return; }
-            Pending = true;
-            var move = new TranslateTransform();
-            title.RenderTransform = move;
-            var sb = new Storyboard();
-            Add(sb, move, "Y", 0, 73, 150, Out);
-            Add(sb, move, "X", 0, 225, 150, Out);
-            Add(sb, page, "Opacity", 1, 0, 150, Out);
-            sb.Completed += (s, e) =>
-            {
-                title.RenderTransform = null;   // the list is cached: put the row back for the return
-                if (done != null) done();
-            };
-            sb.Begin();
-        }
-
-        /// <summary>The new page's title comes in from below, tipped back, as the page rises in.</summary>
-        public static void FlyIn(FrameworkElement title, FrameworkElement page)
+        /// <summary>Remembers where the tapped name is, then the list page fades away (120 ms).
+        /// Without a name to follow it falls back to the turnstile.</summary>
+        public static void FlyOut(TextBlock title, UIElement page, Action done)
         {
             Pending = false;
-            page.Opacity = 1;
-            var rise = new TranslateTransform();
-            page.RenderTransform = rise;
-            var tip = new PlaneProjection { CenterOfRotationX = 0, RotationX = 80 };
-            var lift = new TranslateTransform();
-            title.Projection = tip;
-            title.RenderTransform = lift;
+            if (title != null)
+            {
+                try
+                {
+                    _from = title.TransformToVisual(Application.Current.RootVisual).Transform(new Point(0, 0));
+                    _fromSize = title.FontSize;
+                    Pending = true;
+                }
+                catch (Exception) { }
+            }
+            if (!Pending) { Turnstile.Out(page, false, done); return; }
             var sb = new Storyboard();
-            Add(sb, rise, "Y", 150, 0, 350, In);
-            Add(sb, page, "Opacity", 0, 1, 120, In);
-            Add(sb, tip, "RotationX", 80, 0, 350, In);
-            Add(sb, lift, "Y", 73, 0, 350, In);
+            Add(sb, page, "Opacity", 1, 0, 120, null);
+            sb.Completed += (s, e) => { if (done != null) done(); };
             sb.Begin();
         }
 
-        static void Add(Storyboard sb, DependencyObject target, string prop, double from, double to, int ms, IEasingFunction ease)
+        /// <summary>The new page's title starts where the tapped name was, at its size, and glides
+        /// into place (350 ms) while the rest of the page fades in around it.</summary>
+        public static void FlyIn(TextBlock title, params UIElement[] rest)
         {
-            var a = new DoubleAnimation { From = from, To = to, Duration = TimeSpan.FromMilliseconds(ms), EasingFunction = ease };
+            Pending = false;
+            foreach (var r in rest) r.Opacity = 0;
+            title.Opacity = 0;
+            EventHandler start = null;
+            start = (s, e) =>
+            {
+                title.LayoutUpdated -= start;
+                Point to;
+                try { to = title.TransformToVisual(Application.Current.RootVisual).Transform(new Point(0, 0)); }
+                catch (Exception) { title.Opacity = 1; foreach (var r in rest) r.Opacity = 1; return; }
+                double k = title.FontSize > 0 ? _fromSize / title.FontSize : 1;
+                var scale = new ScaleTransform { ScaleX = k, ScaleY = k };
+                var move = new TranslateTransform { X = _from.X - to.X, Y = _from.Y - to.Y };
+                var group = new TransformGroup();
+                group.Children.Add(scale);
+                group.Children.Add(move);
+                title.RenderTransform = group;
+                title.Opacity = 1;
+                var sb = new Storyboard();
+                Add(sb, move, "X", move.X, 0, 350, In);
+                Add(sb, move, "Y", move.Y, 0, 350, In);
+                Add(sb, scale, "ScaleX", k, 1, 350, In);
+                Add(sb, scale, "ScaleY", k, 1, 350, In);
+                foreach (var r in rest) Add(sb, r, "Opacity", 0, 1, 200, null, 150);
+                sb.Begin();
+            };
+            title.LayoutUpdated += start;
+        }
+
+        static void Add(Storyboard sb, DependencyObject target, string prop, double from, double to, int ms, IEasingFunction ease, int delay = 0)
+        {
+            var a = new DoubleAnimation { From = from, To = to, Duration = TimeSpan.FromMilliseconds(ms), EasingFunction = ease,
+                                          BeginTime = TimeSpan.FromMilliseconds(delay) };
             Storyboard.SetTarget(a, target);
             Storyboard.SetTargetProperty(a, new PropertyPath(prop));
             sb.Children.Add(a);

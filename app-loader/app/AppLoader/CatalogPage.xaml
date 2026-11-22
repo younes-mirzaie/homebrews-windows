@@ -29,7 +29,7 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <Border Width="99" Height="99" Background="{StaticResource PhoneAccentBrush}" VerticalAlignment="Center">
+                <Border x:Name="IconBox" Width="99" Height="99" Background="{StaticResource PhoneAccentBrush}" VerticalAlignment="Center">
                     <Grid>
                         <TextBlock x:Name="AppLetter" FontSize="48" Foreground="White"
                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -42,8 +42,8 @@
                 </StackPanel>
             </Grid>
         </StackPanel>
-        <ScrollViewer Grid.Row="1">
-            <StackPanel Margin="12,0,12,95">
+        <ScrollViewer x:Name="Body" Grid.Row="1">
+            <StackPanel Margin="12,0,12,24">
                 <TextBlock x:Name="Status" Style="{StaticResource PhoneTextAccentStyle}" TextWrapping="Wrap"
                            FontSize="{StaticResource PhoneFontSizeMedium}" Margin="12,0,12,24" />
                 <TextBlock x:Name="Description" Style="{StaticResource PhoneTextNormalStyle}" TextWrapping="Wrap" Margin="12,0,12,24" />

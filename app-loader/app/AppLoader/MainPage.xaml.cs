@@ -60,7 +60,6 @@ namespace AppLoader
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
-            Pivots.RenderTransform = null;
             Turnstile.In(Pivots, e.NavigationMode == NavigationMode.Back);
             // Also on every return to the app: an install started earlier may have finished (or
             // still be running) while the app was away, or App Loader was updating itself
@@ -353,7 +352,7 @@ namespace AppLoader
         }
 
         /// <summary>An app's page, with the turnstile out.</summary>
-        void OpenDetails(CatalogEntry entry, FrameworkElement title)
+        void OpenDetails(CatalogEntry entry, TextBlock title)
         {
             if (_waiting)
             {

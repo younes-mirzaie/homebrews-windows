@@ -35,7 +35,7 @@ namespace AppLoader
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
-            if (Continuum.Pending && e.NavigationMode == NavigationMode.New) Continuum.FlyIn(AppName, LayoutRoot);
+            if (Continuum.Pending && e.NavigationMode == NavigationMode.New) { LayoutRoot.Opacity = 1; LayoutRoot.Projection = null; Continuum.FlyIn(AppName, AppTitle, IconBox, AppBy, Body); }
             else Turnstile.FeatherIn(LayoutRoot, e.NavigationMode == NavigationMode.Back);
             string id;
             NavigationContext.QueryString.TryGetValue("id", out id);
