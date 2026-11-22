@@ -1,4 +1,4 @@
-# wp-projects
+# homebrews-windows
 
 Homebrew apps and tools for Windows Phone 8.1, made for an interop-unlocked Lumia 820 with
 CMD Injector. Everything runs on the phone itself. The Gecko browser port lives in its own repo,
@@ -6,7 +6,8 @@ CMD Injector. Everything runs on the phone itself. The Gecko browser port lives 
 
 | folder | what |
 |---|---|
-| [file-explorer](file-explorer) | **File Explorer**: root file manager (whole filesystem as SYSTEM, copy/move/delete, attributes, text/hex/image viewer, web access over Wi-Fi) |
+| [app-loader](app-loader) | **Unesbrews**: on-phone installer and signed OTA catalog of homebrew apps |
+| [file-explorer](file-explorer) | **Root Explorer**: root file manager (whole filesystem as SYSTEM, copy/move/delete, attributes, text/hex/image viewer, web access over Wi-Fi) |
 | [retrobird](retrobird) | **Retrobird**: IMAP/SMTP mail client with modern TLS (NSS), multiple accounts, offline cache, HTML mail |
 
 ## Building
