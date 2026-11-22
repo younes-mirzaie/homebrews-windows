@@ -14,6 +14,8 @@ packages/
 # native builds
 **/daemon/build/
 **/Helper/rfxfsd.exe
+**/helper/build/
+retrobird/app/Retrobird/Helper/
 
 # python
 __pycache__/
