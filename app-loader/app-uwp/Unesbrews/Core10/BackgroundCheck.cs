@@ -3,7 +3,8 @@
 // itself runs outside the app, like every install); otherwise a notification says they are ready.
 // It also reports on an install that was still running when the app was closed.
 //
-// A timer background task in the app's own process (OnBackgroundActivated in App.xaml.cs), so it
+// A timer background task in the app's own process (OnBackgroundActivated in App.xaml.cs; an
+// in-process task needs no manifest entry, and Windows refuses one without EntryPoint), so it
 // uses the same shared core. Windows gives it about half a minute, so it only reads what it needs:
 // the catalog and the versions of the library apps, not the whole installed list.
 using System;
