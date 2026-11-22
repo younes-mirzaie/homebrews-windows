@@ -68,10 +68,27 @@ namespace AppLoader.Core
 #if WINDOWS_UWP
                 // Windows 10 Mobile has no TH.exe: MinDeployAppX.exe (see Installer10.cs)
                 b.Append(Installer10.Line(pkg, it.Mode) + "\n");
+                b.Append("echo UB " + n + " th %errorlevel%\n");
 #else
                 b.Append("TH.exe " + pkg + " -" + it.Mode + "\n");
+                b.Append("set UBR=%errorlevel%\n");
+                b.Append("echo UB " + n + " th %UBR%\n");
+                if (it.IsUpdate && it.File.EndsWith(".xap", StringComparison.OrdinalIgnoreCase))
+                {
+                    // An update that fails partway can leave the app removed: TH -uda once took
+                    // Unesbrews off the phone and then stopped with 0x80070006 while updating it
+                    // from its own job. If the app's folder is gone, deploy it again from the same
+                    // package (the later "th" line is the one that counts).
+                    string dir = "{" + it.ProductId + "}\\Install";
+                    b.Append("if \"%UBR%\"==\"0\" goto :next" + n + "\n");
+                    b.Append("if exist \"C:\\Data\\Programs\\" + dir + "\" goto :next" + n + "\n");
+                    b.Append("if exist \"D:\\WPSystem\\Apps\\" + dir + "\" goto :next" + n + "\n");
+                    b.Append("echo UB " + n + " redeploy\n");
+                    b.Append("ping -n 4 127.0.0.1 >nul\n");
+                    b.Append("TH.exe " + pkg + " -di\n");
+                    b.Append("echo UB " + n + " th %errorlevel%\n");
+                }
 #endif
-                b.Append("echo UB " + n + " th %errorlevel%\n");
                 b.Append("goto :next" + n + "\n");
                 b.Append(":fail" + n + "\n");
                 b.Append("echo UB " + n + " fetchfail\n");
