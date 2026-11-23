@@ -11,7 +11,6 @@ using Retrobird.Core;
 using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media.Animation;
 using Windows.UI.Xaml.Navigation;
 
@@ -85,7 +84,9 @@ namespace Retrobird
 
         // ---------------- navigation pane ----------------
 
-        // (SplitView.PaneOpening only exists from build 16299; Windows 10 Mobile is 15063 to 15254)
+        // (SplitView.PaneOpening only exists from build 16299; Windows 10 Mobile is 15063 to 15254.
+        // The pane opens from the hamburger only: SplitView has no edge swipe of its own, and a
+        // hand-made one doesn't feel like Windows, so there is none.)
         void Hamburger_Click(object sender, RoutedEventArgs e)
         {
             if (!Nav.IsPaneOpen) { var t = RefreshPaneAsync(); }
@@ -158,18 +159,6 @@ namespace Retrobird
             }
             else TopItems.ItemsSource = rows;
             MarkCurrent();
-        }
-
-        // ---------------- swipe in from the left edge (phones) ----------------
-
-        // Like the Windows 10 Mobile apps: a finger dragged in from the screen's left edge opens the
-        // pane. The strip is a few pixels wide and only there while the pane is an overlay.
-        void Edge_ManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
-        {
-            if (Nav.IsPaneOpen || e.Cumulative.Translation.X < 24) return;
-            e.Complete();
-            var t = RefreshPaneAsync();
-            Nav.IsPaneOpen = true;
         }
 
         static string Count(int n) { return n > 0 ? n.ToString() : ""; }
