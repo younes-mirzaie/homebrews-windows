@@ -12,7 +12,7 @@ namespace MetroTelegram.Crypto
     public class AuthKeyHandshake
     {
         private readonly ITcpTransport _transport;
-        private readonly RNGCryptoServiceProvider _rng = new RNGCryptoServiceProvider();
+        private readonly RandomNumberGenerator _rng = MetroTelegram.Crypto.Rng.Create();
 
         private static long _lastMessageId = 0;
         private static readonly object _msgIdLock = new object();

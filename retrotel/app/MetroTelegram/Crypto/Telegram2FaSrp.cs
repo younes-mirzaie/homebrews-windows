@@ -22,7 +22,7 @@ namespace MetroTelegram.Crypto
 
     public static class Telegram2FaSrp
     {
-        private static readonly RNGCryptoServiceProvider _rng = new RNGCryptoServiceProvider();
+        private static readonly RandomNumberGenerator _rng = MetroTelegram.Crypto.Rng.Create();
 
         private static byte[] SH(byte[] data, byte[] salt)
         {

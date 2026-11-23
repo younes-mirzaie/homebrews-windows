@@ -96,7 +96,7 @@ namespace MetroTelegram.Crypto
         public void GenerateNewSessionId()
         {
             byte[] bytes = new byte[8];
-            var rng = new RNGCryptoServiceProvider();
+            var rng = Rng.Create();
             rng.GetBytes(bytes);
 
             SessionId = BitConverter.ToInt64(bytes, 0);

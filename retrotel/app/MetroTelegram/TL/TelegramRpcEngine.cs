@@ -13,7 +13,7 @@ namespace MetroTelegram.TL
     {
         private readonly ITcpTransport _transport;
         private readonly AuthKeyStorage _storage;
-        private readonly RNGCryptoServiceProvider _rng = new RNGCryptoServiceProvider();
+        private readonly RandomNumberGenerator _rng = MetroTelegram.Crypto.Rng.Create();
 
         private long _sessionId;
         private int _seqNo = 0;

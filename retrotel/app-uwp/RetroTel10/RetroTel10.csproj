@@ -68,6 +68,7 @@
     <Compile Include="..\..\app\MetroTelegram\Crypto\AuthKeyStorage.cs"><Link>Core\Crypto\AuthKeyStorage.cs</Link></Compile>
     <Compile Include="..\..\app\MetroTelegram\Crypto\Factorizer.cs"><Link>Core\Crypto\Factorizer.cs</Link></Compile>
     <Compile Include="..\..\app\MetroTelegram\Crypto\MtProtoKdf.cs"><Link>Core\Crypto\MtProtoKdf.cs</Link></Compile>
+    <Compile Include="..\..\app\MetroTelegram\Crypto\Rng.cs"><Link>Core\Crypto\Rng.cs</Link></Compile>
     <Compile Include="..\..\app\MetroTelegram\Crypto\SecureStore.cs"><Link>Core\Crypto\SecureStore.cs</Link></Compile>
     <Compile Include="..\..\app\MetroTelegram\Crypto\Telegram2FaSrp.cs"><Link>Core\Crypto\Telegram2FaSrp.cs</Link></Compile>
     <Compile Include="..\..\app\MetroTelegram\Crypto\TelegramRsa.cs"><Link>Core\Crypto\TelegramRsa.cs</Link></Compile>

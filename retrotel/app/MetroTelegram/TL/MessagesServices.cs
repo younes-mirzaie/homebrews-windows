@@ -12,7 +12,7 @@ namespace MetroTelegram.TL
     public class MessagesService
     {
         private readonly TelegramRpcEngine _rpcEngine;
-        private readonly RNGCryptoServiceProvider _rng = new RNGCryptoServiceProvider();
+        private readonly RandomNumberGenerator _rng = MetroTelegram.Crypto.Rng.Create();
 
         public MessagesService(TelegramRpcEngine rpcEngine)
         {
