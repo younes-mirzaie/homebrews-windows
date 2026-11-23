@@ -95,6 +95,7 @@ namespace Retrobird
             {
                 ErrorText.Text = Ui.Describe(ex);
                 ErrorText.Visibility = Visibility.Visible;
+                ShowHeaders(true);
                 Busy(null);
                 return;
             }
@@ -112,8 +113,8 @@ namespace Retrobird
             DetailsText.Text = d.ToString();
             var atts = _view.Attachments.Where(a => !a.Inline).ToList();
             Attachments.ItemsSource = atts;
-            Attachments.Visibility = atts.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-            PicturesBand.Visibility = _view.Blocked ? Visibility.Visible : Visibility.Collapsed;
+            Attachments.Visibility = Visibility.Collapsed;   // listed in the page now
+            PicturesBand.Visibility = Visibility.Collapsed;   // shown in the page now
             _imagesItem.IsEnabled = _view.Blocked;
             _plainItem.IsEnabled = !string.IsNullOrEmpty(_view.Text);
             Render();
@@ -152,23 +153,38 @@ namespace Retrobird
                 FontSize = 16,           // Silverlight Normal 20 x 0.8
                 Padding = "0 19px 24px", // the page's own margins
 #endif
-                ScrollNotify = true,
+#if WINDOWS_UWP
+                Uwp = true,
+#endif
             };
-            ShowHeaders(true);
+            // the headers are part of the page, so they scroll away with the mail
+            var head = new MessageHeader
+            {
+                Where = WhereText.Text, From = FromText.Text, Subject = SubjectText.Text, When = WhenText.Text,
+                Details = DetailsText.Text, PicturesHidden = _view.Blocked,
+                Attachments = _view.Attachments.Where(a => !a.Inline).ToList(),
+            };
+            ShowHeaders(false);
             Body.Opacity = 0;
-            Body.NavigateToString(MessageHtml.Build(_view, _plain, style));
+            Body.NavigateToString(MessageHtml.Build(_view, _plain, style, head));
         }
 
         void Body_NavigationCompleted(WebView sender, WebViewNavigationCompletedEventArgs e) { Body.Opacity = 1; }
 
-        /// <summary>The headers make room while the reader is down in the mail and come back when
-        /// they scroll up, so the subject isn't stuck over a long message.</summary>
+        /// <summary>Taps in the page's headers: an attachment, or "show pictures".</summary>
         void Body_ScriptNotify(object sender, NotifyEventArgs e)
         {
-            if (e.Value == "hide") ShowHeaders(false);
-            else if (e.Value == "show") ShowHeaders(true);
+            var v = e.Value ?? "";
+            int index;
+            if (v == "images") LoadImages();
+            else if (v.StartsWith("att:") && int.TryParse(v.Substring(4), out index) && _view != null)
+            {
+                var a = _view.Attachments.FirstOrDefault(x => x.Index == index);
+                if (a != null) OpenAttachment(a);
+            }
         }
 
+        /// <summary>The XAML headers only show while there's no page: opening, or when it failed.</summary>
         void ShowHeaders(bool show)
         {
             var v = show ? Visibility.Visible : Visibility.Collapsed;
@@ -214,7 +230,11 @@ namespace Retrobird
         async void Attachments_ItemClick(object sender, ItemClickEventArgs e)
         {
             var a = e.ClickedItem as Attachment;
-            if (a == null) return;
+            if (a != null) OpenAttachment(a);
+        }
+
+        async void OpenAttachment(Attachment a)
+        {
             Busy("getting " + a.Name);
             try
             {

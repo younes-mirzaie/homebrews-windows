@@ -32,8 +32,12 @@ static class CoreTest
         page = MessageHtml.Build(html, false, new BodyStyle { Dark = true });
         Check(page.Contains("background:#ffffff") && page.Contains("caf&#233;") && page.Contains("&#128512;"), "html mail stays white, entities");
 
-        Check(!page.Contains("<script") && MessageHtml.Build(html, false, new BodyStyle { ScrollNotify = true }).Contains("external.notify"),
-              "the scroll script only when asked for");
+        var head = new MessageHeader { Where = "Inbox", From = "Ann <a&b>", Subject = "Plans", When = "today", PicturesHidden = true };
+        head.Attachments.Add(new Attachment { Index = 3, Name = "plan.pdf", Size = 2048 });
+        var withHead = MessageHtml.Build(html, false, new BodyStyle { Dark = true }, head);
+        Check(!page.Contains("<script") && withHead.Contains("external.notify") && withHead.Contains("data-rb=\"att:3\"") &&
+              withHead.Contains("data-rb=\"images\"") && withHead.Contains("Ann &lt;a&amp;b&gt;") &&
+              withHead.IndexOf("rb-head") < withHead.IndexOf("caf&#233;"), "headers scroll with the mail, escaped, taps wired");
         Check(Format.DayGroup(DateTime.UtcNow) == "today", "today");
         Check(Format.DayGroup(DateTime.UtcNow.AddDays(-1)) == "yesterday", "yesterday");
         Check(Format.Sentence("last week") == "Last week", "sentence case");

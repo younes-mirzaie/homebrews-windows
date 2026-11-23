@@ -59,8 +59,9 @@
                                  Click="ImagesButton_Click"/>
             </Grid>
         </StackPanel>
-        <!-- the mail engine has already removed the mail's own scripts; the page's one script only says
-             when the reader scrolls, so the headers above slide away and come back -->
+        <!-- the page: the headers (MessageHtml), then the mail, scrolling as one. The engine has already
+             removed the mail's own scripts; the page's script only passes header taps to the app. The
+             XAML headers above show only while opening, or when opening failed. -->
         <WebView x:Name="Body" Grid.Row="2" Opacity="0" Margin="0,4,0,0"
                  NavigationStarting="Body_NavigationStarting" NavigationCompleted="Body_NavigationCompleted"
                  ScriptNotify="Body_ScriptNotify"/>
