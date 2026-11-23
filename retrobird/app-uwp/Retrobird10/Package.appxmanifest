@@ -8,7 +8,7 @@
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
   IgnorableNamespaces="uap mp">
 
-  <Identity Name="Retrobird10" Publisher="CN=Retrobird" Version="0.7.5.0" />
+  <Identity Name="Retrobird10" Publisher="CN=Retrobird" Version="0.7.6.0" />
 
   <mp:PhoneIdentity PhoneProductId="f82db4b7-6925-4533-8ff9-2542d492b037" PhonePublisherId="e1e99522-17c9-4cc7-a879-b7ccf6aecc53" />
 

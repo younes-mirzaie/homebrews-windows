@@ -8,7 +8,7 @@
     <!-- The app's frame: a 48 px top bar (hamburger and page title), a busy line, and a SplitView
          navigation pane with new mail, the inboxes, the current account's folders and settings.
          The pane is an overlay on phones (256 px, so a strip of the page stays tappable), a 48 px
-         rail from 641 px and docked open from 1008 px. Pages load into ContentFrame. -->
+         rail from 641 px and docked open from 1008 px. On phones a swipe in from the left edge opens it. Pages load into ContentFrame. -->
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="48" />
@@ -28,6 +28,7 @@
                         <AdaptiveTrigger MinWindowWidth="641" />
                     </VisualState.StateTriggers>
                     <VisualState.Setters>
+                        <Setter Target="EdgeSwipe.Visibility" Value="Collapsed" />
                         <Setter Target="Nav.DisplayMode" Value="CompactOverlay" />
                         <Setter Target="Nav.OpenPaneLength" Value="320" />
                         <Setter Target="PageTitle.Margin" Value="12,0,24,0" />
@@ -38,6 +39,7 @@
                         <AdaptiveTrigger MinWindowWidth="1008" />
                     </VisualState.StateTriggers>
                     <VisualState.Setters>
+                        <Setter Target="EdgeSwipe.Visibility" Value="Collapsed" />
                         <Setter Target="Nav.DisplayMode" Value="CompactInline" />
                         <Setter Target="Nav.IsPaneOpen" Value="True" />
                         <Setter Target="Nav.OpenPaneLength" Value="320" />
@@ -86,13 +88,18 @@
                               ScrollViewer.VerticalScrollMode="Disabled" />
                 </Grid>
             </SplitView.Pane>
-            <Frame x:Name="PageFrame" Navigated="ContentFrame_Navigated">
-                <Frame.ContentTransitions>
-                    <TransitionCollection>
-                        <NavigationThemeTransition />
-                    </TransitionCollection>
-                </Frame.ContentTransitions>
-            </Frame>
+            <Grid>
+                <Frame x:Name="PageFrame" Navigated="ContentFrame_Navigated">
+                    <Frame.ContentTransitions>
+                        <TransitionCollection>
+                            <NavigationThemeTransition />
+                        </TransitionCollection>
+                    </Frame.ContentTransitions>
+                </Frame>
+                <!-- swipe in from the left edge to open the pane (phones, where the pane is an overlay) -->
+                <Rectangle x:Name="EdgeSwipe" Width="12" HorizontalAlignment="Left" Fill="Transparent"
+                           ManipulationMode="TranslateX" ManipulationDelta="Edge_ManipulationDelta" />
+            </Grid>
         </SplitView>
     </Grid>
 </Page>

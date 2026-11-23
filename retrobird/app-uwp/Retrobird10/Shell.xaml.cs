@@ -11,6 +11,7 @@ using Retrobird.Core;
 using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media.Animation;
 using Windows.UI.Xaml.Navigation;
 
@@ -147,8 +148,28 @@ namespace Retrobird
                 }
                 catch (Exception ex) { InAppHelper.Log("pane folders: " + ex.Message); }
             }
-            TopItems.ItemsSource = rows;
+            // Same rows as shown (the usual case when the pane opens): only update the counts, so
+            // the open list doesn't flicker and reload under the finger.
+            var shown = TopItems.ItemsSource as List<NavEntry>;
+            if (shown != null && shown.Count == rows.Count &&
+                shown.Zip(rows, (a, b) => a.Key == b.Key && a.Label == b.Label && a.IsHeader == b.IsHeader).All(same => same))
+            {
+                for (int i = 0; i < rows.Count; i++) shown[i].Count = rows[i].Count;
+            }
+            else TopItems.ItemsSource = rows;
             MarkCurrent();
+        }
+
+        // ---------------- swipe in from the left edge (phones) ----------------
+
+        // Like the Windows 10 Mobile apps: a finger dragged in from the screen's left edge opens the
+        // pane. The strip is a few pixels wide and only there while the pane is an overlay.
+        void Edge_ManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
+        {
+            if (Nav.IsPaneOpen || e.Cumulative.Translation.X < 24) return;
+            e.Complete();
+            var t = RefreshPaneAsync();
+            Nav.IsPaneOpen = true;
         }
 
         static string Count(int n) { return n > 0 ? n.ToString() : ""; }
