@@ -9,6 +9,7 @@ CMD Injector. Everything runs on the phone itself. The Gecko browser port lives 
 | [app-loader](app-loader) | **Unesbrews**: on-phone installer and signed OTA catalog of homebrew apps |
 | [file-explorer](file-explorer) | **Root Explorer**: root file manager (whole filesystem as SYSTEM, copy/move/delete, attributes, text/hex/image viewer, web access over Wi-Fi) |
 | [retrobird](retrobird) | **Retrobird**: IMAP/SMTP mail client with modern TLS (NSS), multiple accounts, offline cache, HTML mail |
+| [retrotel](retrotel) | **RetroTel**: Telegram client (MTProto 2.0, direct to Telegram) for Windows 10 Mobile and Windows Phone 8.1, based on Amigram |
 
 ## Building
 

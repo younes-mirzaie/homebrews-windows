@@ -1,0 +1,8 @@
+<!-- .NET Native runtime directives: keep metadata for the app's own types (data templates bind to
+     the shared view models by reflection) and for Bouncy Castle. -->
+<Directives xmlns="http://schemas.microsoft.com/netfx/2013/01/metadata">
+  <Application>
+    <Assembly Name="*Application*" Dynamic="Required All" />
+    <Assembly Name="BouncyCastle.Crypto" Dynamic="Required All" />
+  </Application>
+</Directives>
