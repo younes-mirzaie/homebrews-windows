@@ -1,0 +1,85 @@
+<local:RbPage
+    x:Class="Retrobird.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Retrobird">
+    <!-- Settings as a pivot: accounts, options, about. Everything applies at once. Code:
+         ..\..\app\Retrobird\SettingsPage.xaml.cs, shared with the phone app. -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock x:Name="TitleText" Visibility="Collapsed" Text="Settings" />
+        <Pivot x:Name="Tabs" Grid.Row="1" SelectionChanged="Tabs_SelectionChanged">
+            <PivotItem Header="Accounts" Margin="0">
+                <ListView x:Name="Accounts" SelectionMode="None" IsItemClickEnabled="True" ItemClick="Accounts_ItemClick"
+                          ItemContainerStyle="{StaticResource MailItemContainer}">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Padding="0,10" Holding="Account_Holding" RightTapped="Account_RightTapped" Background="Transparent">
+                                <FlyoutBase.AttachedFlyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem Text="Pin to Start" Click="Pin_Click" />
+                                        <MenuFlyoutItem Text="Remove" Click="Remove_Click" />
+                                    </MenuFlyout>
+                                </FlyoutBase.AttachedFlyout>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="48" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <FontIcon FontFamily="{StaticResource IconFont}" Glyph="&#xE715;" FontSize="20"
+                                          HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,2,0,0" />
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{Binding ShortName}" Style="{StaticResource BodyTextBlockStyle}" />
+                                    <TextBlock Text="{Binding Email}" Style="{StaticResource CaptionTextBlockStyle}" TextTrimming="CharacterEllipsis"
+                                               TextWrapping="NoWrap" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                                    <TextBlock Text="{Binding StateText}" Style="{StaticResource CaptionTextBlockStyle}" Visibility="{Binding OkVisibility}"
+                                               Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                                    <TextBlock Text="{Binding StateText}" Style="{StaticResource CaptionTextBlockStyle}" Visibility="{Binding AttentionVisibility}"
+                                               Foreground="{ThemeResource SystemControlForegroundAccentBrush}" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                    <ListView.Footer>
+                        <TextBlock Style="{StaticResource RbSmall}" Margin="12,8,12,24"
+                                   Text="Select an account to change it. Press and hold or right-click it to pin its inbox to Start or to remove it." />
+                    </ListView.Footer>
+                </ListView>
+            </PivotItem>
+            <PivotItem Header="Options" Margin="0">
+                <ScrollViewer>
+                    <StackPanel Margin="12,8,12,24" MaxWidth="600" HorizontalAlignment="Left">
+                        <ComboBox x:Name="BackgroundBox" Header="Check for new mail while Retrobird is closed"
+                                  SelectionChanged="BackgroundBox_SelectionChanged" MinWidth="260" />
+                        <TextBlock Style="{StaticResource RbSmall}" Margin="0,4,0,24"
+                                   Text="Windows picks the exact moment, so mail can take a while to arrive. Everything runs on this device: there's no push server." />
+                        <ComboBox x:Name="SyncBox" Header="Check for new mail while Retrobird is open"
+                                  SelectionChanged="SyncBox_SelectionChanged" MinWidth="260" Margin="0,0,0,24" />
+                        <ToggleSwitch x:Name="NotifySwitch" Header="Notifications for new mail" Toggled="NotifySwitch_Toggled" Margin="0,0,0,12" />
+                        <ToggleSwitch x:Name="TileSwitch" Header="Show sender and subject on the tile" Toggled="TileSwitch_Toggled" Margin="0,0,0,12" />
+                        <ToggleSwitch x:Name="ImagesSwitch" Header="Show pictures from the web in mail (never in junk)" Toggled="ImagesSwitch_Toggled" />
+                    </StackPanel>
+                </ScrollViewer>
+            </PivotItem>
+            <PivotItem Header="About" Margin="0">
+                <ScrollViewer>
+                    <StackPanel Margin="12,8,12,24" MaxWidth="600" HorizontalAlignment="Left">
+                        <TextBlock x:Name="VersionText" Style="{StaticResource SubtitleTextBlockStyle}" />
+                        <TextBlock x:Name="EngineText" Style="{StaticResource RbSubtle}" Margin="0,0,0,12" />
+                        <TextBlock Style="{StaticResource BodyTextBlockStyle}" Margin="0,0,0,12"
+                                   Text="Mail for IMAP and SMTP accounts. Your mail and passwords stay in Retrobird's own storage on this device, and Retrobird only talks to your mail servers." />
+                        <TextBlock Style="{StaticResource RbSubtle}" Margin="0,0,0,12"
+                                   Text="Retrobird is built on Mozilla's NSPR and NSS libraries (the networking and encryption Firefox uses), used under the Mozilla Public License 2.0. Retrobird is an independent project, not made, endorsed or supported by Mozilla." />
+                        <Button Content="Licenses" Click="LicensesButton_Click" />
+                        <HyperlinkButton Content="Source code on GitHub" Margin="0,12,0,0"
+                                         NavigateUri="https://github.com/younes-mirzaie/homebrews-windows" />
+                    </StackPanel>
+                </ScrollViewer>
+            </PivotItem>
+        </Pivot>
+        <CommandBar x:Name="Bar" Grid.Row="2" />
+    </Grid>
+</local:RbPage>

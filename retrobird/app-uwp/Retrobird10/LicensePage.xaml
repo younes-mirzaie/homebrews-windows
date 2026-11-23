@@ -1,0 +1,20 @@
+<local:RbPage
+    x:Class="Retrobird.LicensePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Retrobird">
+    <!-- Mozilla's notices and the MPL 2.0 text. Code: ..\..\app\Retrobird\LicensePage.xaml.cs. -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock x:Name="TitleText" Visibility="Collapsed" Text="Licenses" />
+        <ScrollViewer Grid.Row="1">
+            <!-- one TextBlock per paragraph keeps long texts fast to lay out -->
+            <StackPanel x:Name="Paragraphs" Margin="12,12,12,24" MaxWidth="720" HorizontalAlignment="Left" />
+        </ScrollViewer>
+        <CommandBar x:Name="Bar" Grid.Row="2" Visibility="Collapsed" />
+    </Grid>
+</local:RbPage>

@@ -1,0 +1,28 @@
+<phone:PhoneApplicationPage
+    x:Class="RetroFiles.PropertiesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    FontFamily="{StaticResource PhoneFontFamilyNormal}"
+    FontSize="{StaticResource PhoneFontSizeNormal}"
+    Foreground="{StaticResource PhoneForegroundBrush}"
+    SupportedOrientations="PortraitOrLandscape" Orientation="Portrait"
+    shell:SystemTray.IsVisible="True">
+    <ScrollViewer x:Name="LayoutRoot" Background="{StaticResource PhoneBackgroundBrush}">
+        <StackPanel Margin="12,16,12,24">
+            <TextBlock Text="ROOT EXPLORER" Style="{StaticResource PhoneTextNormalStyle}" FontFamily="{StaticResource PhoneFontFamilySemiBold}"/>
+            <TextBlock Text="properties" Style="{StaticResource PhoneTextTitle1Style}" Margin="9,-10,0,28"/>
+            <TextBlock x:Name="NameText" Style="{StaticResource PhoneTextLargeStyle}" TextWrapping="Wrap"/>
+            <TextBlock x:Name="InfoText" TextWrapping="Wrap" Margin="12,12,12,12" Foreground="{StaticResource PhoneSubtleBrush}"/>
+            <TextBlock Text="attributes" Style="{StaticResource PhoneTextGroupHeaderStyle}"/>
+            <!-- changes apply as soon as a box is toggled -->
+            <CheckBox x:Name="ReadOnlyBox" Content="read-only" Click="Attr_Click"/>
+            <CheckBox x:Name="HiddenBox" Content="hidden" Click="Attr_Click"/>
+            <CheckBox x:Name="SystemBox" Content="system" Click="Attr_Click"/>
+            <CheckBox x:Name="ArchiveBox" Content="archive" Click="Attr_Click"/>
+            <TextBlock x:Name="OtherAttrs" TextWrapping="Wrap" Style="{StaticResource PhoneTextSubtleStyle}"/>
+            <TextBlock x:Name="StatusText" TextWrapping="Wrap" Margin="12,12,12,0"/>
+        </StackPanel>
+    </ScrollViewer>
+</phone:PhoneApplicationPage>

@@ -1,0 +1,74 @@
+// Checks the shared core pieces that need no mail engine (replies, the body page, day groups,
+// provider names), on desktop Mono. Run by helper/test/run-tests.sh.
+using System;
+using Retrobird.Core;
+
+static class CoreTest
+{
+    static int pass, fail;
+    static void Check(bool ok, string what) { if (ok) pass++; else { fail++; Console.WriteLine("FAIL: " + what); } }
+
+    static int Main()
+    {
+        var v = new MessageView
+        {
+            From = "Ann Example <ann@x.org>", To = "me@y.org, Bob <bob@z.org>", Cc = "carol@w.org",
+            Subject = "Plans", MessageId = "<1@x>", Text = "line one\n> older", Date = new DateTime(2026, 11, 20, 9, 0, 0, DateTimeKind.Utc)
+        };
+        var r = Drafts.Reply(v, "INBOX", 7, false, "me@y.org");
+        Check(r.To == "Ann Example <ann@x.org>" && r.Subject == "Re: Plans" && r.ReplyUid == 7 && r.Cc == "", "reply to sender");
+        Check(r.Body.Contains("> line one") && r.Body.Contains(">> older"), "quote");
+        var all = Drafts.Reply(v, "INBOX", 7, true, "ME@y.org");
+        Check(all.Cc == "Bob <bob@z.org>, carol@w.org", "reply all leaves me out: " + all.Cc);
+        Check(Drafts.Prefixed("Re: x", "Re:") == "Re: x" && Drafts.Prefixed("AW: x", "Re:") == "AW: x", "prefix once");
+        Check(Drafts.Forward(v).Subject == "Fwd: Plans", "forward subject");
+        Check(Drafts.FromMailto("mailto:a%40b.org?subject=x").To == "a@b.org", "mailto");
+        Check(Drafts.Recipients(v, "me@y.org") == "to you, Bob and carol@w.org", "recipients: " + Drafts.Recipients(v, "me@y.org"));
+
+        var plain = new MessageView { Html = "<div class=\"rb-plain\">hi</div>", Text = "hi" };
+        var page = MessageHtml.Build(plain, false, new BodyStyle { Dark = true, Accent = "#a4c400" });
+        Check(page.Contains("background:#000000") && page.Contains("#a4c400"), "plain mail follows the dark theme");
+        var html = new MessageView { Html = "<p>café \U0001F600</p>" };
+        page = MessageHtml.Build(html, false, new BodyStyle { Dark = true });
+        Check(page.Contains("background:#ffffff") && page.Contains("caf&#233;") && page.Contains("&#128512;"), "html mail stays white, entities");
+
+        var head = new MessageHeader { Where = "Inbox", From = "Ann <a&b>", Subject = "Plans", When = "today", PicturesHidden = true };
+        head.Attachments.Add(new Attachment { Index = 3, Name = "plan.pdf", Size = 2048 });
+        var withHead = MessageHtml.Build(html, false, new BodyStyle { Dark = true }, head);
+        Check(!page.Contains("<script") && withHead.Contains("external.notify") && withHead.Contains("data-rb=\"att:3\"") &&
+              withHead.Contains("data-rb=\"images\"") && withHead.Contains("Ann &lt;a&amp;b&gt;") &&
+              withHead.IndexOf("rb-head") < withHead.IndexOf("caf&#233;"), "headers scroll with the mail, escaped, taps wired");
+        Check(Format.DayGroup(DateTime.UtcNow) == "today", "today");
+        Check(Format.DayGroup(DateTime.UtcNow.AddDays(-1)) == "yesterday", "yesterday");
+        Check(Format.Sentence("last week") == "Last week", "sentence case");
+        Check(Provider.ForEmail("a@hotmail.com").ShortName == "Outlook" && Provider.ByName("Yahoo Mail").ShortName == "Yahoo", "short names");
+        Check(new AccountInfo { Email = "a@gmail.com" }.ShortName == "Gmail" && new AccountInfo { Email = "a@example.net" }.ShortName == "example.net", "account short name");
+
+        // a reply line longer than the socket's first buffer (a big HTML mail) arrives whole
+        {
+            var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+            listener.Start();
+            int port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
+            var big = new string('x', 300 * 1024);
+            var server = System.Threading.Tasks.Task.Run(() =>
+            {
+                using (var cl = listener.AcceptTcpClient())
+                {
+                    var bytes = System.Text.Encoding.UTF8.GetBytes(big + "\nOK\n");
+                    cl.GetStream().Write(bytes, 0, bytes.Length);
+                    System.Threading.Thread.Sleep(200);
+                }
+            });
+            var sock = LineSocket.ConnectAsync("127.0.0.1", port, 2000).Result;
+            var line = sock.ReadLineAsync().Result;
+            var next = sock.ReadLineAsync().Result;
+            Check(line != null && line.Length == big.Length && next == "OK", "long line read whole: " + (line == null ? "null" : line.Length.ToString()));
+            sock.Dispose();
+            server.Wait();
+            listener.Stop();
+        }
+
+        Console.WriteLine("C# core: " + pass + " passed, " + fail + " failed");
+        return fail == 0 ? 0 : 1;
+    }
+}

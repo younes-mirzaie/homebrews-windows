@@ -1,0 +1,37 @@
+<local:RbPage
+    x:Class="Retrobird.ComposePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Retrobird">
+    <!-- Writing a message (code: ..\..\app\Retrobird\ComposePage.xaml.cs, shared with the phone
+         app). "From" names the account it goes out from; tap it to choose another (new messages
+         only). Cc and Bcc stay hidden until asked for. -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock x:Name="TitleText" Visibility="Collapsed" Text="New message" />
+        <ScrollViewer Grid.Row="1">
+            <StackPanel Margin="12,8,12,24" MaxWidth="720" HorizontalAlignment="Stretch">
+                <StackPanel Orientation="Horizontal" Background="Transparent" Tapped="FromText_Tapped" MinHeight="32" Margin="0,0,0,8">
+                    <TextBlock x:Name="FromText" Text="Retrobird" Style="{StaticResource SecondaryText}" VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" />
+                    <FontIcon x:Name="FromChevron" FontFamily="{StaticResource IconFont}" Glyph="&#xE70D;" FontSize="12"
+                              Margin="8,2,0,0" VerticalAlignment="Center" Visibility="Collapsed"
+                              Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                </StackPanel>
+                <TextBox x:Name="ToBox" Header="To" TextWrapping="Wrap" />
+                <HyperlinkButton x:Name="CcLink" Content="Add Cc and Bcc" Click="CcLink_Click" Margin="0,0,0,4" />
+                <StackPanel x:Name="CcPanel" Visibility="Collapsed">
+                    <TextBox x:Name="CcBox" Header="Cc" TextWrapping="Wrap" Margin="0,0,0,12" />
+                    <TextBox x:Name="BccBox" Header="Bcc" TextWrapping="Wrap" Margin="0,0,0,12" />
+                </StackPanel>
+                <TextBox x:Name="SubjectBox" Header="Subject" Margin="0,0,0,12" />
+                <TextBox x:Name="BodyBox" Header="Message" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="200" />
+            </StackPanel>
+        </ScrollViewer>
+        <CommandBar x:Name="Bar" Grid.Row="2" />
+    </Grid>
+</local:RbPage>

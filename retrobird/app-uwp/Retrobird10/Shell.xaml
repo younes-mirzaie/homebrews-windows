@@ -1,0 +1,98 @@
+<Page
+    x:Class="Retrobird.Shell"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Retrobird"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <!-- The app's frame: a 48 px top bar (hamburger and page title), a busy line, and a SplitView
+         navigation pane with new mail, the inboxes, the current account's folders and settings.
+         The pane is an overlay on phones (256 px, so a strip of the page stays tappable), a 48 px
+         rail from 641 px and docked open from 1008 px. Pages load into ContentFrame. -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="WindowWidth">
+                <VisualState x:Name="Narrow">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="0" />
+                    </VisualState.StateTriggers>
+                </VisualState>
+                <VisualState x:Name="Medium">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="641" />
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="Nav.DisplayMode" Value="CompactOverlay" />
+                        <Setter Target="Nav.OpenPaneLength" Value="320" />
+                        <Setter Target="PageTitle.Margin" Value="12,0,24,0" />
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="Wide">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="1008" />
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="Nav.DisplayMode" Value="CompactInline" />
+                        <Setter Target="Nav.IsPaneOpen" Value="True" />
+                        <Setter Target="Nav.OpenPaneLength" Value="320" />
+                        <Setter Target="PageTitle.Margin" Value="12,0,24,0" />
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+
+        <!-- top bar -->
+        <Grid Background="{ThemeResource SystemControlBackgroundChromeMediumBrush}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="48" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Button x:Name="Hamburger" Width="48" Height="48" Padding="0" Background="Transparent" BorderThickness="0"
+                    Click="Hamburger_Click" AutomationProperties.Name="Navigation" ToolTipService.ToolTip="Navigation">
+                <FontIcon FontFamily="{StaticResource IconFont}" Glyph="&#xE700;" FontSize="20" />
+            </Button>
+            <TextBlock x:Name="PageTitle" Grid.Column="1" Margin="4,0,12,0" VerticalAlignment="Center"
+                       Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" CharacterSpacing="75"
+                       TextTrimming="CharacterEllipsis" Text="RETROBIRD" />
+        </Grid>
+
+        <!-- what's running: an indeterminate bar and one line of text -->
+        <StackPanel x:Name="StatusRow" Grid.Row="1" Visibility="Collapsed"
+                    Background="{ThemeResource SystemControlBackgroundChromeMediumBrush}">
+            <ProgressBar IsIndeterminate="True" Height="4" />
+            <TextBlock x:Name="StatusText" Margin="12,4,12,8" Style="{StaticResource CaptionTextBlockStyle}"
+                       TextTrimming="CharacterEllipsis" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+        </StackPanel>
+
+        <SplitView x:Name="Nav" Grid.Row="2" DisplayMode="Overlay" OpenPaneLength="256" CompactPaneLength="48"
+                   PaneBackground="{ThemeResource SystemControlBackgroundChromeMediumBrush}">
+            <SplitView.Pane>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <!-- new mail, then the inboxes and folders, grouped under small headers -->
+                    <ListView x:Name="TopItems" SelectionMode="Single" IsItemClickEnabled="True" ItemClick="NavItem_Click"
+                              ItemContainerStyle="{StaticResource NavItem}" ItemTemplateSelector="{StaticResource NavTemplates}" />
+                    <ListView x:Name="BottomItems" Grid.Row="1" SelectionMode="Single" IsItemClickEnabled="True" ItemClick="NavItem_Click"
+                              ItemContainerStyle="{StaticResource NavItem}" ItemTemplateSelector="{StaticResource NavTemplates}"
+                              ScrollViewer.VerticalScrollMode="Disabled" />
+                </Grid>
+            </SplitView.Pane>
+            <Frame x:Name="PageFrame" Navigated="ContentFrame_Navigated">
+                <Frame.ContentTransitions>
+                    <TransitionCollection>
+                        <NavigationThemeTransition />
+                    </TransitionCollection>
+                </Frame.ContentTransitions>
+            </Frame>
+        </SplitView>
+    </Grid>
+</Page>
