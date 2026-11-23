@@ -38,6 +38,30 @@ static class CoreTest
         Check(Provider.ForEmail("a@hotmail.com").ShortName == "Outlook" && Provider.ByName("Yahoo Mail").ShortName == "Yahoo", "short names");
         Check(new AccountInfo { Email = "a@gmail.com" }.ShortName == "Gmail" && new AccountInfo { Email = "a@example.net" }.ShortName == "example.net", "account short name");
 
+        // a reply line longer than the socket's first buffer (a big HTML mail) arrives whole
+        {
+            var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+            listener.Start();
+            int port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
+            var big = new string('x', 300 * 1024);
+            var server = System.Threading.Tasks.Task.Run(() =>
+            {
+                using (var cl = listener.AcceptTcpClient())
+                {
+                    var bytes = System.Text.Encoding.UTF8.GetBytes(big + "\nOK\n");
+                    cl.GetStream().Write(bytes, 0, bytes.Length);
+                    System.Threading.Thread.Sleep(200);
+                }
+            });
+            var sock = LineSocket.ConnectAsync("127.0.0.1", port, 2000).Result;
+            var line = sock.ReadLineAsync().Result;
+            var next = sock.ReadLineAsync().Result;
+            Check(line != null && line.Length == big.Length && next == "OK", "long line read whole: " + (line == null ? "null" : line.Length.ToString()));
+            sock.Dispose();
+            server.Wait();
+            listener.Stop();
+        }
+
         Console.WriteLine("C# core: " + pass + " passed, " + fail + " failed");
         return fail == 0 ? 0 : 1;
     }

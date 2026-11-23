@@ -24,7 +24,8 @@ namespace Retrobird.Core
         readonly TcpClient _socket = new TcpClient();
 #endif
         Stream _in, _out;
-        readonly byte[] _buf = new byte[64 * 1024];
+        byte[] _buf = new byte[64 * 1024];   // grows for long lines (a message's HTML is one line)
+        const int MaxLine = 64 * 1024 * 1024;
         int _start, _end;   // unread bytes in _buf
         bool _closed;
         Task<bool> _pending;   // a receive still running after ReadAvailableAsync timed out
@@ -81,7 +82,13 @@ namespace Retrobird.Core
                 Buffer.BlockCopy(_buf, _start, _buf, 0, _end - _start);
                 _end -= _start; _start = 0;
             }
-            if (_end == _buf.Length) return false;
+            if (_end == _buf.Length)
+            {
+                if (_buf.Length >= MaxLine) return false;
+                var bigger = new byte[_buf.Length * 2];
+                Buffer.BlockCopy(_buf, 0, bigger, 0, _end);
+                _buf = bigger;
+            }
             int n;
             try { n = await _in.ReadAsync(_buf, _end, _buf.Length - _end); }
             catch (Exception) { n = -1; }

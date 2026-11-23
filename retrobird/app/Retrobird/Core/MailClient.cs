@@ -2,6 +2,7 @@
 // at a time. Fields are TAB-separated with \\ \t \n \r escaped.
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -303,6 +304,8 @@ namespace Retrobird.Core
                     Preview = F(f, 9)
                 });
             }
+            if (offset == 0 && ml.Items.Count > 0)
+                Note("listed " + ml.Items.Count + ", " + ml.Items.Count(m => !string.IsNullOrEmpty(m.Preview)) + " with previews");
             return ml;
         }
 
