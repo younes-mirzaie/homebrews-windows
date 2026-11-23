@@ -5,3 +5,10 @@ app/MetroTelegram/AppConfig.Secrets.cs
 .tools/
 out/
 app/packages/
+# Windows 10 build outputs (the signed package in app-uwp/release/ is committed)
+app-uwp/RetroTel10/bin/
+app-uwp/RetroTel10/obj/
+app-uwp/RetroTel10/AppPackages/
+app-uwp/RetroTel10/BundleArtifacts/
+# signing keys never go in git
+*.pfx

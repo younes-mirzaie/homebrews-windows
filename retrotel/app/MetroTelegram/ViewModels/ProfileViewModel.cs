@@ -2,7 +2,11 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+#if WINDOWS_UWP
+using Windows.UI.Xaml;
+#else
 using System.Windows;
+#endif
 
 namespace MetroTelegram.ViewModels
 {

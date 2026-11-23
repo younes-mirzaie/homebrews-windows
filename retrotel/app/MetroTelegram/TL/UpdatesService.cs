@@ -312,7 +312,7 @@ namespace MetroTelegram.TL
 
                     if (id > 0 && id < 100000000000L && !string.IsNullOrEmpty(fullName))
                     {
-                        App.CacheUser(id, fullName);
+                        TgSession.CacheUser(id, fullName);
                         return;
                     }
                     throw new Exception();
@@ -332,7 +332,7 @@ namespace MetroTelegram.TL
 
                     if (id > 0 && id < 100000000000L && !string.IsNullOrEmpty(fullName))
                     {
-                        App.CacheUser(id, fullName);
+                        TgSession.CacheUser(id, fullName);
                     }
                 }
             }
@@ -347,7 +347,7 @@ namespace MetroTelegram.TL
                 {
                     long fId = ReadInt64Safe(reader);
                     string fTitle = ReadStringSafe(reader);
-                    if (fId > 0 && !string.IsNullOrEmpty(fTitle)) App.CacheUser(fId, fTitle);
+                    if (fId > 0 && !string.IsNullOrEmpty(fTitle)) TgSession.CacheUser(fId, fTitle);
                     return;
                 }
                 if (constructor == 0x29562865) return;
@@ -365,8 +365,8 @@ namespace MetroTelegram.TL
 
                     if (id > 0 && !string.IsNullOrEmpty(title) && title.Length < 150)
                     {
-                        MetroTelegram.App.CacheUser(id, title);
-                        if (accessHash != 0) MetroTelegram.App.CacheAccessHash(id, accessHash);
+                        TgSession.CacheUser(id, title);
+                        if (accessHash != 0) TgSession.CacheAccessHash(id, accessHash);
                         return;
                     }
                     throw new Exception();
@@ -381,7 +381,7 @@ namespace MetroTelegram.TL
 
                     if (id > 0 && !string.IsNullOrEmpty(title) && title.Length < 150)
                     {
-                        MetroTelegram.App.CacheUser(id, title);
+                        TgSession.CacheUser(id, title);
                     }
                 }
             }

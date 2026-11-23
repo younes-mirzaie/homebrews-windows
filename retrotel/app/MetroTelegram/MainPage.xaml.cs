@@ -172,22 +172,11 @@ namespace MetroTelegram
                 {
                     SetLoading(true, "Signing out...");
 
-                    if (App.RpcEngine != null && App.Transport != null && App.Transport.IsConnected)
-                    {
-                        byte[] logoutQuery;
-                        using (var writer = new TlBinaryWriter())
-                        {
-                            writer.WriteUInt32(0x3e72ba15);
-                            logoutQuery = writer.ToByteArray();
-                        }
-                        await App.RpcEngine.SendRpcQueryAsync(logoutQuery, wrapInitConnection: false, timeoutMs: 5000);
-                    }
+                    await TgSession.SignOutAsync();
                 }
                 catch { }
                 finally
                 {
-                    App.Storage.Clear();
-                    App.Transport?.Disconnect();
                     SetLoading(false);
 
                     NavigationService.Navigate(new Uri("/Views/AuthPage.xaml", UriKind.Relative));

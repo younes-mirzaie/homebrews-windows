@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- RetroTel for Windows 10. A separate app from the Windows Phone 8.1 version (its own package
+     name and product ID), so both can be on one phone. The Publisher must match the certificate
+     the package is signed with (..\..\build-uwp.ps1). -->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  IgnorableNamespaces="uap mp">
+
+  <Identity Name="RetroTel10" Publisher="CN=RetroTel" Version="0.2.0.0" />
+
+  <mp:PhoneIdentity PhoneProductId="f8aaf068-b4b0-498b-bb38-77ef7913f802" PhonePublisherId="fc2c7642-193a-40b8-80bf-87f061e52456" />
+
+  <Properties>
+    <DisplayName>RetroTel</DisplayName>
+    <PublisherDisplayName>RetroTel</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <!-- Windows 10 Mobile's last builds (15063 to 15254) and anything newer -->
+    <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.15063.0" MaxVersionTested="10.0.17763.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-US" />
+  </Resources>
+
+  <Applications>
+    <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="RetroTel.App">
+      <!-- transparent tiles take the user's accent color -->
+      <uap:VisualElements
+        DisplayName="RetroTel"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png"
+        Description="Telegram client"
+        BackgroundColor="transparent">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" Square71x71Logo="Assets\Square71x71Logo.png"
+                         Square310x310Logo="Assets\Square310x310Logo.png" ShortName="RetroTel">
+          <uap:ShowNameOnTiles>
+            <uap:ShowOn Tile="square150x150Logo" />
+            <uap:ShowOn Tile="wide310x150Logo" />
+            <uap:ShowOn Tile="square310x310Logo" />
+          </uap:ShowNameOnTiles>
+        </uap:DefaultTile>
+        <uap:SplashScreen Image="Assets\SplashScreen.png" BackgroundColor="#0099BC" />
+        <uap:InitialRotationPreference>
+          <uap:Rotation Preference="portrait" />
+          <uap:Rotation Preference="landscape" />
+          <uap:Rotation Preference="landscapeFlipped" />
+        </uap:InitialRotationPreference>
+      </uap:VisualElements>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <!-- Telegram's servers -->
+    <Capability Name="internetClient" />
+  </Capabilities>
+</Package>

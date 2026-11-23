@@ -80,7 +80,7 @@ namespace MetroTelegram.TL
                             if (user != null && user.Id != 0 && !peersDict.ContainsKey(user.Id))
                             {
                                 peersDict[user.Id] = user;
-                                App.CacheUser(user.Id, user.Title);
+                                TgSession.CacheUser(user.Id, user.Title);
                             }
                         }
                         else if (cons == 0xd49f34c6 || cons == 0x1c32b11c || cons == 0x833eed5d || cons == 0xa086f67e ||

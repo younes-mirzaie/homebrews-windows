@@ -129,7 +129,7 @@ namespace MetroTelegram.TL
             }
 
             TelegramRpcEngine currentEngine = _defaultRpcEngine;
-            int targetDcId = App.Storage.CurrentDcId;
+            int targetDcId = TgSession.Storage.CurrentDcId;
 
             while (true)
             {

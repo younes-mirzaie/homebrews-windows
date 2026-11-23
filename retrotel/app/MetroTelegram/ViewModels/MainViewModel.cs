@@ -2,8 +2,13 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+#if WINDOWS_UWP
+using Windows.UI.Xaml;
+using Windows.UI.Xaml.Media.Imaging;
+#else
 using System.Windows;
 using System.Windows.Media.Imaging;
+#endif
 
 namespace MetroTelegram.ViewModels
 {
@@ -98,12 +103,12 @@ namespace MetroTelegram.ViewModels
                     return string.Empty;
 
                 if (Date.Date == DateTime.Today)
-                    return Date.ToString("HH:mm");
+                    return Date.ToString("t");
 
                 if (Date.Year == DateTime.Today.Year)
-                    return Date.ToString("dd.MM");
+                    return Date.ToString("MMM d");
 
-                return Date.ToString("dd.MM.yy");
+                return Date.ToString("d");
             }
         }
 

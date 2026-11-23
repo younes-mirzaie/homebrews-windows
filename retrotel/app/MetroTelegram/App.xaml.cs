@@ -19,55 +19,33 @@ namespace MetroTelegram
         public static PhoneApplicationFrame RootFrame { get; private set; }
         public static MainViewModel ViewModel { get; private set; }
 
-        public static AuthKeyStorage Storage { get; private set; }
-        public static MtprotoTcpTransport Transport { get; private set; }
-        public static TelegramRpcEngine RpcEngine { get; private set; }
-        public static UpdatesService Updates { get; private set; }
+        // The Telegram session lives in the shared core (Core/TgSession.cs); these forward to it.
+        public static AuthKeyStorage Storage => TgSession.Storage;
+        public static MtprotoTcpTransport Transport => TgSession.Transport;
+        public static TelegramRpcEngine RpcEngine => TgSession.RpcEngine;
+        public static UpdatesService Updates => TgSession.Updates;
 
         public static event EventHandler<IncomingMessageEventArgs> LiveMessageReceived;
-        public static event EventHandler<OutboxReadEventArgs> LiveOutboxRead;
-        public static event EventHandler<UserTypingEventArgs> LiveUserTyping;
-
-        public static readonly Dictionary<long, string> UsersCache = new Dictionary<long, string>();
-        public static readonly Dictionary<long, long> AccessHashCache = new Dictionary<long, long>();
-
-        public static void CacheUser(long id, string name)
+        public static event EventHandler<OutboxReadEventArgs> LiveOutboxRead
         {
-            if (id == 0 || string.IsNullOrEmpty(name)) return;
-            lock (UsersCache)
-            {
-                UsersCache[id] = name;
-                UsersCache[Math.Abs(id)] = name;
-            }
+            add { TgSession.OutboxRead += value; }
+            remove { TgSession.OutboxRead -= value; }
+        }
+        public static event EventHandler<UserTypingEventArgs> LiveUserTyping
+        {
+            add { TgSession.UserTyping += value; }
+            remove { TgSession.UserTyping -= value; }
         }
 
-        public static void CacheAccessHash(long id, long accessHash)
-        {
-            if (id == 0 || accessHash == 0) return;
-            lock (AccessHashCache) { AccessHashCache[id] = accessHash; }
-        }
+        public static Dictionary<long, string> UsersCache => TgSession.UsersCache;
+        public static void CacheUser(long id, string name) { TgSession.CacheUser(id, name); }
+        public static void CacheAccessHash(long id, long accessHash) { TgSession.CacheAccessHash(id, accessHash); }
+        public static long GetAccessHash(long id) { return TgSession.GetAccessHash(id); }
+        public static string GetUserName(long id) { return TgSession.GetUserName(id); }
 
-        public static long GetAccessHash(long id)
+        public static Task EnsureTelegramConnectedAsync(Action<string> statusCallback = null)
         {
-            lock (AccessHashCache)
-            {
-                long hash;
-                return AccessHashCache.TryGetValue(id, out hash) ? hash : 0;
-            }
-        }
-
-        public static string GetUserName(long id)
-        {
-            if (id == 0) return string.Empty;
-            lock (UsersCache)
-            {
-                string name;
-                if (UsersCache.TryGetValue(id, out name) || UsersCache.TryGetValue(Math.Abs(id), out name))
-                {
-                    return name;
-                }
-            }
-            return "Member " + id;
+            return TgSession.EnsureConnectedAsync(statusCallback);
         }
 
         public App()
@@ -83,8 +61,8 @@ namespace MetroTelegram
                 MetroTelegram.Services.CrashLog.Mark("frame ready");
 
                 ViewModel = new MainViewModel();
-                Storage = new AuthKeyStorage();
-                Storage.Load();
+                TgSession.Init();
+                TgSession.MessageReceived += OnGlobalMessageReceived;
                 MetroTelegram.Services.CrashLog.Mark("storage loaded");
             }
             catch (Exception ex)
@@ -96,47 +74,6 @@ namespace MetroTelegram
             if (Debugger.IsAttached)
             {
                 Application.Current.Host.Settings.EnableFrameRateCounter = true;
-            }
-        }
-
-        public static async Task EnsureTelegramConnectedAsync(Action<string> statusCallback = null)
-        {
-            if (Transport == null || !Transport.IsConnected)
-            {
-                Storage.Load();
-                DataCenter dc = DataCenter.GetDc(Storage.CurrentDcId);
-
-                statusCallback?.Invoke(string.Format("Connecting...", dc.Id));
-
-                Transport = new MtprotoTcpTransport();
-                await Transport.ConnectAsync(dc);
-
-                if (!Storage.HasAuthKey)
-                {
-                    statusCallback?.Invoke("Setting up encryption...");
-                    var handshake = new AuthKeyHandshake(Transport);
-                    await handshake.ExecuteAsync(Storage);
-                }
-
-                RpcEngine = new TelegramRpcEngine(Transport, Storage);
-
-                Updates?.Dispose();
-                Updates = new UpdatesService(RpcEngine);
-                Updates.MessageReceived += OnGlobalMessageReceived;
-                Updates.OutboxRead += (s, e) => { LiveOutboxRead?.Invoke(s, e); };
-                Updates.UserTyping += (s, e) => { LiveUserTyping?.Invoke(s, e); };
-
-                statusCallback?.Invoke("Connecting...");
-                byte[] configQuery;
-                using (var writer = new TlBinaryWriter())
-                {
-                    writer.WriteUInt32(0xc4f9186b);
-                    configQuery = writer.ToByteArray();
-                }
-
-                await RpcEngine.SendRpcQueryAsync(configQuery, wrapInitConnection: true);
-
-                Debug.WriteLine("[App] MTProto 2.0 с глобальной обработкой обновлений готов!");
             }
         }
 

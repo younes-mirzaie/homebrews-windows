@@ -100,6 +100,7 @@
     </Compile>
     <Compile Include="AppConfig.cs" />
     <Compile Include="AppConfig.Secrets.cs" />
+    <Compile Include="Core\TgSession.cs" />
     <Compile Include="Crypto\SecureStore.cs" />
     <Compile Include="Converters\UniversalConverters.cs" />
     <Compile Include="Crypto\AesIge.cs" />

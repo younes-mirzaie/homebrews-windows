@@ -158,7 +158,7 @@ namespace MetroTelegram.TL
                             if (user != null && user.Id != 0 && !usersDict.ContainsKey(user.Id))
                             {
                                 usersDict[user.Id] = user.Title;
-                                App.CacheUser(user.Id, user.Title);
+                                TgSession.CacheUser(user.Id, user.Title);
                             }
                         }
                         else if (cons == 0x76bec211 || cons == 0x9cb490e9 || cons == 0x3ae56482 || cons == 0x38116eed ||
@@ -210,7 +210,7 @@ namespace MetroTelegram.TL
                         string rAuthor;
                         m.ReplyAuthor = usersDict.TryGetValue(original.FromId, out rAuthor)
                             ? rAuthor
-                            : App.GetUserName(original.FromId);
+                            : TgSession.GetUserName(original.FromId);
                     }
                     else
                         m.ReplyAuthor = "";
@@ -243,7 +243,7 @@ namespace MetroTelegram.TL
                 MessageItemViewModel target;
                 if (byId.TryGetValue(m.ReplyToMsgId, out target))
                 {
-                    m.ReplyAuthor = target.IsOutgoing ? "You" : (target.AuthorName ?? App.GetUserName(target.FromId));
+                    m.ReplyAuthor = target.IsOutgoing ? "You" : (target.AuthorName ?? TgSession.GetUserName(target.FromId));
                     m.ReplyText = !string.IsNullOrEmpty(target.Text) ? target.Text
                                 : (target.HasPhoto ? "[Photo]" : "[Message]");
                 }

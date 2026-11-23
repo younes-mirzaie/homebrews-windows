@@ -1,7 +1,12 @@
 # RetroTel
 
-Telegram client for Windows Phone 8.1 (Silverlight 8.1, ARM). It talks to Telegram's servers
-directly over MTProto 2.0 (API layer 165), so it needs no relay server or PC.
+Telegram client for Windows 10 Mobile (UWP) and Windows Phone 8.1 (Silverlight 8.1, ARM). It talks
+to Telegram's servers directly over MTProto 2.0 (API layer 165), so it needs no relay server or PC.
+
+One core, two front ends: the Telegram code (transport, encryption, login, chats, messages, photos,
+view models) lives in `app/MetroTelegram` and is shared. The Windows 10 app in
+`app-uwp/RetroTel10` links those files and has its own native Windows 10 pages (pivot, command
+bar, content dialogs, theme and accent colors). `#if WINDOWS_UWP` marks the few differences.
 
 Based on [Amigram](https://github.com/t4llfly/Amigram) by tallfly (MIT, commit `93dc6e1`,
 2026-09-01). Upstream's README is kept as [UPSTREAM-README.md](UPSTREAM-README.md); see
@@ -40,7 +45,20 @@ TG_API_HASH=0123456789abcdef0123456789abcdef
 
 and generates `app\MetroTelegram\AppConfig.Secrets.cs` (git-ignored) before building.
 
-## Building
+## Building the Windows 10 app
+
+Needs Visual Studio 2017 or later (or its Build Tools) with the UWP workload and the Windows 10
+SDK 10.0.17763.
+
+```
+powershell -ExecutionPolicy Bypass -File retrotel\build-uwp.ps1
+```
+
+It builds Release|ARM with .NET Native, signs the package with a self-signed `CN=RetroTel`
+certificate kept outside the repo, and puts the `.appx`, its framework packages and the public
+`.cer` in `retrotel\app-uwp\release\`. Runs on Windows 10 Mobile 15063 and later.
+
+## Building the Windows Phone 8.1 app
 
 Needs Visual Studio 2015 (Update 3) and the Windows Phone 8.1 SDK.
 

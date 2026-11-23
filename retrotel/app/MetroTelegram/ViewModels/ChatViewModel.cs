@@ -2,9 +2,16 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+#if WINDOWS_UWP
+using Windows.UI;
+using Windows.UI.Xaml;
+using Windows.UI.Xaml.Media;
+using Windows.UI.Xaml.Media.Imaging;
+#else
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+#endif
 
 namespace MetroTelegram.ViewModels
 {
@@ -120,7 +127,7 @@ namespace MetroTelegram.ViewModels
             }
         }
 
-        public string FormattedTime => Date > new DateTime(2015, 1, 1) ? Date.ToString("HH:mm") : string.Empty;
+        public string FormattedTime => Date > new DateTime(2015, 1, 1) ? Date.ToString("t") : string.Empty;
 
         private bool _isOutgoing;
         public bool IsOutgoing
@@ -147,9 +154,9 @@ namespace MetroTelegram.ViewModels
             get
             {
                 if (IsOutgoing)
-                    return (Brush)Application.Current.Resources["PhoneAccentBrush"];
+                    return (Brush)Application.Current.Resources[ThemeKeys.AccentBrush];
 
-                return (Brush)Application.Current.Resources["PhoneChromeBrush"];
+                return (Brush)Application.Current.Resources[ThemeKeys.ChromeBrush];
             }
         }
 
@@ -161,7 +168,7 @@ namespace MetroTelegram.ViewModels
                 if (IsOutgoing)
                     return new SolidColorBrush(Colors.White);
 
-                return (Brush)Application.Current.Resources["PhoneForegroundBrush"];
+                return (Brush)Application.Current.Resources[ThemeKeys.ForegroundBrush];
             }
         }
 
@@ -192,5 +199,19 @@ namespace MetroTelegram.ViewModels
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+    }
+
+    /// <summary>System theme brush names, which differ between Windows Phone 8.1 and Windows 10.</summary>
+    internal static class ThemeKeys
+    {
+#if WINDOWS_UWP
+        public const string AccentBrush = "SystemControlBackgroundAccentBrush";
+        public const string ChromeBrush = "SystemControlBackgroundChromeMediumBrush";
+        public const string ForegroundBrush = "SystemControlForegroundBaseHighBrush";
+#else
+        public const string AccentBrush = "PhoneAccentBrush";
+        public const string ChromeBrush = "PhoneChromeBrush";
+        public const string ForegroundBrush = "PhoneForegroundBrush";
+#endif
     }
 }
