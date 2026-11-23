@@ -13,10 +13,22 @@ namespace Retrobird.Core
         public string Font = "'Segoe WP','Segoe UI',sans-serif";
         public double FontSize = 16; // CSS px; the app's body text size
         public string Padding = "0 19px 24px";
+        /// <summary>Tells the app (window.external.notify "hide" / "show") when the reader scrolls
+        /// down into the mail or back up, so the headers above can make room.</summary>
+        public bool ScrollNotify;
     }
 
     public static class MessageHtml
     {
+        // Hide after 32 px down (and only when the mail is long enough that it still scrolls with
+        // the headers gone), show again after 32 px up or at the top.
+        const string ScrollScript =
+            "<script>(function(){var a=0,h=false;function y(){return window.pageYOffset||document.documentElement.scrollTop||0}" +
+            "function n(v){try{window.external.notify(v)}catch(e){}}" +
+            "window.onscroll=function(){var t=y(),room=document.documentElement.scrollHeight-window.innerHeight;" +
+            "if(!h){if(t>a+32&&t>48&&room>320){h=true;n('hide');a=t}else if(t<a)a=t}" +
+            "else{if(t<a-32||t<=0){h=false;n('show');a=t}else if(t>a)a=t}}})();</script>";
+
         public static bool IsPlain(string html) { return (html ?? "").StartsWith("<div class=\"rb-plain\">"); }
 
         static string Escape(string s) { return (s ?? "").Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;"); }
@@ -60,7 +72,7 @@ namespace Retrobird.Core
                        ".rb-plain{white-space:pre-wrap;font-family:inherit}" +
                        "a{color:" + (plain ? st.Accent : "#0645ad") + "}" +
                        "blockquote{margin:0 0 0 6px;padding-left:8px;border-left:2px solid #888}" +
-                       "</style></head><body>" + content + "</body></html>";
+                       "</style>" + (st.ScrollNotify ? ScrollScript : "") + "</head><body>" + content + "</body></html>";
             return ToEntities(page);
         }
     }

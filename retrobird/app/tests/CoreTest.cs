@@ -32,6 +32,8 @@ static class CoreTest
         page = MessageHtml.Build(html, false, new BodyStyle { Dark = true });
         Check(page.Contains("background:#ffffff") && page.Contains("caf&#233;") && page.Contains("&#128512;"), "html mail stays white, entities");
 
+        Check(!page.Contains("<script") && MessageHtml.Build(html, false, new BodyStyle { ScrollNotify = true }).Contains("external.notify"),
+              "the scroll script only when asked for");
         Check(Format.DayGroup(DateTime.UtcNow) == "today", "today");
         Check(Format.DayGroup(DateTime.UtcNow.AddDays(-1)) == "yesterday", "yesterday");
         Check(Format.Sentence("last week") == "Last week", "sentence case");

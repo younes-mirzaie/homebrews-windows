@@ -11,7 +11,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <StackPanel Margin="19,0,19,0">
+        <StackPanel x:Name="HeaderPanel" Margin="19,0,19,0">
             <TextBlock x:Name="WhereText" Style="{StaticResource RbAppTitle}"/>
             <TextBlock x:Name="FromText" FontSize="34.13" FontWeight="SemiLight" TextTrimming="CharacterEllipsis"
                        Margin="0,8,0,0" CharacterSpacing="-10"/>
@@ -24,7 +24,7 @@
                        IsTextSelectionEnabled="True"/>
             <TextBlock x:Name="ErrorText" Visibility="Collapsed" Margin="0,12,0,0" FontSize="20.27" TextWrapping="Wrap"/>
         </StackPanel>
-        <StackPanel Grid.Row="1" Margin="19,12,19,0">
+        <StackPanel x:Name="ExtrasPanel" Grid.Row="1" Margin="19,12,19,0">
             <!-- attachments: a short list, each with its type in an accent square -->
             <ListView x:Name="Attachments" Visibility="Collapsed" SelectionMode="None" IsItemClickEnabled="True"
                       ItemClick="Attachments_ItemClick" MaxHeight="124">
@@ -59,8 +59,10 @@
                                  Click="ImagesButton_Click"/>
             </Grid>
         </StackPanel>
-        <!-- the mail engine has already removed scripts and blocked remote pictures from the HTML -->
+        <!-- the mail engine has already removed the mail's own scripts; the page's one script only says
+             when the reader scrolls, so the headers above slide away and come back -->
         <WebView x:Name="Body" Grid.Row="2" Opacity="0" Margin="0,4,0,0"
-                 NavigationStarting="Body_NavigationStarting" NavigationCompleted="Body_NavigationCompleted"/>
+                 NavigationStarting="Body_NavigationStarting" NavigationCompleted="Body_NavigationCompleted"
+                 ScriptNotify="Body_ScriptNotify"/>
     </Grid>
 </local:RbPage>

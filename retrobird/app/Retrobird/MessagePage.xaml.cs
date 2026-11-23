@@ -73,7 +73,8 @@ namespace Retrobird
             ShowFlag();
             var acct = AppState.CurrentAccount;
             WhereText.Text = Ui.Caps(Format.Sentence(AppState.CurrentFolderLabel) + (acct == null ? "" : " · " + acct.ShortName));
-            _images = AppState.LoadImages;
+            // pictures from the web show by default, never in junk
+            _images = AppState.LoadImages && AppState.CurrentFolderRole != "junk";
             await Load();
         }
 
@@ -146,17 +147,34 @@ namespace Retrobird
                 Accent = Css(Accent),
 #if WINDOWS_UWP
                 FontSize = 15,           // Body
-                Padding = "0 12px 24px"  // the 12 px gutter
+                Padding = "0 12px 24px", // the 12 px gutter
 #else
                 FontSize = 16,           // Silverlight Normal 20 x 0.8
-                Padding = "0 19px 24px"  // the page's own margins
+                Padding = "0 19px 24px", // the page's own margins
 #endif
+                ScrollNotify = true,
             };
+            ShowHeaders(true);
             Body.Opacity = 0;
             Body.NavigateToString(MessageHtml.Build(_view, _plain, style));
         }
 
         void Body_NavigationCompleted(WebView sender, WebViewNavigationCompletedEventArgs e) { Body.Opacity = 1; }
+
+        /// <summary>The headers make room while the reader is down in the mail and come back when
+        /// they scroll up, so the subject isn't stuck over a long message.</summary>
+        void Body_ScriptNotify(object sender, NotifyEventArgs e)
+        {
+            if (e.Value == "hide") ShowHeaders(false);
+            else if (e.Value == "show") ShowHeaders(true);
+        }
+
+        void ShowHeaders(bool show)
+        {
+            var v = show ? Visibility.Visible : Visibility.Collapsed;
+            HeaderPanel.Visibility = v;
+            ExtrasPanel.Visibility = v;
+        }
 
         /// <summary>Links open outside: web pages in the browser, mailto: in a new message.</summary>
         async void Body_NavigationStarting(WebView sender, WebViewNavigationStartingEventArgs e)

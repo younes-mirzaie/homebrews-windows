@@ -43,7 +43,7 @@
                     <ComboBox x:Name="SyncBox" SelectionChanged="SyncBox_SelectionChanged" Margin="0,0,0,19"/>
                     <ToggleSwitch x:Name="NotifySwitch" Header="Notifications for new mail" Toggled="NotifySwitch_Toggled"/>
                     <ToggleSwitch x:Name="TileSwitch" Header="Show sender and subject on the tile and lock screen" Toggled="TileSwitch_Toggled"/>
-                    <ToggleSwitch x:Name="ImagesSwitch" Header="Show pictures from the web in mail" Toggled="ImagesSwitch_Toggled"/>
+                    <ToggleSwitch x:Name="ImagesSwitch" Header="Show pictures from the web in mail (never in junk)" Toggled="ImagesSwitch_Toggled"/>
                 </StackPanel>
             </ScrollViewer>
         </PivotItem>

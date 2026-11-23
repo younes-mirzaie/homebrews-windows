@@ -19,7 +19,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <StackPanel Margin="12,12,12,0">
+            <StackPanel x:Name="HeaderPanel" Margin="12,12,12,0">
                 <TextBlock x:Name="WhereText" Style="{StaticResource CaptionTextBlockStyle}"
                            Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
                 <TextBlock x:Name="SubjectText" Style="{StaticResource TitleTextBlockStyle}" TextWrapping="Wrap" MaxHeight="84"
@@ -33,7 +33,7 @@
                            IsTextSelectionEnabled="True" />
                 <TextBlock x:Name="ErrorText" Visibility="Collapsed" Margin="0,12,0,0" Style="{StaticResource BodyTextBlockStyle}" />
             </StackPanel>
-            <StackPanel Grid.Row="1" Margin="0,8,0,0">
+            <StackPanel x:Name="ExtrasPanel" Grid.Row="1" Margin="0,8,0,0">
                 <!-- attachments: a short list with a paper clip each -->
                 <ListView x:Name="Attachments" Visibility="Collapsed" SelectionMode="None" IsItemClickEnabled="True"
                           ItemClick="Attachments_ItemClick" MaxHeight="136" ItemContainerStyle="{StaticResource MailItemContainer}">
@@ -70,9 +70,11 @@
                     <HyperlinkButton Grid.Column="1" Content="Show pictures" Margin="12,0,0,0" Click="ImagesButton_Click" />
                 </Grid>
             </StackPanel>
-            <!-- the mail engine has already removed scripts and blocked remote pictures from the HTML -->
+            <!-- the mail engine has already removed the mail's own scripts; the page's one script only says
+             when the reader scrolls, so the headers above slide away and come back -->
             <WebView x:Name="Body" Grid.Row="2" Opacity="0" Margin="0,8,0,0"
-                     NavigationStarting="Body_NavigationStarting" NavigationCompleted="Body_NavigationCompleted" />
+                     NavigationStarting="Body_NavigationStarting" NavigationCompleted="Body_NavigationCompleted"
+                 ScriptNotify="Body_ScriptNotify" />
         </Grid>
         <CommandBar x:Name="Bar" Grid.Row="2" />
     </Grid>
