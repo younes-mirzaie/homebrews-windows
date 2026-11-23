@@ -134,7 +134,7 @@ namespace MetroTelegram.Crypto
                 WriteTlBytes(writer, exponent);
 
                 byte[] rsaBytes = ms.ToArray();
-                using (SHA1Managed sha1 = new SHA1Managed())
+                using (HashAlgorithm sha1 = MetroTelegram.Crypto.Hashes.Sha1())
                 {
                     byte[] hash = sha1.ComputeHash(rsaBytes);
                     return BitConverter.ToInt64(hash, 12);

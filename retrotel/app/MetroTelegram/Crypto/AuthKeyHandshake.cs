@@ -233,7 +233,7 @@ namespace MetroTelegram.Crypto
                     TelegramRsa.WriteTlBytes(writer, gBBytes);
 
                     byte[] clientDhPlain = ms.ToArray();
-                    using (SHA1Managed sha1 = new SHA1Managed())
+                    using (HashAlgorithm sha1 = MetroTelegram.Crypto.Hashes.Sha1())
                     {
                         byte[] clientDhHash = sha1.ComputeHash(clientDhPlain);
                         int paddedLen = 20 + clientDhPlain.Length;
@@ -332,7 +332,7 @@ namespace MetroTelegram.Crypto
 
         private static byte[] ComputeNewNonceHash(byte[] authKey, byte[] newNonce, byte number)
         {
-            using (SHA1Managed sha1 = new SHA1Managed())
+            using (HashAlgorithm sha1 = MetroTelegram.Crypto.Hashes.Sha1())
             {
                 byte[] authKeyAux = new byte[8];
                 byte[] fullSha = sha1.ComputeHash(authKey);
@@ -380,7 +380,7 @@ namespace MetroTelegram.Crypto
                 _rng.GetBytes(tempKey);
 
                 byte[] hash;
-                using (SHA256Managed sha256 = new SHA256Managed())
+                using (HashAlgorithm sha256 = MetroTelegram.Crypto.Hashes.Sha256())
                 {
                     byte[] toHash = new byte[32 + 192];
                     Buffer.BlockCopy(tempKey, 0, toHash, 0, 32);
@@ -396,7 +396,7 @@ namespace MetroTelegram.Crypto
                 byte[] aesEncrypted = AesIge.Encrypt(dataWithHash, tempKey, zeroIv);
 
                 byte[] tempKeyXor = new byte[32];
-                using (SHA256Managed sha256 = new SHA256Managed())
+                using (HashAlgorithm sha256 = MetroTelegram.Crypto.Hashes.Sha256())
                 {
                     byte[] aesHash = sha256.ComputeHash(aesEncrypted);
                     for (int i = 0; i < 32; i++)
@@ -442,7 +442,7 @@ namespace MetroTelegram.Crypto
 
         private static void ComputeTmpAesKeys(byte[] newNonce, byte[] serverNonce, byte[] key, byte[] iv)
         {
-            using (SHA1Managed sha1 = new SHA1Managed())
+            using (HashAlgorithm sha1 = MetroTelegram.Crypto.Hashes.Sha1())
             {
                 byte[] buf1 = new byte[newNonce.Length + serverNonce.Length];
                 Buffer.BlockCopy(newNonce, 0, buf1, 0, newNonce.Length);

@@ -9,7 +9,7 @@ namespace MetroTelegram.Crypto
         {
             int x = isClient ? 0 : 8;
 
-            using (SHA256Managed sha256 = new SHA256Managed())
+            using (HashAlgorithm sha256 = MetroTelegram.Crypto.Hashes.Sha256())
             {
                 byte[] bufA = new byte[16 + 36];
                 Buffer.BlockCopy(msgKey, 0, bufA, 0, 16);
@@ -37,7 +37,7 @@ namespace MetroTelegram.Crypto
         {
             int x = isClient ? 0 : 8;
 
-            using (SHA256Managed sha256 = new SHA256Managed())
+            using (HashAlgorithm sha256 = MetroTelegram.Crypto.Hashes.Sha256())
             {
                 byte[] toHash = new byte[32 + plaintext.Length];
                 Buffer.BlockCopy(authKey, 88 + x, toHash, 0, 32);

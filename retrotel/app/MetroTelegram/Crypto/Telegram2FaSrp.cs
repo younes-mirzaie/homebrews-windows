@@ -26,7 +26,7 @@ namespace MetroTelegram.Crypto
 
         private static byte[] SH(byte[] data, byte[] salt)
         {
-            using (SHA256Managed sha256 = new SHA256Managed())
+            using (HashAlgorithm sha256 = MetroTelegram.Crypto.Hashes.Sha256())
             {
                 byte[] buf = new byte[salt.Length + data.Length + salt.Length];
                 Buffer.BlockCopy(salt, 0, buf, 0, salt.Length);
@@ -66,7 +66,7 @@ namespace MetroTelegram.Crypto
             byte[] bPadded = Pad256(B.ToByteArrayUnsigned());
 
             BigInteger k;
-            using (SHA256Managed sha256 = new SHA256Managed())
+            using (HashAlgorithm sha256 = MetroTelegram.Crypto.Hashes.Sha256())
             {
                 byte[] kInput = new byte[512];
                 Buffer.BlockCopy(pPadded, 0, kInput, 0, 256);
@@ -75,7 +75,7 @@ namespace MetroTelegram.Crypto
             }
 
             BigInteger u;
-            using (SHA256Managed sha256 = new SHA256Managed())
+            using (HashAlgorithm sha256 = MetroTelegram.Crypto.Hashes.Sha256())
             {
                 byte[] uInput = new byte[512];
                 Buffer.BlockCopy(aPadded, 0, uInput, 0, 256);
@@ -94,12 +94,12 @@ namespace MetroTelegram.Crypto
             byte[] sPadded = Pad256(S.ToByteArrayUnsigned());
 
             byte[] K;
-            using (SHA256Managed sha256 = new SHA256Managed())
+            using (HashAlgorithm sha256 = MetroTelegram.Crypto.Hashes.Sha256())
             {
                 K = sha256.ComputeHash(sPadded);
             }
 
-            using (SHA256Managed sha256 = new SHA256Managed())
+            using (HashAlgorithm sha256 = MetroTelegram.Crypto.Hashes.Sha256())
             {
                 byte[] pHash = sha256.ComputeHash(pPadded);
                 byte[] gHash = sha256.ComputeHash(gPadded);

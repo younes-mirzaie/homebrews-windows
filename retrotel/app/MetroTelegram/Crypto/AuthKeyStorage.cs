@@ -122,7 +122,7 @@ namespace MetroTelegram.Crypto
 
             if (authKey != null && authKey.Length == 256)
             {
-                using (SHA1Managed sha1 = new SHA1Managed())
+                using (HashAlgorithm sha1 = MetroTelegram.Crypto.Hashes.Sha1())
                 {
                     byte[] sha = sha1.ComputeHash(authKey);
                     AuthKeyId = BitConverter.ToInt64(sha, 12);
