@@ -196,6 +196,8 @@ def validate_app(app, fname):
     need(ID_RE.match(app.get("id", "")), "id must match " + ID_RE.pattern)
     need(app.get("name"), "name missing")
     need(isinstance(app.get("releases"), list) and app["releases"], "no releases")
+    if app.get("replaces") is not None:
+        need(ID_RE.match(app["replaces"]) and app["replaces"] != app["id"], "replaces must be another app's id")
     if app.get("icon"):
         need(app["icon"].startswith("https://"), "icon must be an https URL")
         need(re.fullmatch(r"[0-9a-f]{64}", app.get("icon_sha256", "")), "icon needs icon_sha256 (use --icons-dir)")

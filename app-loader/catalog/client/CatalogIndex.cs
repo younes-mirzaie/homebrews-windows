@@ -21,6 +21,9 @@ namespace AppLoader.Catalog
     public sealed class CatalogApp
     {
         public string Id, Name, Author, Description, License, Source, Icon, IconSha256;
+        /// <summary>Id of the app this one stands in for on the OS it targets (a Windows 10 version
+        /// of an 8.1 app), or null.</summary>
+        public string Replaces;
         public long IconSize;
         public List<CatalogRelease> Releases = new List<CatalogRelease>();   // newest first
         public CatalogRelease Latest { get { return Releases[0]; } }
@@ -74,7 +77,7 @@ namespace AppLoader.Catalog
                     Id = Str(ao, "id"), Name = Str(ao, "name"), Author = Str(ao, "author"),
                     Description = Str(ao, "description"), License = Str(ao, "license"),
                     Source = Str(ao, "source"), Icon = Str(ao, "icon"),
-                    IconSha256 = Str(ao, "icon_sha256"), IconSize = Num(ao, "icon_size"),
+                    IconSha256 = Str(ao, "icon_sha256"), IconSize = Num(ao, "icon_size"), Replaces = Str(ao, "replaces"),
                 };
                 // an icon is optional; one that isn't pinned by hash is ignored
                 if (string.IsNullOrEmpty(app.Icon) || !app.Icon.StartsWith("https://", StringComparison.Ordinal) ||

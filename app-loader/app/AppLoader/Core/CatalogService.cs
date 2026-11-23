@@ -236,8 +236,14 @@ namespace AppLoader.Core
             var byId = new Dictionary<string, InstalledApp>();
             foreach (var a in installed) if (a.ProductId != null) byId[a.ProductId] = a;
             var wanted = new List<string>();
+            // an app another listed app stands in for here (the 8.1 version of an app that also has
+            // a Windows 10 version) is left out where that one runs
+            var replaced = new HashSet<string>();
+            foreach (var app in idx.Apps)
+                if (!string.IsNullOrEmpty(app.Replaces) && RunsHere(app.Latest)) replaced.Add(app.Replaces);
             foreach (var app in idx.Apps)
             {
+                if (replaced.Contains(app.Id)) continue;
                 // apps made for a newer OS (Windows 10 versions on an 8.1 phone) aren't shown
                 if (!RunsHere(app.Latest)) continue;
 #if WINDOWS_UWP
