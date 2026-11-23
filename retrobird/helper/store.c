@@ -391,6 +391,7 @@ void entry_free(msg_entry *e)
     free(e->to);
     free(e->subject);
     free(e->msgid);
+    free(e->preview);
 }
 
 void cache_clear(folder_cache *fc)
@@ -433,11 +434,11 @@ void cache_load(folder_cache *fc, const char *dir)
     free(path);
     if (!data) return;
     for (line = data; line && *line; line = next) {
-        char *f[10];
+        char *f[11];
         int n;
         next = strchr(line, '\n');
         if (next) *next++ = '\0';
-        n = split_fields(line, f, 10);
+        n = split_fields(line, f, 11);
         if (!strcmp(f[0], "RBIDX1")) {
             if (n >= 4) {
                 fc->uidvalidity = (uint32_t)strtoul(f[1], NULL, 10);
@@ -457,6 +458,8 @@ void cache_load(folder_cache *fc, const char *dir)
             e->to = xstrdup(f[6]);
             e->subject = xstrdup(f[7]);
             e->msgid = xstrdup(f[8]);
+            /* a tenth field (from 0.7.2) is the preview; older indexes have none yet */
+            e->preview = n >= 10 ? xstrdup(f[9]) : NULL;
         }
     }
     free(data);
@@ -481,6 +484,10 @@ int cache_save(folder_cache *fc)
         field_escape(&b, e->subject);
         buf_addc(&b, '\t');
         field_escape(&b, e->msgid);
+        if (e->preview) {
+            buf_addc(&b, '\t');
+            field_escape(&b, e->preview);
+        }
         buf_addc(&b, '\n');
     }
     path = xprintf("%s/index", fc->dir);

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Retrobird for Windows 10. A separate app from the Windows Phone 8.1 version (its own package
+     name and product ID), so both can be on one phone. The Publisher must match the certificate
+     the package is signed with (..\..\build-uwp.ps1). -->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  IgnorableNamespaces="uap mp">
+
+  <Identity Name="Retrobird10" Publisher="CN=Retrobird" Version="0.7.7.0" />
+
+  <mp:PhoneIdentity PhoneProductId="f82db4b7-6925-4533-8ff9-2542d492b037" PhonePublisherId="e1e99522-17c9-4cc7-a879-b7ccf6aecc53" />
+
+  <Properties>
+    <DisplayName>Retrobird</DisplayName>
+    <PublisherDisplayName>Retrobird</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <!-- Windows 10 Mobile's last builds (15063 to 15254) and anything newer -->
+    <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.15063.0" MaxVersionTested="10.0.17763.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-US" />
+  </Resources>
+
+  <Applications>
+    <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="Retrobird.App">
+      <!-- transparent tiles take the user's accent color, like the phone app's -->
+      <uap:VisualElements
+        DisplayName="Retrobird"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png"
+        Description="Mail for IMAP and SMTP accounts"
+        BackgroundColor="transparent">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" Square71x71Logo="Assets\Square71x71Logo.png"
+                         Square310x310Logo="Assets\Square310x310Logo.png" ShortName="Retrobird">
+          <uap:ShowNameOnTiles>
+            <uap:ShowOn Tile="square150x150Logo" />
+            <uap:ShowOn Tile="wide310x150Logo" />
+            <uap:ShowOn Tile="square310x310Logo" />
+          </uap:ShowNameOnTiles>
+        </uap:DefaultTile>
+        <!-- no lock screen entry: it needs a declared background task, and the in-process one
+             can't be declared (see below) -->
+        <uap:SplashScreen Image="Assets\SplashScreen.png" BackgroundColor="#40AAE3" />
+        <uap:InitialRotationPreference>
+          <uap:Rotation Preference="portrait" />
+          <uap:Rotation Preference="landscape" />
+          <uap:Rotation Preference="landscapeFlipped" />
+        </uap:InitialRotationPreference>
+      </uap:VisualElements>
+      <!-- the check for new mail while closed runs in the app's own process and is registered
+           from code (App.ScheduleBackgroundCheck); declaring it here without an entry point fails
+           manifest validation -->
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <!-- the mail servers, and the in-app engine on 127.0.0.1 (same process) -->
+    <Capability Name="internetClientServer" />
+    <Capability Name="privateNetworkClientServer" />
+  </Capabilities>
+</Package>

@@ -50,7 +50,7 @@
     <Compile Include="MessagePage.xaml.cs"><DependentUpon>MessagePage.xaml</DependentUpon></Compile>
     <Compile Include="ComposePage.xaml.cs"><DependentUpon>ComposePage.xaml</DependentUpon></Compile>
     <Compile Include="FoldersPage.xaml.cs"><DependentUpon>FoldersPage.xaml</DependentUpon></Compile>
-    <Compile Include="AccountsPage.xaml.cs"><DependentUpon>AccountsPage.xaml</DependentUpon></Compile>
+    <Compile Include="SettingsPage.xaml.cs"><DependentUpon>SettingsPage.xaml</DependentUpon></Compile>
     <Compile Include="ProviderPage.xaml.cs"><DependentUpon>ProviderPage.xaml</DependentUpon></Compile>
     <Compile Include="LicensePage.xaml.cs"><DependentUpon>LicensePage.xaml</DependentUpon></Compile>
     <Compile Include="AccountEditPage.xaml.cs"><DependentUpon>AccountEditPage.xaml</DependentUpon></Compile>
@@ -58,6 +58,10 @@
     <Compile Include="Motion.cs" />
     <Compile Include="Ui.cs" />
     <Compile Include="Core\AppState.cs" />
+    <Compile Include="Core\Drafts.cs" />
+    <Compile Include="Core\Inbox.cs" />
+    <Compile Include="Core\MessageHtml.cs" />
+    <Compile Include="Core\Pins.cs" />
     <Compile Include="Core\InAppHelper.cs" />
     <Compile Include="Core\LineSocket.cs" />
     <Compile Include="Core\MailClient.cs" />
@@ -75,7 +79,7 @@
     <Page Include="MessagePage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
     <Page Include="ComposePage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
     <Page Include="FoldersPage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
-    <Page Include="AccountsPage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+    <Page Include="SettingsPage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
     <Page Include="ProviderPage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
     <Page Include="LicensePage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
     <Page Include="AccountEditPage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
@@ -86,6 +90,7 @@
     <Content Include="Assets\Square44x44Logo.scale-240.png" />
     <Content Include="Assets\Wide310x150Logo.scale-240.png" />
     <Content Include="Assets\BadgeLogo.scale-240.png" />
+    <Content Include="Assets\TileIcon.scale-240.png" />
     <Content Include="Assets\StoreLogo.scale-240.png" />
     <Content Include="Assets\SplashScreen.scale-240.png" />
     <!-- shown on the licenses page: credit and MPL 2.0 text for Mozilla's NSPR/NSS -->

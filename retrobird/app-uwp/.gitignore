@@ -1,0 +1,6 @@
+Retrobird10/bin/
+Retrobird10/obj/
+Retrobird10/AppPackages/
+Retrobird10/BundleArtifacts/
+*.user
+.vs/

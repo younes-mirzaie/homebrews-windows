@@ -1,0 +1,41 @@
+<local:RbPage
+    x:Class="Retrobird.ProviderPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Retrobird">
+    <!-- Adding an account, step one (and the first page a new user sees): pick the mail service.
+         Code: ..\..\app\Retrobird\ProviderPage.xaml.cs, shared with the phone app. -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock x:Name="TitleText" Visibility="Collapsed" Text="Add an account" />
+        <ListView x:Name="Items" Grid.Row="1" SelectionMode="None" IsItemClickEnabled="True" ItemClick="Items_ItemClick"
+                  ItemContainerStyle="{StaticResource MailItemContainer}">
+            <ListView.Header>
+                <TextBlock x:Name="IntroText" Style="{StaticResource RbSubtle}" Margin="12,12,12,12" MaxWidth="600" HorizontalAlignment="Left"
+                           Text="Choose your mail service. Retrobird talks to it directly from this device, with modern encryption." />
+            </ListView.Header>
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Padding="0,10" Opacity="{Binding ItemOpacity}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="48" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <FontIcon FontFamily="{StaticResource IconFont}" Glyph="&#xE715;" FontSize="20" HorizontalAlignment="Left"
+                                  VerticalAlignment="Top" Margin="0,2,0,0" />
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="{Binding ShortName}" Style="{StaticResource BodyTextBlockStyle}" />
+                            <TextBlock Text="{Binding Blurb}" Style="{StaticResource CaptionTextBlockStyle}" TextTrimming="CharacterEllipsis"
+                                       TextWrapping="NoWrap" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+        <CommandBar x:Name="Bar" Grid.Row="2" Visibility="Collapsed" />
+    </Grid>
+</local:RbPage>

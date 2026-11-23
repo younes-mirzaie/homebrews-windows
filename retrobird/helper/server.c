@@ -570,6 +570,7 @@ static void cmd_list(client *c, char **f, int n)
         out_field(c, e->from);
         out_field(c, e->to);
         out_field(c, e->subject);
+        out_field(c, e->preview ? e->preview : "");
         out_end(c);
     }
     out_end(c);

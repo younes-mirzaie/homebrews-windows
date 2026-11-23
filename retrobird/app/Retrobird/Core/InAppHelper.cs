@@ -18,7 +18,13 @@ namespace Retrobird.Core
 {
     public static class InAppHelper
     {
+#if WINDOWS_UWP
+        // the Windows 10 app has a port of its own: the 8.1 app can be on the same phone, and its
+        // engine may still hold 8097 while it is suspended
+        public const int Port = 8098;
+#else
         public const int Port = 8097;
+#endif
 
         [DllImport("rbmail.dll", CallingConvention = CallingConvention.Cdecl)]
         static extern int RetrobirdMain(int argc,

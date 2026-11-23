@@ -2,10 +2,13 @@
 // mail itself) and the background task (RetrobirdTasks), which compiles this same file.
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Windows.Data.Xml.Dom;
 using Windows.Foundation.Collections;
 using Windows.Storage;
 using Windows.UI.Notifications;
+using Windows.UI.StartScreen;
+using System.Text;
 
 namespace Retrobird.Core
 {
@@ -16,8 +19,37 @@ namespace Retrobird.Core
         public long Date;   // Unix seconds
     }
 
+    /// <summary>One account after a background check: its unread count and newest unread mail.</summary>
+    internal sealed class AccountMail
+    {
+        public string Id, Email;
+        public int Unread;
+        public List<NewMail> Mail = new List<NewMail>();
+    }
+
     internal static class Notify
     {
+        /// <summary>After a check while the app was closed: the tiles (the app's and each pinned
+        /// inbox) and a notification for mail not announced yet. The first check after installing
+        /// announces nothing old.</summary>
+        public static void Report(IList<AccountMail> accounts)
+        {
+            int unread = accounts.Sum(a => Math.Max(0, a.Unread));
+            UpdateTile(unread, accounts.SelectMany(a => a.Mail).OrderByDescending(m => m.Date).Take(5).ToList());
+            foreach (var a in accounts)
+            {
+                UpdateAccountTile(a.Id, Math.Max(0, a.Unread), a.Mail.OrderByDescending(m => m.Date).Take(5).ToList());
+                if (a.Mail.Count == 0) continue;
+                uint newest = a.Mail.Max(m => m.Uid);
+                if (HasLastNotified(a.Id))
+                {
+                    uint last = LastNotified(a.Id);
+                    Toast(a.Mail.Where(m => m.Uid > last).OrderByDescending(m => m.Date).ToList(), a.Email);
+                }
+                SetLastNotified(a.Id, newest);
+            }
+        }
+
         static IPropertySet Settings { get { return ApplicationData.Current.LocalSettings.Values; } }
 
         static T Get<T>(string key, T dflt)
@@ -55,45 +87,127 @@ namespace Retrobird.Core
             return from.Length > 0 ? from : "(unknown sender)";
         }
 
-        static XmlDocument Template(TileTemplateType type, params string[] texts)
+        /// <summary>Show sender and subject on the tile and the lock screen (off: only the count).</summary>
+        public static bool TileDetails { get { return Get("tileDetails", true); } set { Settings["tileDetails"] = value; } }
+
+        /// <summary>The account's short name ("Gmail"), kept so the background task can label mail.</summary>
+        public static void RememberAccount(string id, string shortName) { if (id != null) Settings["acctname_" + id] = shortName ?? ""; }
+        static string AccountName(string id) { return id == null ? "" : Get("acctname_" + id, ""); }
+
+        /// <summary>The Start tile id of an account's pinned inbox.</summary>
+        public static string AccountTileId(string account)
         {
-            var xml = TileUpdateManager.GetTemplateContent(type);
-            var nodes = xml.GetElementsByTagName("text");
-            for (int i = 0; i < texts.Length && i < nodes.Length; i++) nodes[i].InnerText = texts[i] ?? "";
-            return xml;
+            var b = new StringBuilder("inbox_");
+            foreach (var c in account ?? "") b.Append(char.IsLetterOrDigit(c) && c < 128 ? c : '_');
+            var id = b.ToString();
+            return id.Length > 64 ? id.Substring(0, 64) : id;
         }
 
-        /// <summary>The tile shows the newest unread messages in turn (sender, then subject) and the
-        /// unread count; with nothing unread it goes back to the plain logo. The wide tile carries the
-        /// same text, which the lock screen shows as its detailed status (newest message last, so
-        /// that is what the lock screen shows).</summary>
+        static string X(string s)
+        {
+            return (s ?? "").Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
+        }
+
+        const string Icon = "ms-appx:///Assets/TileIcon.png";
+
+        static string Line3(NewMail m)
+        {
+            var name = AccountName(m.AccountId);
+            var when = m.Date > 0 ? new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(m.Date).ToLocalTime().ToString("t") : "";
+            return name.Length > 0 && when.Length > 0 ? name + " \u00B7 " + when : name + when;
+        }
+
+        static string Subject(NewMail m) { return string.IsNullOrEmpty(m.Subject) ? "(no subject)" : m.Subject; }
+
+        /// <summary>One tile notification for the newest unread mail at index i (the queue cycles
+        /// through them). Without details it only says how many there are.</summary>
+        static string TileXml(IList<NewMail> mail, int i, int unread, bool details)
+        {
+            var m = mail[i];
+            string from = details ? NameOf(m.From) : unread + (unread == 1 ? " unread message" : " unread messages");
+            string subject = details ? Subject(m) : "";
+            string line3 = details ? Line3(m) : "";
+#if WINDOWS_UWP
+            // Windows 10: adaptive tiles; the system draws the name bottom left and the badge bottom right
+            var x = new StringBuilder("<tile><visual branding=\"name\">");
+            if (details)
+            {
+                x.Append("<binding template=\"TileMedium\"><text hint-style=\"base\">" + X(from) + "</text>" +
+                         "<text hint-style=\"caption\" hint-wrap=\"true\" hint-maxLines=\"2\">" + X(subject) + "</text>" +
+                         "<text hint-style=\"captionSubtle\">" + X(line3) + "</text></binding>");
+                x.Append("<binding template=\"TileWide\"><text hint-style=\"base\">" + X(from) + "</text>" +
+                         "<text hint-style=\"caption\">" + X(subject) + "</text>" +
+                         "<text hint-style=\"captionSubtle\">" + X(line3) + "</text></binding>");
+                x.Append("<binding template=\"TileLarge\">");
+                for (int k = i; k < mail.Count && k < i + 3; k++)
+                    x.Append("<group><subgroup><text hint-style=\"base\">" + X(NameOf(mail[k].From)) + "</text>" +
+                             "<text hint-style=\"caption\">" + X(Subject(mail[k])) + "</text>" +
+                             "<text hint-style=\"captionSubtle\">" + X(Line3(mail[k])) + "</text></subgroup></group>" +
+                             (k + 1 < mail.Count && k + 1 < i + 3 ? "<text />" : ""));
+                x.Append("</binding>");
+            }
+            else
+            {
+                foreach (var t in new[] { "TileMedium", "TileWide", "TileLarge" })
+                    x.Append("<binding template=\"" + t + "\"><text hint-style=\"base\" hint-wrap=\"true\">" + X(from) + "</text></binding>");
+            }
+            x.Append("</visual></tile>");
+            return x.ToString();
+#else
+            // Windows Phone 8.1: the phone's own icon templates, the bird with the count beside it
+            // (as the system Mail tile); the wide tile adds sender and subject, which the lock
+            // screen shows as its detailed status
+            return "<tile><visual version=\"2\">" +
+                   "<binding template=\"TileSquare71x71IconWithBadge\"><image id=\"1\" src=\"" + Icon + "\"/></binding>" +
+                   "<binding template=\"TileSquare150x150IconWithBadge\"><image id=\"1\" src=\"" + Icon + "\"/></binding>" +
+                   "<binding template=\"TileWide310x150IconWithBadgeAndText\"><image id=\"1\" src=\"" + Icon + "\"/>" +
+                   "<text id=\"1\">" + X(from) + "</text><text id=\"2\">" + X(subject) + "</text><text id=\"3\">" + X(line3) + "</text></binding>" +
+                   "</visual></tile>";
+#endif
+        }
+
+        static void Fill(TileUpdater tile, BadgeUpdater badge, int unread, IList<NewMail> latest)
+        {
+            if (unread <= 0) badge.Clear();
+            else
+            {
+                var b = BadgeUpdateManager.GetTemplateContent(BadgeTemplateType.BadgeNumber);
+                ((XmlElement)b.SelectSingleNode("/badge")).SetAttribute("value", Math.Min(unread, 99).ToString());
+                badge.Update(new BadgeNotification(b));
+            }
+            tile.Clear();
+            if (unread <= 0) return;   // back to the plain bird
+            var mail = latest == null || latest.Count == 0
+                ? new List<NewMail> { new NewMail() }
+                : latest;
+            bool details = TileDetails && latest != null && latest.Count > 0;
+            tile.EnableNotificationQueue(true);
+            int n = details ? Math.Min(mail.Count, 5) : 1;
+            // newest last, so it is the one shown first and on the lock screen
+            for (int i = n - 1; i >= 0; i--)
+            {
+                var xml = new XmlDocument();
+                xml.LoadXml(TileXml(mail, i, unread, details));
+                tile.Update(new TileNotification(xml) { Tag = "m" + i });
+            }
+        }
+
+        /// <summary>The app's tile: the unread count of every account and the newest unread mail
+        /// in turn; with nothing unread it goes back to the plain bird.</summary>
         public static void UpdateTile(int unread, IList<NewMail> latest)
+        {
+            try { Fill(TileUpdateManager.CreateTileUpdaterForApplication(), BadgeUpdateManager.CreateBadgeUpdaterForApplication(), unread, latest); }
+            catch (Exception) { }
+        }
+
+        /// <summary>The same for an account's inbox pinned to Start, if it is pinned.</summary>
+        public static void UpdateAccountTile(string account, int unread, IList<NewMail> latest)
         {
             try
             {
-                var badge = BadgeUpdateManager.CreateBadgeUpdaterForApplication();
-                if (unread <= 0) badge.Clear();
-                else
-                {
-                    var b = BadgeUpdateManager.GetTemplateContent(BadgeTemplateType.BadgeNumber);
-                    ((XmlElement)b.SelectSingleNode("/badge")).SetAttribute("value", Math.Min(unread, 99).ToString());
-                    badge.Update(new BadgeNotification(b));
-                }
-                var tile = TileUpdateManager.CreateTileUpdaterForApplication();
-                tile.Clear();
-                if (unread <= 0 || latest == null || latest.Count == 0) return;
-                tile.EnableNotificationQueue(true);
-                for (int i = Math.Min(latest.Count, 3) - 1; i >= 0; i--)
-                {
-                    var m = latest[i];
-                    var from = NameOf(m.From);
-                    var subject = string.IsNullOrEmpty(m.Subject) ? "(no subject)" : m.Subject;
-                    var xml = Template(TileTemplateType.TileWide310x150Text09, from, subject);
-                    var square = Template(TileTemplateType.TileSquare150x150Text02, from, subject);
-                    var binding = xml.ImportNode(square.GetElementsByTagName("binding")[0], true);
-                    xml.GetElementsByTagName("visual")[0].AppendChild(binding);
-                    tile.Update(new TileNotification(xml) { Tag = "m" + i });
-                }
+                var id = AccountTileId(account);
+                if (!SecondaryTile.Exists(id)) return;
+                Fill(TileUpdateManager.CreateTileUpdaterForSecondaryTile(id), BadgeUpdateManager.CreateBadgeUpdaterForSecondaryTile(id), unread, latest);
             }
             catch (Exception) { }
         }

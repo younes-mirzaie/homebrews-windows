@@ -3,26 +3,31 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Retrobird">
-
+    <!-- Writing a message. The app title says which account it goes out from; tap it to choose
+         another (new messages only). Cc and Bcc stay hidden until asked for. -->
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <StackPanel Style="{StaticResource RbHeaderPanel}">
-            <TextBlock x:Name="FromText" Text="NEW MESSAGE" Style="{StaticResource RbAppTitle}" Margin="0,12,0,9.5"
-                       Tapped="FromText_Tapped"/>
+            <StackPanel Orientation="Horizontal" Background="Transparent" Tapped="FromText_Tapped" local:Motion.Tilt="True">
+                <TextBlock x:Name="FromText" Text="RETROBIRD" Style="{StaticResource RbAppTitle}"/>
+                <TextBlock x:Name="FromChevron" Text="&#x25BE;" Style="{StaticResource RbAppTitle}" Margin="8,12,0,0" Visibility="Collapsed"/>
+            </StackPanel>
+            <TextBlock x:Name="TitleText" Text="new message" Style="{StaticResource RbPageTitle}"/>
         </StackPanel>
         <ScrollViewer Grid.Row="1">
             <StackPanel Margin="19,0,19,19">
-                <TextBox x:Name="ToBox" Header="to" TextWrapping="Wrap"/>
+                <TextBox x:Name="ToBox" Header="To" TextWrapping="Wrap"/>
+                <HyperlinkButton x:Name="CcLink" Content="Add Cc and Bcc" Style="{StaticResource RbLink}" Margin="0,-6,0,8"
+                                 Click="CcLink_Click"/>
                 <StackPanel x:Name="CcPanel" Visibility="Collapsed">
-                    <TextBox x:Name="CcBox" Header="cc" TextWrapping="Wrap"/>
-                    <TextBox x:Name="BccBox" Header="bcc" TextWrapping="Wrap"/>
+                    <TextBox x:Name="CcBox" Header="Cc" TextWrapping="Wrap"/>
+                    <TextBox x:Name="BccBox" Header="Bcc" TextWrapping="Wrap"/>
                 </StackPanel>
-                <TextBox x:Name="SubjectBox" Header="subject"/>
-                <TextBox x:Name="BodyBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="240"
-                         PlaceholderText="message"/>
+                <TextBox x:Name="SubjectBox" Header="Subject"/>
+                <TextBox x:Name="BodyBox" Header="Message" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="186"/>
             </StackPanel>
         </ScrollViewer>
     </Grid>

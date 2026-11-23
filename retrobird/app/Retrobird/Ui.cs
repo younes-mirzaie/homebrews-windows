@@ -68,19 +68,16 @@ namespace Retrobird
             box.InputScope = scope;
         }
 
-        public static string Describe(Exception e)
-        {
-            var m = e as MailException;
-            if (m == null) return e.Message;
-            if (m.Message.StartsWith("Retrobird")) return m.Message;   // already a full sentence about the app itself
-            switch (m.Code)
-            {
-                case "AUTH": return "Couldn't sign in: " + m.Message;
-                case "NET": return "Can't connect: " + m.Message;
-                case "OAUTH": return m.Message;
-                default: return m.Message;
-            }
-        }
+        /// <summary>Words set in code for a title, label or button. The phone keeps them lowercase
+        /// (Metro); the Windows 10 app (Core10\Ui.cs) shows them in sentence case.</summary>
+        public static string Text(string s) { return s; }
+
+        /// <summary>The small title above a page title ("INBOX · GMAIL"): all caps on the phone,
+        /// as written on Windows 10.</summary>
+        public static string Caps(string s) { return (s ?? "").ToUpperInvariant(); }
+
+        /// <summary>A failure in plain words (Core/Inbox.cs, shared with Windows 10).</summary>
+        public static string Describe(Exception e) { return Inbox.Describe(e); }
 
         // only one message box can be open at a time
         static readonly SemaphoreSlim _dialog = new SemaphoreSlim(1);

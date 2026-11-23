@@ -250,6 +250,8 @@ def run(data, attdir):
     check(newest[6].startswith("J\u00fcrgen M\u00fcller <jm@example.org>") and newest[8] == "Quartalsbericht \u20ac"
           and newest[5] == "1", "newest is the multipart one, decoded, with attachment: %r" % newest)
     check(rows[1][8] == "Message 150" and rows[1][2] == "", "second newest unread: %r" % rows[1])
+    check(len(rows[1]) == 10 and rows[1][9] == "Body of message 150", "preview line: %r" % rows[1])
+    check(newest[9] != "" and "\t" not in newest[9], "multipart preview: %r" % newest[9])
     r = c.cmd("MORE", aid, "INBOX", 30)
     check(r[:2] == ["OK", "30"], "more fetches 30 older: %r" % r)
     r = c.cmd("MORE", aid, "INBOX", 100)
@@ -258,6 +260,21 @@ def run(data, attdir):
     check(head[1] == "151" and len(rows) == 11 and rows[-1][8] == "Message 1", "list tail: %r" % (rows[-1:],))
     r = c.cmd("SYNC", aid, "INBOX")
     check(r[:2] == ["OK", "0"], "nothing new: %r" % r)
+
+    # --- an index from before previews (nine fields) loads, and a sync fills in the newest 50
+    idx = [os.path.join(d, "index") for d, _, f in os.walk(data) if "index" in f and os.path.basename(d).lower() == "494e424f58"]
+    check(len(idx) == 1, "one INBOX index: %r" % idx)
+    with open(idx[0], encoding="utf-8") as f:
+        lines = f.read().split("\n")
+    old = [lines[0]] + ["\t".join(l.split("\t")[:9]) if l else l for l in lines[1:]]
+    with open(idx[0], "w", encoding="utf-8") as f:
+        f.write("\n".join(old))
+    head, rows = c.cmd_rows("LIST", aid, "INBOX", 0, 60)
+    check(len(rows) == 60 and all(r[9] == "" for r in rows), "old index lists with empty previews")
+    r = c.cmd("SYNC", aid, "INBOX")
+    head, rows = c.cmd_rows("LIST", aid, "INBOX", 0, 60)
+    check(rows[1][9] == "Body of message 150" and rows[49][9] != "" and rows[50][9] == "",
+          "sync backfills the newest 50 previews: %r" % [r[9] for r in rows[48:52]])
 
     # --- reading a message
     uid = newest[1]

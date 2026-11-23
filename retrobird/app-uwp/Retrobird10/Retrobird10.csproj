@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Retrobird for Windows 10 (UWP, C#, .NET Native), for Windows 10 Mobile and the PC.
+     It shares the Windows Phone 8.1 app's code: the core (..\..\app\Retrobird\Core) and the code
+     of most pages are linked, not copied, so a fix there reaches both apps. Windows 10 has its own
+     XAML for every page, its own shell and inbox, and Core10\ for the few calls that differ
+     (page base, UI helpers, background check). #if WINDOWS_UWP marks the rest.
+     The mail engine is the 8.1 app's rbmail.dll and NSS/NSPR DLLs (ARM), built by ..\..\build.ps1.
+     Build: ..\..\build-uwp.ps1 -->
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">ARM</Platform>
+    <ProjectGuid>{6E7F53C5-C6ED-4427-BEBB-AD545763A96E}</ProjectGuid>
+    <OutputType>AppContainerExe</OutputType>
+    <RootNamespace>Retrobird</RootNamespace>
+    <AssemblyName>Retrobird10</AssemblyName>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
+    <TargetPlatformVersion Condition=" '$(TargetPlatformVersion)' == '' ">10.0.17763.0</TargetPlatformVersion>
+    <TargetPlatformMinVersion>10.0.15063.0</TargetPlatformMinVersion>
+    <MinimumVisualStudioVersion>15</MinimumVisualStudioVersion>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{A5A43C5B-DE2A-4C0C-9213-0A381AF9435A};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <LangVersion>7.3</LangVersion>
+    <AppxPackageSigningEnabled Condition=" '$(AppxPackageSigningEnabled)' == '' ">false</AppxPackageSigningEnabled>
+    <AppxBundle>Never</AppxBundle>
+    <AppxPackageDir>$(MSBuildProjectDirectory)\AppPackages\</AppxPackageDir>
+    <GenerateAppInstallerFile>False</GenerateAppInstallerFile>
+    <AppxAutoIncrementPackageRevision>False</AppxAutoIncrementPackageRevision>
+    <GenerateTestArtifacts>False</GenerateTestArtifacts>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|ARM'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\ARM\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
+    <NoWarn>$(NoWarn);2008</NoWarn>
+    <DebugType>full</DebugType>
+    <PlatformTarget>ARM</PlatformTarget>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|ARM'">
+    <OutputPath>bin\ARM\Release\</OutputPath>
+    <DefineConstants>TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
+    <Optimize>true</Optimize>
+    <NoWarn>$(NoWarn);2008</NoWarn>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>ARM</PlatformTarget>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+    <ErrorReport>prompt</ErrorReport>
+    <UseDotNetNativeToolchain>true</UseDotNetNativeToolchain>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AppxManifest Include="Package.appxmanifest"><SubType>Designer</SubType></AppxManifest>
+    <Content Include="Properties\Default.rd.xml" />
+    <Content Include="Assets\*.png" />
+  </ItemGroup>
+
+  <!-- the shared core, linked from the Windows Phone 8.1 app (not copied) -->
+  <ItemGroup>
+    <Compile Include="..\..\app\Retrobird\Core\AppState.cs"><Link>Core\AppState.cs</Link></Compile>
+    <Compile Include="..\..\app\Retrobird\Core\Drafts.cs"><Link>Core\Drafts.cs</Link></Compile>
+    <Compile Include="..\..\app\Retrobird\Core\InAppHelper.cs"><Link>Core\InAppHelper.cs</Link></Compile>
+    <Compile Include="..\..\app\Retrobird\Core\Inbox.cs"><Link>Core\Inbox.cs</Link></Compile>
+    <Compile Include="..\..\app\Retrobird\Core\LineSocket.cs"><Link>Core\LineSocket.cs</Link></Compile>
+    <Compile Include="..\..\app\Retrobird\Core\MailClient.cs"><Link>Core\MailClient.cs</Link></Compile>
+    <Compile Include="..\..\app\Retrobird\Core\MessageHtml.cs"><Link>Core\MessageHtml.cs</Link></Compile>
+    <Compile Include="..\..\app\Retrobird\Core\Models.cs"><Link>Core\Models.cs</Link></Compile>
+    <Compile Include="..\..\app\Retrobird\Core\Notify.cs"><Link>Core\Notify.cs</Link></Compile>
+    <Compile Include="..\..\app\Retrobird\Core\Pins.cs"><Link>Core\Pins.cs</Link></Compile>
+    <Compile Include="..\..\app\Retrobird\Core\Providers.cs"><Link>Core\Providers.cs</Link></Compile>
+  </ItemGroup>
+
+  <!-- pages: Windows 10 XAML here, the code shared with the phone app where it fits -->
+  <ItemGroup>
+    <Compile Include="Core10\BackgroundCheck.cs" />
+    <Compile Include="Core10\RbPage.cs" />
+    <Compile Include="Core10\Ui.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="App.xaml.cs"><DependentUpon>App.xaml</DependentUpon></Compile>
+    <Compile Include="Shell.xaml.cs"><DependentUpon>Shell.xaml</DependentUpon></Compile>
+    <Compile Include="InboxPage.xaml.cs"><DependentUpon>InboxPage.xaml</DependentUpon></Compile>
+    <Compile Include="..\..\app\Retrobird\MessagePage.xaml.cs"><Link>MessagePage.xaml.cs</Link><DependentUpon>MessagePage.xaml</DependentUpon></Compile>
+    <Compile Include="..\..\app\Retrobird\ComposePage.xaml.cs"><Link>ComposePage.xaml.cs</Link><DependentUpon>ComposePage.xaml</DependentUpon></Compile>
+    <Compile Include="..\..\app\Retrobird\SettingsPage.xaml.cs"><Link>SettingsPage.xaml.cs</Link><DependentUpon>SettingsPage.xaml</DependentUpon></Compile>
+    <Compile Include="..\..\app\Retrobird\AccountEditPage.xaml.cs"><Link>AccountEditPage.xaml.cs</Link><DependentUpon>AccountEditPage.xaml</DependentUpon></Compile>
+    <Compile Include="..\..\app\Retrobird\ProviderPage.xaml.cs"><Link>ProviderPage.xaml.cs</Link><DependentUpon>ProviderPage.xaml</DependentUpon></Compile>
+    <Compile Include="..\..\app\Retrobird\LicensePage.xaml.cs"><Link>LicensePage.xaml.cs</Link><DependentUpon>LicensePage.xaml</DependentUpon></Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <ApplicationDefinition Include="App.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></ApplicationDefinition>
+    <Page Include="Shell.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+    <Page Include="InboxPage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+    <Page Include="MessagePage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+    <Page Include="ComposePage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+    <Page Include="SettingsPage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+    <Page Include="AccountEditPage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+    <Page Include="ProviderPage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+    <Page Include="LicensePage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+  </ItemGroup>
+
+  <!-- licenses and the mail engine, the same files as the 8.1 app's. The DLLs sit at the package
+       root, where DllImport("rbmail.dll") and the DLL search find them. -->
+  <ItemGroup>
+    <Content Include="..\..\app\Retrobird\Legal\NOTICES.txt"><Link>Legal\NOTICES.txt</Link></Content>
+    <Content Include="..\..\app\Retrobird\Legal\MPL-2.0.txt"><Link>Legal\MPL-2.0.txt</Link></Content>
+    <Content Include="..\..\app\Retrobird\Legal\uxp-nss-nspr-changes.patch"><Link>Legal\uxp-nss-nspr-changes.patch</Link></Content>
+    <Content Include="..\..\app\Retrobird\Helper\rbmail.dll"><Link>rbmail.dll</Link></Content>
+    <Content Include="..\..\app\Retrobird\Helper\nssckbi.dll"><Link>nssckbi.dll</Link></Content>
+    <Content Include="..\..\app\Retrobird\Helper\nspr4.dll"><Link>nspr4.dll</Link></Content>
+    <Content Include="..\..\app\Retrobird\Helper\plc4.dll"><Link>plc4.dll</Link></Content>
+    <Content Include="..\..\app\Retrobird\Helper\plds4.dll"><Link>plds4.dll</Link></Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform">
+      <Version>6.2.14</Version>
+    </PackageReference>
+  </ItemGroup>
+  <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '15.0' ">
+    <VisualStudioVersion>15.0</VisualStudioVersion>
+  </PropertyGroup>
+  <Import Project="$(MSBuildExtensionsPath)\Microsoft\WindowsXaml\v$(VisualStudioVersion)\Microsoft.Windows.UI.Xaml.CSharp.targets" />
+</Project>

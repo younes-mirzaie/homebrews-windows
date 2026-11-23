@@ -34,7 +34,9 @@ namespace Retrobird.Core
         public static string CurrentFolder { get { return Get("folder", "INBOX"); } set { Set("folder", value); } }
         public static string CurrentFolderLabel { get { return Get("folderLabel", "inbox"); } set { Set("folderLabel", value); } }
         public static string CurrentFolderRole { get { return Get("folderRole", "inbox"); } set { Set("folderRole", value); } }
-        public static bool LoadImages { get { return Get("images", false); } set { Set("images", value); } }
+        /// <summary>Pictures from the web show in mail (never in junk). On by default since 0.7.4; a
+        /// new key, so the old default (off) doesn't carry over.</summary>
+        public static bool LoadImages { get { return Get("images2", true); } set { Set("images2", value); } }
         /// <summary>A Microsoft app ID typed under server settings (overrides the built-in one).</summary>
         public static string MicrosoftClientId
         {

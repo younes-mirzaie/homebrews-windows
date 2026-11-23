@@ -28,7 +28,7 @@ end with an empty line. Error codes:
 | `FOLDERS id` | `OK online` or `OK offline error`, then rows `F name display role unseen total noselect` from the cache. Roles: `inbox sent drafts trash junk archive` or empty |
 | `SYNC id folder` | `OK added unseen` (new mail, flag changes, deletions) |
 | `MORE id folder count` | `OK added unseen` (fetches `count` older headers) |
-| `LIST id folder offset count` | `OK cached exists`, rows `M uid flags date size att from to subject`, newest first. Flags letters: `S` seen, `F` flagged, `A` answered, `D` draft |
+| `LIST id folder offset count` | `OK cached exists`, rows `M uid flags date size att from to subject preview`, newest first. `preview` is the first words of the text on one line, empty until fetched (a sync fills in the newest 50 that lack one). Flags letters: `S` seen, `F` flagged, `A` answered, `D` draft |
 | `MSG id folder uid [images]` | `OK`, rows `key value` for `from to cc replyto subject date msgid references blocked text html`, and `att idx name ctype size inline`. Marks the message read. `html` is sanitized; remote images are blocked unless `images` is `1` |
 | `SAVEATT id folder uid idx dir` | `OK path` |
 | `FLAG id folder uid +S\|-S\|+F\|-F\|+A\|-A` | `OK` |

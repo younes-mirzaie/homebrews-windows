@@ -308,6 +308,39 @@ static void t_charsets(void)
     buf_free(&o);
 }
 
+static void t_preview(void)
+{
+    char *s;
+    s = make_preview("Content-Type: text/plain; charset=utf-8\r\n", 41,
+                     "Hi Ann,\r\n\r\n  see   you\tat 5.\r\n> old quoted line\r\n", 54);
+    EQS(s, "Hi Ann, see you at 5.");
+    free(s);
+    s = make_preview("Content-Type: text/html\r\nContent-Transfer-Encoding: quoted-printable\r\n", 72,
+                     "<html><head><style>p{}</style></head><body><p>Caf=C3=A9 &amp; more</p>", 69);
+    EQS(s, "Caf\xc3\xa9 & more");
+    free(s);
+    {
+        const char *mp = "--b1\r\nContent-Type: text/plain\r\nContent-Transfer-Encoding: base64\r\n\r\n"
+                         "SGVsbG8gdGhlcmU=\r\n--b1\r\nContent-Type: text/html\r\n\r\n<b>x</b>";
+        s = make_preview("Content-Type: multipart/alternative; boundary=b1\r\n", 51, mp, strlen(mp));
+        EQS(s, "Hello there");
+        free(s);
+    }
+    {
+        buf_t long_text;
+        buf_init(&long_text);
+        for (int i = 0; i < 100; i++) buf_adds(&long_text, "\xc3\xa9" "a ");
+        s = make_preview("", 0, long_text.p, long_text.len);
+        CHECK(utf8_valid(s, strlen(s)), "preview cut on a character");
+        CHECK(strlen(s) <= 160 * 2, "preview length %d", (int)strlen(s));
+        free(s);
+        buf_free(&long_text);
+    }
+    s = make_preview("", 0, "", 0);
+    EQS(s, "");
+    free(s);
+}
+
 int main(void)
 {
     if (net_init(NULL) != 0) { printf("NSS init failed\n"); return 1; }
@@ -322,6 +355,7 @@ int main(void)
     t_dates();
     t_seal();
     t_charsets();
+    t_preview();
     printf("%d checks, %d failed\n", checks, fails);
     return fails ? 1 : 0;
 }

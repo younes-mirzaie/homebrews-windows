@@ -649,3 +649,91 @@ char *mime_build(const mime_out *o, size_t *len, char **msgid)
     *len = out.len;
     return buf_detach(&out);
 }
+
+/* ---------------- preview line ---------------- */
+
+/* One line for the message list: the first words of the text (or of the HTML as text), with
+   quoted lines left out and whitespace collapsed. hdr holds at least Content-Type; text may be
+   cut anywhere, since the list only fetches its first few KB. */
+char *make_preview(const char *hdr, size_t hdr_len, const char *text, size_t text_len)
+{
+    buf_t whole, t, clean, out;
+    mime_msg *m;
+    mime_view v;
+    const char *p, *end;
+    int space = 1, chars = 0;
+    buf_init(&whole);
+    buf_add(&whole, hdr ? hdr : "", hdr ? hdr_len : 0);
+    while (whole.len && (whole.p[whole.len - 1] == '\n' || whole.p[whole.len - 1] == '\r')) whole.p[--whole.len] = '\0';
+    buf_adds(&whole, "\r\n\r\n");
+    buf_add(&whole, text ? text : "", text ? text_len : 0);
+    m = mime_parse(buf_str(&whole), whole.len);
+    buf_free(&whole);
+    mime_view_get(m, &v);
+    buf_init(&t);
+    if (v.text) mime_text(v.text, &t);
+    else if (v.html) {
+        buf_t raw;
+        buf_init(&raw);
+        mime_text(v.html, &raw);
+        html_to_text(&t, buf_str(&raw), raw.len);
+        buf_free(&raw);
+    }
+    mime_view_free(&v);
+    mime_free(m);
+    buf_init(&clean);
+    utf8_sanitize(&clean, buf_str(&t), t.len);
+    buf_free(&t);
+    buf_init(&out);
+    p = buf_str(&clean);
+    end = p + clean.len;
+    while (p < end && chars < 160) {
+        const char *eol = memchr(p, '\n', (size_t)(end - p)), *q;
+        if (!eol) eol = end;
+        q = p;
+        while (q < eol && (*q == ' ' || *q == '\t')) q++;
+        if (q < eol && *q == '>') { p = eol + 1; continue; }  /* quoted reply */
+        for (; q < eol; q++) {
+            unsigned char c = (unsigned char)*q;
+            if ((c & 0xC0) != 0x80 && chars >= 160) break;
+            if (c == ' ' || c == '\t' || c == '\r' || c == '\v' || c == '\f') {
+                if (!space) { buf_addc(&out, ' '); space = 1; }
+                continue;
+            }
+            if (c < 0x20 || c == 0x7F) continue;
+            /* zero width and non-breaking spaces that newsletters pad with */
+            if (c == 0xC2 && q + 1 < eol && (unsigned char)q[1] == 0xA0) {
+                if (!space) { buf_addc(&out, ' '); space = 1; }
+                q++;
+                continue;
+            }
+            if (c == 0xE2 && q + 2 < eol && (unsigned char)q[1] == 0x80 &&
+                ((unsigned char)q[2] == 0x8B || (unsigned char)q[2] == 0x8C || (unsigned char)q[2] == 0x8D)) {
+                q += 2;
+                continue;
+            }
+            if (c == 0xEF && q + 2 < eol && (unsigned char)q[1] == 0xBB && (unsigned char)q[2] == 0xBF) { q += 2; continue; }
+            buf_addc(&out, (char)c);
+            space = 0;
+            if ((c & 0xC0) != 0x80) chars++;
+        }
+        if (!space) { buf_addc(&out, ' '); space = 1; }
+        p = eol + 1;
+    }
+    buf_free(&clean);
+    /* a cut UTF-8 sequence at the end */
+    while (out.len && ((unsigned char)out.p[out.len - 1] & 0xC0) == 0x80) {
+        size_t i = out.len;
+        while (i && ((unsigned char)out.p[i - 1] & 0xC0) == 0x80) i--;
+        if (!i) { out.len = 0; break; }
+        {
+            unsigned char lead = (unsigned char)out.p[i - 1];
+            size_t need = lead >= 0xF0 ? 4 : lead >= 0xE0 ? 3 : 2;
+            if (out.len - (i - 1) >= need) break;
+            out.len = i - 1;
+        }
+    }
+    while (out.len && out.p[out.len - 1] == ' ') out.len--;
+    if (out.p) out.p[out.len] = '\0';
+    return buf_detach(&out);
+}
